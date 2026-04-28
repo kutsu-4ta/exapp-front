@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Noto_Serif_JP } from 'next/font/google'
 import './globals.css'
+import {BottomNav} from "@/components/shell/BottomNav";
+import {TimerProvider} from "@/context/TimerContext";
 
 const notoSerifJP = Noto_Serif_JP({
   weight: ['400', '700'],
@@ -20,8 +22,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ja">
-      <body className={notoSerifJP.variable}>{children}</body>
-    </html>
+      <html lang="ja">
+      <body className={notoSerifJP.variable}>
+      <TimerProvider>
+        {children}
+        <BottomNav/>
+      </TimerProvider>
+      </body>
+      </html>
   )
 }

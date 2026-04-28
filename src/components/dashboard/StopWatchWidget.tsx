@@ -1,47 +1,23 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
 import { todayString } from "@/types/workspace"
 import Link from "next/link"
+import {useTimer} from "@/context/TimerContext";
 
 export function StopWatchWidget() {
-    const [time, setTime] = useState(0)
-    const [isActive, setIsActive] = useState(false)
-    const intervalRef = useRef<NodeJS.Timeout | null>(null)
-
-    const toggle = () => setIsActive(!isActive)
-    const reset = () => {
-        setIsActive(false)
-        setTime(0)
-    }
-
+    const { time, isActive, toggle, reset } = useTimer()
     const minutes = Math.ceil(time / 60000)
     const logUrl = `/workspace/${todayString()}?minutes=${minutes}`
-
-    useEffect(() => {
-        if (isActive) {
-            intervalRef.current = setInterval(() => {
-                setTime((prev) => prev + 10)
-            }, 10)
-        } else if (intervalRef.current) {
-            clearInterval(intervalRef.current)
-        }
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current)
-        }
-    }, [isActive])
 
     const formatTime = () => {
         const hours = Math.floor(time / 3600000)
         const minutes = Math.floor((time % 3600000) / 60000)
         const seconds = Math.floor((time % 60000) / 1000)
         const ms = Math.floor((time % 1000) / 10)
-
         const h = hours > 0 ? `${hours}:` : ''
         const m = minutes < 10 && hours > 0 ? `0${minutes}` : minutes
         const s = seconds < 10 ? `0${seconds}` : seconds
         const msStr = ms < 10 ? `0${ms}` : ms
-
         return { main: `${h}${m}:${s}`, sub: `.${msStr}` }
     }
 
