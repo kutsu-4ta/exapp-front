@@ -374,3 +374,92 @@ export const DUMMY_PROBLEMS: Problem[] = [
   ...Array(5).fill(null).map((_, i)  => ({ ...dummyProblemBase, id: i + 40, failureTypes: ['解法ミス'] as FailureType[] })),
   ...Array(3).fill(null).map((_, i)  => ({ ...dummyProblemBase, id: i + 60, failureTypes: ['定義漏れ'] as FailureType[] })),
 ]
+
+// GET /api/daily-logs (一覧取得)
+export async function fetchDailyLogs(): Promise<DailyLog[]> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK !== 'false') {
+    const logs = loadLogs()
+    const sessions = loadSessions()
+
+    // ログが空の場合のみダミーデータを注入
+    if (Object.keys(logs).length === 0) {
+      injectDummyDailyLogs();
+    }
+
+    const allLogs = loadLogs(); // 再読み込み
+    return Object.values(allLogs)
+        .map((l) => buildDailyLog(l, sessions))
+        .sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  const res = await fetch('/api/daily-logs', { headers: await authHeaders() })
+  if (!res.ok) throw new Error('ログ一覧の取得に失敗しました')
+  return res.json()
+}
+
+/**
+ * ストイックな学習実績をシミュレートするダミー注入ロジック
+ */
+function injectDummyDailyLogs() {
+  const logs: Record<string, Omit<DailyLog, 'studySessions' | 'totalMinutes'>> = {};
+  const sessions: StudySession[] = [];
+  const today = new Date();
+
+  // 過去14日分のデータを生成
+  for (let i = 0; i < 14; i++) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+
+    // DailyLog本体
+    logs[dateStr] = {
+      date: dateStr,
+      reflection: getStoicReflection(i),
+      isCompleted: i !== 0, // 今日以外は完了済み
+      completedAt: i !== 0 ? now() : null,
+      createdAt: now(),
+      updatedAt: now(),
+    };
+
+    // セッション（早朝、昼、深夜の固定ブロック）
+    const dailyBlocks = [
+      { label: '早朝ブロック', start: '05:00', duration: 120, subj: '財務・会計' },
+      { label: '昼スキマ', start: '12:15', duration: 45, subj: '企業経営理論' },
+      { label: '深夜ブロック', start: '22:00', duration: 180, subj: i % 2 === 0 ? '経済学・経済政策' : '運営管理' },
+    ];
+
+    if (isWeekend) {
+      // 休日は午後のロングブロックを追加
+      dailyBlocks.push({ label: '午後集中', start: '14:00', duration: 240, subj: '過去問演習' });
+    }
+
+    dailyBlocks.forEach((block, idx) => {
+      sessions.push({
+        id: sessions.length + 1,
+        dailyLogDate: dateStr,
+        title: block.label,
+        subject: block.subj,
+        minutes: block.duration,
+        startedAt: `${dateStr}T${block.start}:00Z`,
+        createdAt: now(),
+        updatedAt: now(),
+      });
+    });
+  }
+
+  saveLogs(logs);
+  saveSessions(sessions);
+}
+
+function getStoicReflection(index: number): string {
+  const reflections = [
+    "今日は「経済学」のIS-LM曲線に集中。グラフのシフト条件を論理的に解釈できた。明日は法務へ。",
+    "早朝の財務計算、回転率が上がってきた。スピ問のミスパターンをReactアプリに記録済み。",
+    "仕事が立て込んだが、昼の45分を死守。運営管理の在庫管理計算はパズルに近い。簡単だと思えるまで回す。",
+    "週45時間ペース維持。可処分時間のすべてを診断士に捧げている感覚が心地よい。哲学的な思考が学習を助けている。",
+    "財務のキャッシュフロー計算書でミス。営業活動によるCFの小計以下を再暗記。明日リベンジする。",
+    "経済学・経済政策の先行指標を整理。雑学知識と結びつけると定着が良い。ストイックに実績を積むのみ。",
+  ];
+  return reflections[index % reflections.length];
+}

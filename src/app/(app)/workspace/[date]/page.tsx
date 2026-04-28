@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import type { DailyLog, StudySession } from '@/types/workspace'
 import {
   fetchDailyLog, createDailyLog, updateReflection,
@@ -25,7 +26,6 @@ function WorkspaceDateContent() {
   const searchParams = useSearchParams()
   const date = Array.isArray(params.date) ? params.date[0] : params.date
 
-  // ストップウォッチから渡された "minutes" パラメータ
   const initialMinutes = searchParams.get('minutes')
       ? parseInt(searchParams.get('minutes')!, 10)
       : undefined
@@ -71,7 +71,10 @@ function WorkspaceDateContent() {
         <nav style={navBar}>
           <div style={breadcrumb}>
             <span style={navIcon}>📝</span>
-            <span style={navLink}>Workspace</span>
+            {/* 一覧画面へのリンクに変更 */}
+            <Link href="/workspace/daily-logs" style={navLink}>
+              Workspace
+            </Link>
             <span style={sep}>/</span>
             <span style={activeNav}>{log.date}</span>
           </div>
@@ -139,9 +142,19 @@ const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '
 const navBar: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid rgba(55, 53, 47, 0.09)' }
 const breadcrumb: React.CSSProperties = { display: 'flex', alignItems: 'center', fontSize: '13px', color: 'rgba(55, 53, 47, 0.45)' }
 const navIcon: React.CSSProperties = { marginRight: '6px' }
-const navLink: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.5)', cursor: 'pointer' }
-const sep: React.CSSProperties = { margin: '0 6px', color: 'rgba(55, 53, 47, 0.16)' }
-const activeNav: React.CSSProperties = { fontWeight: 500 }
+
+// ホバー時に下線が出るように調整
+const navLink: React.CSSProperties = {
+  color: 'rgba(55, 53, 47, 0.5)',
+  textDecoration: 'none',
+  cursor: 'pointer',
+  transition: 'background 0.2s ease-in-out',
+  padding: '2px 4px',
+  borderRadius: '4px'
+}
+
+const sep: React.CSSProperties = { margin: '0 2px', color: 'rgba(55, 53, 47, 0.16)' }
+const activeNav: React.CSSProperties = { fontWeight: 500, paddingLeft: '4px' }
 const navActions: React.CSSProperties = { display: 'flex', gap: '8px' }
 const primaryBtn: React.CSSProperties = { backgroundColor: '#2383e2', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: '4px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }
 const ghostBtn: React.CSSProperties = { backgroundColor: 'transparent', color: 'rgba(55, 53, 47, 0.45)', border: '1px solid rgba(55, 53, 47, 0.16)', padding: '4px 12px', borderRadius: '4px', fontSize: '14px', cursor: 'pointer' }
