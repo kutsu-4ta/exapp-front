@@ -142,7 +142,7 @@ export default function ExamPage() {
 
     return (
         <div style={container}>
-            {/* ── Tab Switcher: 最上部に追加 ── */}
+            {/* ── Tab Switcher: 最上部 ── */}
             <div style={tabContainer}>
                 <button
                     style={{...tabBtn, ...(viewMode === 'input' ? activeTab : {})}}
@@ -157,8 +157,7 @@ export default function ExamPage() {
                     実績確認
                 </button>
             </div>
-
-            {viewMode === 'input' ? (
+            <div style={{ display: viewMode === 'input' ? 'block' : 'none' }}>
                 <>
                     {/* ── Dashboard (既存) ── */}
                     <div style={stickyHeader}>
@@ -273,10 +272,11 @@ export default function ExamPage() {
                     </div>
                     <footer style={footer}><button style={saveBtn}>分析ログを保存して終了</button></footer>
                 </>
-            ) : (
-                /* ── Analysis View ── */
+            </div>
+
+            <div style={{ display: viewMode === 'analysis' ? 'block' : 'none' }}>
                 <AnalysisView />
-            )}
+            </div>
         </div>
     )
 }
