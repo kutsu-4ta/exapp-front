@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import {useParams, useSearchParams} from 'next/navigation'
 import type { DailyLog, StudySession, StudySessionInput } from '@/types/workspace'
 import {
   fetchDailyLog, createDailyLog, updateReflection,
@@ -14,8 +14,9 @@ import { DayReflection } from '@/components/workspace/DayReflection'
 
 export default function WorkspaceDatePage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const date = Array.isArray(params.date) ? params.date[0] : params.date
-
+  const initialMinutes = searchParams.get('minutes') // URLから取得
   const [log, setLog] = useState<DailyLog | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -87,24 +88,29 @@ export default function WorkspaceDatePage() {
             <div style={sectionLabel}>
               CONTENT
             </div>
-            <StudyBlockList
-                date={log.date}
-                sessions={log.studySessions}
-                readonly={log.isCompleted}
-                onAdd={async (i) => {
-                  const s = await addStudySession(i)
-                  if (date) setLog(await fetchDailyLog(date))
-                  return s
-                }}
-                onUpdate={async (id, i) => {
-                  await updateStudySession(id, i)
-                  if (date) setLog(await fetchDailyLog(date))
-                }}
-                onDelete={async (id) => {
-                  await deleteStudySession(id)
-                  if (date) setLog(await fetchDailyLog(date))
-                }}
-            />
+            <div style={section}>
+              <div style={sectionLabel}>CONTENT</div>
+              <StudyBlockList
+                  date={log.date}
+                  sessions={log.studySessions}
+                  readonly={log.isCompleted}
+                  // ストップウォッチから来た時間を初期値として渡す（コンポーネント側の対応が必要）
+                  initialMinutes={initialMinutes ? parseInt(initialMinutes, 10) : undefined}
+                  onAdd={async (i) => {
+                    const s = await addStudySession(i)
+                    if (date) setLog(await fetchDailyLog(date))
+                    return s
+                  }}
+                  onUpdate={async (id, i) => {
+                    await updateStudySession(id, i)
+                    if (date) setLog(await fetchDailyLog(date))
+                  }}
+                  onDelete={async (id) => {
+                    await deleteStudySession(id)
+                    if (date) setLog(await fetchDailyLog(date))
+                  }}
+              />
+            </div>
           </div>
 
           <div style={reflectionWrapper}>

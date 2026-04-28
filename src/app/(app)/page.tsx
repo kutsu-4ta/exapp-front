@@ -12,6 +12,7 @@ import {
     type Problem,
 } from '@/types/workspace'
 import { DashboardChart } from "@/components/dashboard/DashboardChart";
+import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget";
 
 // ── Helpers (Logic remains same) ──────────────────────────────────────────────
 
@@ -58,6 +59,9 @@ export default function DashboardPage() {
     return (
         <div style={pageWrapper}>
             <div style={content}>
+
+                <StopWatchWidget />
+
                 {/* Stats Summary Row */}
                 <div style={statsGrid}>
                     <StatCard
