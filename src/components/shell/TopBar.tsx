@@ -28,7 +28,7 @@ export function TopBar() {
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
                 borderBottom: '1px solid rgba(55, 53, 47, 0.08)',
-                height: '48px',
+                height: '38px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -44,7 +44,7 @@ export function TopBar() {
                 letterSpacing: '-0.01em',
             }}
         >
-          診断士 一発合格
+            examapp
         </span>
 
                 {/* タイマー稼働中または一時停止中（時間が0でない）場合に表示 */}
