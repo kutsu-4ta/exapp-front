@@ -91,6 +91,12 @@ export function todayString(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+export function daysAgo(dateStr: string): number {
+  const today = new Date(todayString() + 'T00:00:00')
+  const d = new Date(dateStr + 'T00:00:00')
+  return Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+}
+
 // ── Problem / Weak-point types ───────────────────────────────────────────────
 
 export const PROFICIENCY_VALUES = ['○', '△', '×'] as const
