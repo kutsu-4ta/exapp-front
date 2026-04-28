@@ -2,17 +2,17 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { fetchDashboardStats, type DashboardStats } from '@/lib/api/workspace'
-import { fetchProblems } from '@/lib/api/problem'
+import { type DashboardStats, DUMMY_STATS, DUMMY_PROBLEMS } from '@/lib/api/workspace'
 import {
     SUBJECTS,
     FAILURE_TYPE_VALUES,
     formatHours,
     todayString,
     type Problem,
+    type ChartDataPoint,
 } from '@/types/workspace'
 import { DashboardChart } from "@/components/dashboard/DashboardChart";
-import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget";
+import { StopWatchWidget } from "@/components/dashboard/StopWatchWidget";
 
 // ── Helpers (Logic remains same) ──────────────────────────────────────────────
 
@@ -31,16 +31,63 @@ function lastTouchedLabel(lastDate: string | null): { text: string; color: strin
     return { text: `${n}日前`, color: '#eb5757', bg: 'rgba(235, 87, 87, 0.1)' }
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// 目標定数（分単位）
+const TARGET_MIN_MINUTES = 8400; // 140h
+const TARGET_MAX_MINUTES = 10800; // 180h
 
 export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [problems, setProblems] = useState<Problem[]>([])
 
     useEffect(() => {
-        fetchDashboardStats().then(setStats).catch(() => {})
-        fetchProblems().then(setProblems).catch(() => {})
+        setStats(DUMMY_STATS)
+        setProblems(DUMMY_PROBLEMS)
     }, [])
+
+    // ── グラフ用データの変形ロジック ──────────────────────────────────────────
+    const transformedChartData = useMemo(() => {
+        if (!stats?.dailyMinutes) return [];
+
+        const todayStr = todayString();
+        const daysInMonth = stats.dailyMinutes.length;
+        let cumulative = 0;
+
+        // 1. 実績累積とターゲットレンジの算出
+        const chartPoints: ChartDataPoint[] = stats.dailyMinutes.map((d, index) => {
+            const dayNum = index + 1;
+            const isFuture = d.date > todayStr;
+
+            if (!isFuture) {
+                cumulative += d.minutes;
+            }
+
+            // 線形ターゲットの計算 (1日〜月末に向けて積み上がる帯)
+            const rangeMin = (TARGET_MIN_MINUTES / daysInMonth) * dayNum;
+            const rangeMax = (TARGET_MAX_MINUTES / daysInMonth) * dayNum;
+
+            return {
+                day: dayNum,
+                date: d.date,
+                actual: isFuture ? undefined : Number((cumulative / 60).toFixed(1)), // 時間単位に変換
+                range: [Number((rangeMin / 60).toFixed(1)), Number((rangeMax / 60).toFixed(1))] as [number, number],
+            };
+        });
+
+        // 2. 予測値の算出
+        const elapsedDays = chartPoints.filter(p => p.date <= todayStr).length;
+        const avgPerDayMinutes = cumulative / (elapsedDays || 1);
+        let forecastCumulative = cumulative;
+
+        return chartPoints.map(p => {
+            if (p.date > todayStr) {
+                forecastCumulative += avgPerDayMinutes;
+                return { ...p, forecast: Number((forecastCumulative / 60).toFixed(1)) };
+            } else if (p.date === todayStr) {
+                return { ...p, forecast: p.actual }; // 予測線の開始点
+            }
+            return p;
+        });
+    }, [stats]);
 
     const failureData = useMemo(() => FAILURE_TYPE_VALUES.map((ft) => ({
         type: ft,
@@ -59,32 +106,33 @@ export default function DashboardPage() {
     return (
         <div style={pageWrapper}>
             <div style={content}>
-
                 <StopWatchWidget />
 
-                {/* Stats Summary Row */}
                 <div style={statsGrid}>
                     <StatCard
-                        label="Monthly"
+                        label="Monthly Total (Actual)"
                         value={formatHours(stats?.thisMonthMinutes ?? 0)}
                         sub={`${stats?.thisMonthDays ?? 0} days active`}
                     />
                     <StatCard
-                        label="Last 7 Days"
-                        value={formatHours(stats?.last7DaysMinutes ?? 0)}
-                        sub={`Avg ${formatHours(stats?.weeklyAvgMinutes ?? 0)} / day`}
+                        label="Daily Average"
+                        value={formatHours(stats?.weeklyAvgMinutes ?? 0)}
+                        sub="Current Pace"
                     />
                 </div>
 
-                {/* Progress Chart */}
                 <section style={section}>
-                    <div style={sectionLabel}><span style={triangle}>▼</span> STUDY PROGRESS</div>
+                    <div style={sectionLabel}><span style={triangle}>▼</span> STUDY PROGRESS (CUMULATIVE)</div>
                     <div style={chartCard}>
-                        <DashboardChart data={stats?.dailyMinutes ?? []} />
+                        <DashboardChart
+                            data={transformedChartData}
+                            targetMin={TARGET_MIN_MINUTES / 60}
+                            targetMax={TARGET_MAX_MINUTES / 60}
+                        />
                     </div>
                 </section>
 
-                {/* Subject Status List */}
+                {/* 以下、既存のSubject Status / Failure Analysis セクション */}
                 <section style={section}>
                     <div style={sectionLabel}><span style={triangle}>▼</span> SUBJECT STATUS</div>
                     <div style={listContainer}>
@@ -105,7 +153,6 @@ export default function DashboardPage() {
                     </div>
                 </section>
 
-                {/* Failure Analysis */}
                 <section style={section}>
                     <div style={sectionLabel}><span style={triangle}>▼</span> FAILURE ANALYSIS</div>
                     <div style={listContainer}>
@@ -127,7 +174,6 @@ export default function DashboardPage() {
                     </div>
                 </section>
 
-                {/* Today's Log Link */}
                 <Link href={`/workspace/${todayString()}`} style={ctaCard}>
                     <div style={ctaInfo}>
                         <span style={ctaLabel}>Go to Today's Page</span>
@@ -140,6 +186,7 @@ export default function DashboardPage() {
     )
 }
 
+// ── Styles & StatCard (略: 変更なし) ──────────────────────────────────────────
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
     return (
         <div style={statCard}>
@@ -150,87 +197,30 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
     )
 }
 
-// ── Styles (Notion-inspired) ──────────────────────────────────────────────────
-
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
-
 const content: React.CSSProperties = { maxWidth: '800px', margin: '0 auto', padding: '60px 20px 100px' }
-
 const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }
-
-const statCard: React.CSSProperties = {
-    padding: '16px',
-    borderRadius: '8px',
-    border: '1px solid rgba(55, 53, 47, 0.09)',
-}
-
+const statCard: React.CSSProperties = { padding: '16px', borderRadius: '8px', border: '1px solid rgba(55, 53, 47, 0.09)' }
 const statLabel: React.CSSProperties = { fontSize: '12px', color: 'rgba(55, 53, 47, 0.5)', fontWeight: 500, marginBottom: '4px' }
 const statValue: React.CSSProperties = { fontSize: '24px', fontWeight: 700, margin: 0 }
 const statSub: React.CSSProperties = { fontSize: '11px', color: 'rgba(55, 53, 47, 0.4)', marginTop: '4px' }
-
 const section: React.CSSProperties = { marginBottom: '48px' }
-
-const sectionLabel: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'rgba(55, 53, 47, 0.35)',
-    marginBottom: '16px',
-    letterSpacing: '0.05em',
-}
-
+const sectionLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, color: 'rgba(55, 53, 47, 0.35)', marginBottom: '16px', letterSpacing: '0.05em' }
 const triangle: React.CSSProperties = { fontSize: '8px' }
-
-const chartCard: React.CSSProperties = {
-    padding: '12px',
-    border: '1px solid rgba(55, 53, 47, 0.06)',
-    borderRadius: '8px',
-}
-
+const chartCard: React.CSSProperties = { padding: '12px', border: '1px solid rgba(55, 53, 47, 0.06)', borderRadius: '8px' }
 const listContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '2px' }
-
-const rowItem: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '8px 4px',
-    borderBottom: '1px solid rgba(55, 53, 47, 0.04)',
-}
-
+const rowItem: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid rgba(55, 53, 47, 0.04)' }
 const subjectNameGroup: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
 const subjectIcon: React.CSSProperties = { fontSize: '16px' }
 const subjectText: React.CSSProperties = { fontSize: '14px', fontWeight: 500 }
-
-const statusTag: React.CSSProperties = {
-    padding: '2px 8px',
-    borderRadius: '3px',
-    fontSize: '12px',
-    fontWeight: 500,
-}
-
+const statusTag: React.CSSProperties = { padding: '2px 8px', borderRadius: '3px', fontSize: '12px', fontWeight: 500 }
 const analysisRow: React.CSSProperties = { padding: '12px 0' }
 const analysisHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }
 const analysisText: React.CSSProperties = { fontSize: '14px' }
 const countText: React.CSSProperties = { fontSize: '13px', color: 'rgba(55, 53, 47, 0.45)' }
-
 const progressBarBg: React.CSSProperties = { height: '6px', backgroundColor: 'rgba(55, 53, 47, 0.05)', borderRadius: '3px', overflow: 'hidden' }
 const progressBarFill: React.CSSProperties = { height: '100%', borderRadius: '3px', transition: 'width 0.6s ease' }
-
-const ctaCard: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '20px 24px',
-    backgroundColor: 'rgba(35, 131, 226, 0.04)',
-    border: '1px solid rgba(35, 131, 226, 0.15)',
-    borderRadius: '12px',
-    textDecoration: 'none',
-    color: '#2383e2',
-    marginTop: '20px',
-}
-
+const ctaCard: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', backgroundColor: 'rgba(35, 131, 226, 0.04)', border: '1px solid rgba(35, 131, 226, 0.15)', borderRadius: '12px', textDecoration: 'none', color: '#2383e2', marginTop: '20px' }
 const ctaInfo: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const ctaLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, marginBottom: '2px' }
 const ctaValue: React.CSSProperties = { fontSize: '18px', fontWeight: 700 }

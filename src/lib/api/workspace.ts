@@ -2,7 +2,7 @@
 
 import type {
   DailyLog,
-  DailyLogSummary,
+  DailyLogSummary, Problem,
   StudySession,
   StudySessionInput,
 } from '@/types/workspace'
@@ -317,3 +317,61 @@ export async function deleteStudySession(id: number): Promise<void> {
   })
   if (!res.ok) throw new Error('ブロックの削除に失敗しました')
 }
+
+
+// ダミーデータ
+const generateDailyMinutes = () => {
+  const data = []
+  const today = new Date()
+  // 過去30日分のデータを生成
+  for (let i = 30; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(today.getDate() - i)
+    const dateStr = d.toISOString().split('T')[0]
+
+    // 週40〜45時間目標（1日平均 340分〜385分）
+    // 平日は仕事があるため早朝・深夜、休日は一気に積み上げるイメージ
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6
+    const baseMinutes = isWeekend ? 500 : 320
+    const randomVariation = Math.floor(Math.random() * 60) - 30 // ±30分の揺らぎ
+
+    data.push({
+      date: dateStr,
+      minutes: Math.max(0, baseMinutes + randomVariation)
+    })
+  }
+  return data
+}
+
+export const DUMMY_STATS: DashboardStats = {
+  thisMonthMinutes: 10800, // 約180時間
+  thisMonthDays: 28,
+  last7DaysMinutes: 2650,  // 約44時間（目標達成ペース）
+  weeklyAvgMinutes: 378,   // 1日約6.3時間
+  subjectMinutes: [
+    { subject: '企業経営理論', minutes: 3000 },
+    { subject: '財務・会計', minutes: 2500 },
+    { subject: '運営管理', minutes: 2000 },
+    { subject: '経済学・経済政策', minutes: 1200 }, // 最近注力
+    { subject: '経営法務', minutes: 800 },         // これから
+    { subject: '経営情報システム', minutes: 1000 },
+    { subject: '中小企業経営・政策', minutes: 300 }, // 手薄
+  ],
+  lastTouchedBySubject: [
+    { subject: '企業経営理論', lastDate: '2026-04-27' },
+    { subject: '財務・会計', lastDate: '2026-04-28' }, // 今日
+    { subject: '運営管理', lastDate: '2026-04-26' },
+    { subject: '経済学・経済政策', lastDate: '2026-04-28' }, // 今日
+    { subject: '経営法務', lastDate: '2026-04-25' },
+    { subject: '経営情報システム', lastDate: '2026-04-20' },
+    { subject: '中小企業経営・政策', lastDate: '2026-04-15' }, // 放置気味
+  ],
+  dailyMinutes: generateDailyMinutes(),
+}
+export const DUMMY_PROBLEMS: Problem[] = [
+  // 実際にはもっと大量にある想定だが、分析用に偏りを持たせる
+  ...Array(12).fill(null).map((_, i) => ({ id: i, failureTypes: ['理解不足', '知識の混同'] } as Problem)),
+  ...Array(8).fill(null).map((_, i) => ({ id: i + 20, failureTypes: ['計算ミス'] } as Problem)),
+  ...Array(5).fill(null).map((_, i) => ({ id: i + 40, failureTypes: ['問題文の読み飛ばし'] } as Problem)),
+  ...Array(3).fill(null).map((_, i) => ({ id: i + 60, failureTypes: ['時間切れ'] } as Problem)),
+]

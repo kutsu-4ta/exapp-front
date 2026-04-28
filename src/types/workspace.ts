@@ -113,4 +113,13 @@ export type Problem = {
   updatedAt: string
 }
 
+export type ChartDataPoint = {
+  day: number;        // 日にち (1〜31)
+  date: string;       // YYYY-MM-DD
+  actual?: number;    // 実績累計 (時間単位)
+  forecast?: number;  // 予測累計 (時間単位)
+  range: [number, number]; // その日の目標[下限, 上限]
+};
+
+
 export type ProblemInput = Omit<Problem, 'id' | 'createdAt' | 'updatedAt'>

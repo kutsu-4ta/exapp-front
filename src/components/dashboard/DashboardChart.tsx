@@ -1,67 +1,83 @@
+'use client'
+
 import {
     ComposedChart, Line, Area, XAxis, YAxis,
     CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
-import {todayString} from "@/types/workspace";
+import { todayString, type ChartDataPoint } from "@/types/workspace";
 
-export function DashboardChart({ data }: { data: { date: string; minutes: number }[] }) {
-    // 1日の理想的な学習時間（週45時間 / 7日 ≒ 385分）をガイドラインとして表示
-    const targetMin = 342 // 週40時間ベース (約5.7h)
-    const targetMax = 385 // 週45時間ベース (約6.4h)
+type Props = {
+    data: ChartDataPoint[];
+    targetMin: number;
+    targetMax: number;
+}
 
-    // グラフ用のデータ整形
-    const chartData = data.map(d => ({
-        ...d,
-        displayDate: d.date.slice(5), // MM-DD
-        range: [targetMin, targetMax] // 目標帯
-    }))
+export function DashboardChart({ data, targetMin, targetMax }: Props) {
+    const todayStr = todayString();
 
-    const maxVal = Math.max(...data.map(d => d.minutes), targetMax + 60)
+    // Y軸の最大値を動的に決定
+    const currentMax = data.reduce((acc, p) => Math.max(acc, p.actual || 0, p.forecast || 0), targetMax);
+    const yMax = Math.ceil(currentMax / 20) * 20; // 20時間刻みで余裕を持たせる
 
     return (
-        <div style={{ width: '100%', height: 160, marginTop: '1rem' }}>
+        <div style={{ width: '100%', height: 260, marginTop: '1rem' }}>
             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0ece8" />
+                <ComposedChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis
-                        dataKey="displayDate"
-                        tick={{ fontSize: 9, fill: '#b5a99a' }}
-                        interval={6}
+                        dataKey="day"
+                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                        interval={4}
                         tickLine={false}
                         axisLine={false}
                     />
                     <YAxis
-                        domain={[0, maxVal]}
-                        tick={{ fontSize: 9, fill: '#b5a99a' }}
+                        domain={[0, yMax]}
+                        tick={{ fontSize: 10, fill: '#94a3b8' }}
                         tickLine={false}
                         axisLine={false}
                     />
 
-                    {/* 目標学習時間のレンジ表示 */}
+                    {/* ターゲット範囲の背景（線形） */}
                     <Area
                         type="monotone"
                         dataKey="range"
                         stroke="none"
-                        fill="#5a9a4a"
-                        fillOpacity={0.08}
+                        fill="#10b981"
+                        fillOpacity={0.06}
                         isAnimationActive={false}
                     />
 
+                    {/* 下限・上限の最終ライン */}
+                    <ReferenceLine y={targetMin} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1} />
+                    <ReferenceLine y={targetMax} stroke="#f43f5e" strokeDasharray="4 4" strokeWidth={1} />
+
+                    {/* 今日の縦線 */}
+                    <ReferenceLine x={parseInt(todayStr.slice(8))} stroke="#e2e8f0" strokeWidth={1} />
+
                     <Tooltip content={<CustomTooltip />} />
 
-                    {/* 実績ライン */}
+                    {/* 予測線（点線） */}
                     <Line
                         type="monotone"
-                        dataKey="minutes"
-                        stroke="#5c3a1e"
-                        strokeWidth={2.5}
+                        dataKey="forecast"
+                        stroke="#0ea5e9"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
                         dot={false}
-                        activeDot={{ r: 4, fill: '#5c3a1e' }}
                         isAnimationActive={true}
                     />
 
-                    {/* 今日の基準線 */}
-                    <ReferenceLine x={todayString().slice(5)} stroke="#c9b49a" strokeWidth={1} />
+                    {/* 実績累計線（太い実線） */}
+                    <Line
+                        type="monotone"
+                        dataKey="actual"
+                        stroke="#0369a1"
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 5, fill: '#0369a1', strokeWidth: 0 }}
+                        isAnimationActive={true}
+                    />
                 </ComposedChart>
             </ResponsiveContainer>
         </div>
@@ -70,20 +86,30 @@ export function DashboardChart({ data }: { data: { date: string; minutes: number
 
 const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null
-    const data = payload[0].payload
+    const data = payload[0].payload as ChartDataPoint
     return (
         <div style={{
-            background: '#1a1108',
+            background: '#1e293b',
             borderRadius: 8,
             padding: '8px 12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            border: '1px solid #3a2a1a',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            border: '1px solid #334155',
         }}>
-            <div style={{ color: '#b5a99a', fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
+            <div style={{ color: '#94a3b8', fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
                 {data.date.replace(/-/g, '/')}
             </div>
-            <div style={{ color: '#ffffff', fontFamily: 'monospace', fontWeight: 800, fontSize: 13 }}>
-                実績 {Math.round(data.minutes / 6 * 10) / 100}h
+            {data.actual !== undefined && (
+                <div style={{ color: '#38bdf8', fontFamily: 'monospace', fontWeight: 800, fontSize: 13 }}>
+                    実績累計: {data.actual}h
+                </div>
+            )}
+            {data.forecast !== undefined && data.actual === undefined && (
+                <div style={{ color: '#7dd3fc', fontFamily: 'monospace', fontWeight: 700, fontSize: 13 }}>
+                    予測累計: {data.forecast}h
+                </div>
+            )}
+            <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>
+                目標範囲: {data.range[0]}〜{data.range[1]}h
             </div>
         </div>
     )
