@@ -11,7 +11,7 @@ const FONT = 'var(--font-noto-serif), serif'
 const inputStyle: React.CSSProperties = {
   width: '100%',
   backgroundColor: '#ffffff',
-  border: '1px solid #e4dbd0',
+  border: '1px solid #728fff',
   borderRadius: 3,
   padding: '11px 14px',
   color: '#2a1c10',
@@ -49,7 +49,7 @@ export default function LoginPage() {
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: '#f5f2ec',
+        backgroundColor: '#ffffff',
         color: '#2a1c10',
         display: 'flex',
         flexDirection: 'column',
@@ -58,7 +58,7 @@ export default function LoginPage() {
       {/* ヘッダー */}
       <header
         style={{
-          borderBottom: '1px solid #e4dbd0',
+          borderBottom: '1px solid #000000',
           padding: '0 24px',
           height: 56,
           display: 'flex',

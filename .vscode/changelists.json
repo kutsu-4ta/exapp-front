@@ -1,0 +1,27 @@
+{
+  "changelists": [
+    {
+      "name": "Default",
+      "files": [
+        "README.md",
+        "src/app/page.tsx",
+        ".claude/settings.json",
+        "docs/openapi.yaml",
+        "src/app/workspace/[date]/page.tsx",
+        "src/app/workspace/page.tsx",
+        "src/components/workspace/DayHeader.tsx",
+        "src/components/workspace/DayReflection.tsx",
+        "src/components/workspace/StudyBlockCard.tsx",
+        "src/components/workspace/StudyBlockForm.tsx",
+        "src/components/workspace/StudyBlockList.tsx",
+        "src/components/workspace/StudyBlockRow.tsx",
+        "src/lib/api/workspace.ts",
+        "src/types/workspace.ts",
+        ".vscode/changelists.json",
+        "src/app/login/page.tsx",
+        "src/app/register/page.tsx"
+      ]
+    }
+  ],
+  "active": "Default"
+}

@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: Exapp API
+  description: 中小企業診断士 学習管理アプリ API仕様書
+  version: 0.1.0
+
+servers:
+  - url: /api
+    description: Next.js proxy (→ backend)
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    TimeSlot:
+      type: string
+      enum: [morning, lunch, commute, night]
+      description: 早朝 / 昼 / 通勤 / 深夜
+
+    Subject:
+      type: string
+      enum:
+        - 経済学・経済政策
+        - 財務・会計
+        - 企業経営理論
+        - 運営管理
+        - 経営法務
+        - 経営情報システム
+        - 中小企業経営・政策
+
+    Material:
+      type: string
+      enum:
+        - テキスト
+        - 問題集
+        - スピード問題集
+        - 過去問
+        - その他
+
+    StudySession:
+      type: object
+      required: [id, dailyLogDate, timeSlot, startTime, endTime, subject, material]
+      properties:
+        id:
+          type: integer
+        dailyLogDate:
+          type: string
+          format: date
+          example: "2026-04-28"
+        timeSlot:
+          $ref: '#/components/schemas/TimeSlot'
+        startTime:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: "06:00"
+        endTime:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: "07:30"
+        subject:
+          $ref: '#/components/schemas/Subject'
+        material:
+          $ref: '#/components/schemas/Material'
+        memo:
+          type: string
+          nullable: true
+          description: 自由記述（「完」「苦手問題のみ」など形式不問）
+          example: "完"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StudySessionInput:
+      type: object
+      required: [timeSlot, startTime, endTime, subject, material]
+      properties:
+        timeSlot:
+          $ref: '#/components/schemas/TimeSlot'
+        startTime:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+        endTime:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+        subject:
+          $ref: '#/components/schemas/Subject'
+        material:
+          $ref: '#/components/schemas/Material'
+        memo:
+          type: string
+          nullable: true
+
+    DailyLog:
+      type: object
+      required: [date, isCompleted, studySessions]
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2026-04-28"
+        reflection:
+          type: string
+          nullable: true
+          description: 日単位の振り返り（自由記述）
+        isCompleted:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        studySessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudySession'
+        totalMinutes:
+          type: integer
+          description: 合計学習時間（分）
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DailyLogSummary:
+      type: object
+      description: 一覧表示用の軽量版
+      required: [date, isCompleted, totalMinutes]
+      properties:
+        date:
+          type: string
+          format: date
+        isCompleted:
+          type: boolean
+        totalMinutes:
+          type: integer
+        sessionCount:
+          type: integer
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+paths:
+  # ── Daily Logs ─────────────────────────────────────────────────────────────
+
+  /daily-logs:
+    get:
+      summary: 月間ログ一覧を取得
+      tags: [Daily Logs]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 2026
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 4
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyLogSummary'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: デイリーログを作成（同日は1件のみ）
+      tags: [Daily Logs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyLog'
+        '409':
+          description: 同日のログがすでに存在する
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /daily-logs/{date}:
+    parameters:
+      - name: date
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date
+        example: "2026-04-28"
+
+    get:
+      summary: 特定日のログを取得（存在しない場合は404）
+      tags: [Daily Logs]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyLog'
+        '404':
+          description: 未作成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: 振り返りテキストを更新
+      tags: [Daily Logs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reflection:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyLog'
+
+  /daily-logs/{date}/complete:
+    post:
+      summary: デイリーログを完了にする
+      tags: [Daily Logs]
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 完了成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyLog'
+
+  /daily-logs/{date}/uncomplete:
+    post:
+      summary: 完了を取り消して再編集可能にする
+      tags: [Daily Logs]
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyLog'
+
+  # ── Study Sessions ──────────────────────────────────────────────────────────
+
+  /study-sessions:
+    post:
+      summary: 学習ブロックを追加
+      tags: [Study Sessions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/StudySessionInput'
+                - type: object
+                  required: [dailyLogDate]
+                  properties:
+                    dailyLogDate:
+                      type: string
+                      format: date
+      responses:
+        '201':
+          description: 追加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudySession'
+
+  /study-sessions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    put:
+      summary: 学習ブロックを更新
+      tags: [Study Sessions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudySessionInput'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudySession'
+        '404':
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: 学習ブロックを削除
+      tags: [Study Sessions]
+      responses:
+        '204':
+          description: 削除成功
+        '404':
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Auth (existing) ─────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      summary: ログイン
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+
+  /auth/register:
+    post:
+      summary: 新規登録
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                password_confirmation:
+                  type: string
+      responses:
+        '201':
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string

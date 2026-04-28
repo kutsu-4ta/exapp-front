@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"/opt/homebrew/bin:$PATH\")",
+      "Bash(mkdir -p \"src/app/\\(app\\)/workspace/[date]\")",
+      "Bash(cp \"src/app/workspace/[date]/page.tsx\" \"src/app/\\(app\\)/workspace/[date]/page.tsx\")",
+      "Read(//Users/yamashita/**)",
+      "Bash(export PATH=\"/Users/yamashita/.local/share/nvm/v20.15.0/bin:$PATH\")"
+    ]
+  }
+}
