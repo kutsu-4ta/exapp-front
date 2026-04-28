@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import {todayString} from "@/types/workspace";
-import {router} from "next/client";
-import Link from "next/link";
+import { todayString } from "@/types/workspace"
+import Link from "next/link"
 
 export function StopWatchWidget() {
     const [time, setTime] = useState(0)
@@ -16,7 +15,6 @@ export function StopWatchWidget() {
         setTime(0)
     }
 
-    // 分単位に変換（1分未満は切り上げ）
     const minutes = Math.ceil(time / 60000)
     const logUrl = `/workspace/${todayString()}?minutes=${minutes}`
 
@@ -39,111 +37,161 @@ export function StopWatchWidget() {
         const seconds = Math.floor((time % 60000) / 1000)
         const ms = Math.floor((time % 1000) / 10)
 
-        const hDisplay = hours > 0 ? `${hours}:` : ''
-        const mDisplay = minutes < 10 && hours > 0 ? `0${minutes}` : minutes
-        const sDisplay = seconds < 10 ? `0${seconds}` : seconds
-        const msDisplay = ms < 10 ? `0${ms}` : ms
+        const h = hours > 0 ? `${hours}:` : ''
+        const m = minutes < 10 && hours > 0 ? `0${minutes}` : minutes
+        const s = seconds < 10 ? `0${seconds}` : seconds
+        const msStr = ms < 10 ? `0${ms}` : ms
 
-        return { main: `${hDisplay}${mDisplay}:${sDisplay}`, ms: `.${msDisplay}` }
+        return { main: `${h}${m}:${s}`, sub: `.${msStr}` }
     }
 
-    const { main, ms } = formatTime()
+    const { main, sub } = formatTime()
 
     return (
         <div style={container}>
-            <div style={timerDisplay}>
-                {!isActive && time > 0 ? (
-                    <Link href={logUrl} style={{ ...timeText, textDecoration: 'none' }}>
-                        {main}<span style={msText}>{ms}</span>
-                    </Link>
-                ) : (
-                    <div style={timeText}>
-                        {main}<span style={msText}>{ms}</span>
-                    </div>
-                )}
-                <div style={controls}>
-                    {/* 再生 / 一時停止ボタン */}
-                    <button onClick={toggle} style={isActive ? pauseBtn : playBtn}>
-                        {isActive ? (
-                            <span style={{ fontSize: '18px' }}>Ⅱ</span>
-                        ) : (
-                            <span style={{ fontSize: '16px', marginLeft: '2px' }}>▶</span>
-                        )}
-                    </button>
+            <div style={widgetCard}>
+                <div style={displaySection}>
+                    <span style={label}>STUDY TIMER</span>
+                    {isActive ? (
+                        <div style={timeWrapper}>
+                            <span style={mainTime}>{main}</span>
+                            <span style={subTime}>{sub}</span>
+                        </div>
+                    ) : time > 0 ? (
+                        <Link href={logUrl} style={timeLink}>
+                            <div style={timeWrapper}>
+                                <span style={mainTime}>{main}</span>
+                                <span style={subTime}>{sub}</span>
+                            </div>
+                            <span style={saveHint}>記録する →</span>
+                        </Link>
+                    ) : (
+                        <div style={timeWrapper}>
+                            <span style={mainTime}>0:00</span>
+                            <span style={subTime}>.00</span>
+                        </div>
+                    )}
+                </div>
 
-                    {/* 停止時のみ表示される「×」ボタン */}
-                    {!isActive && time > 0 && (
-                        <button onClick={reset} style={resetBtn}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M18 6L6 18M6 6l12 12" />
+                <div style={controls}>
+                    {time > 0 && !isActive && (
+                        <button onClick={reset} style={iconBtn} title="リセット">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                <path d="M3 3v5h5" />
                             </svg>
                         </button>
                     )}
+                    <button onClick={toggle} style={toggleBtn(isActive)}>
+                        {isActive ? (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="4" width="4" height="16" />
+                                <rect x="14" y="4" width="4" height="16" />
+                            </svg>
+                        ) : (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                        )}
+                    </button>
                 </div>
             </div>
         </div>
     )
 }
 
+// --- Styles ---
+
 const container: React.CSSProperties = {
+    padding: '0 16px',
     marginBottom: '32px',
 }
 
-const timerDisplay: React.CSSProperties = {
-    backgroundColor: '#0a0a1a',
-    borderRadius: '40px',
-    padding: '12px 28px',
+const widgetCard: React.CSSProperties = {
+    backgroundColor: '#fff',
+    border: '1px solid rgba(55, 53, 47, 0.09)',
+    borderRadius: '12px',
+    padding: '20px 24px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+}
+
+const displaySection: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+}
+
+const label: React.CSSProperties = {
+    fontSize: '10px',
+    fontWeight: 700,
+    color: 'rgba(55, 53, 47, 0.3)',
+    letterSpacing: '0.1em',
+}
+
+const timeWrapper: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'baseline',
+    fontFamily: 'ia-writer-mono, "SF Mono", Menlo, monospace',
+}
+
+const mainTime: React.CSSProperties = {
+    fontSize: '32px',
+    fontWeight: 500,
+    color: '#37352f',
+    fontVariantNumeric: 'tabular-nums',
+}
+
+const subTime: React.CSSProperties = {
+    fontSize: '18px',
+    color: 'rgba(55, 53, 47, 0.2)',
+    fontVariantNumeric: 'tabular-nums',
+}
+
+const timeLink: React.CSSProperties = {
+    textDecoration: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+}
+
+const saveHint: React.CSSProperties = {
+    fontSize: '11px',
+    color: '#2383e2',
+    fontWeight: 600,
+    marginTop: '-2px',
 }
 
 const controls: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
+    gap: '12px',
 }
 
-const buttonBase: React.CSSProperties = {
-    width: '44px',
-    height: '44px',
-    borderRadius: '22px',
+const toggleBtn = (active: boolean): React.CSSProperties => ({
+    width: '52px',
+    height: '52px',
+    borderRadius: '26px',
     border: 'none',
-    cursor: 'pointer',
+    backgroundColor: active ? 'rgba(55, 53, 47, 0.05)' : '#37352f',
+    color: active ? '#37352f' : '#fff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    cursor: 'pointer',
     transition: 'all 0.2s ease',
-}
+})
 
-const playBtn: React.CSSProperties = {
-    ...buttonBase,
-    backgroundColor: '#3a2a1a',
-    color: '#ff9f0a'
-}
-
-const pauseBtn: React.CSSProperties = {
-    ...buttonBase,
-    backgroundColor: '#3a2a1a',
-    color: '#ff9f0a'
-}
-
-const resetBtn: React.CSSProperties = {
-    ...buttonBase,
-    backgroundColor: '#2c2c3e',
-    color: '#fff'
-}
-
-const timeText: React.CSSProperties = {
-    fontSize: '42px', // 画像に合わせて少し大きく
-    fontWeight: 300,
-    color: '#ff9f0a',
-    fontFamily: 'SF Mono, Menlo, monospace',
-    letterSpacing: '0.02em',
-}
-
-const msText: React.CSSProperties = {
-    fontSize: '32px',
-    opacity: 0.9,
+const iconBtn: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(55, 53, 47, 0.3)',
+    cursor: 'pointer',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '6px',
+    transition: 'background 0.2s',
 }
