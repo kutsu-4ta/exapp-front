@@ -43,12 +43,11 @@ export default function WeakPage() {
   }, [])
 
   const handleDelete = useCallback(async (id: number) => {
-    if (!confirm('削除してもよろしいですか？')) return
+    if (!confirm('この項目を削除しますか？')) return
     await deleteProblem(id)
     setProblems((prev) => prev.filter((p) => p.id !== id))
   }, [])
 
-  // フィルタリングとグルーピングのロジックをメモ化
   const grouped = useMemo(() => {
     const filtered = problems
         .filter((p) => filterSubject === 'all' || p.subject === filterSubject)
@@ -63,7 +62,7 @@ export default function WeakPage() {
 
   return (
       <div style={container}>
-        {/* Sticky Header with Filters */}
+        {/* Sticky Header */}
         <div style={stickyHeader}>
           <div style={headerContent}>
             <h1 style={title}>弱点管理</h1>
@@ -73,7 +72,7 @@ export default function WeakPage() {
                   value={filterProficiency}
                   onChange={(e) => setFilterProficiency(e.target.value as any)}
               >
-                <option value="all">すべての習熟度</option>
+                <option value="all">習熟度: すべて</option>
                 {PROFICIENCY_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <select
@@ -81,14 +80,16 @@ export default function WeakPage() {
                   value={filterFailureType}
                   onChange={(e) => setFilterFailureType(e.target.value as any)}
               >
-                <option value="all">すべてのミス傾向</option>
+                <option value="all">ミス: すべて</option>
                 {FAILURE_TYPE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
           </div>
 
           <div style={subjectScroll}>
-            <FilterPill active={filterSubject === 'all'} onClick={() => setFilterSubject('all')}>全科目</FilterPill>
+            <FilterPill active={filterSubject === 'all'} onClick={() => setFilterSubject('all')}>
+              All
+            </FilterPill>
             {SUBJECTS.map((s) => (
                 <FilterPill key={s} active={filterSubject === s} onClick={() => setFilterSubject(s)}>
                   {s}
@@ -101,24 +102,30 @@ export default function WeakPage() {
           {showAddForm && (
               <div style={modalOverlay}>
                 <div style={modalContent}>
-                  <ProblemForm onSubmit={handleAdd} onCancel={() => setShowAddForm(false)} />
+                  <div style={modalHeader}>
+                    <span style={modalTitle}>新規弱点登録</span>
+                    <button onClick={() => setShowAddForm(false)} style={closeBtn}>×</button>
+                  </div>
+                  <div style={modalBody}>
+                    <ProblemForm onSubmit={handleAdd} onCancel={() => setShowAddForm(false)} />
+                  </div>
                 </div>
               </div>
           )}
 
-          {loading && <p style={mutedText}>データを照合中...</p>}
+          {loading && <p style={centeredMutedText}>Loading data...</p>}
           {error && <p style={errorText}>{error}</p>}
 
           {!loading && grouped.length === 0 && (
               <div style={emptyState}>
-                <p style={mutedText}>該当する問題が見つかりません</p>
+                <p style={centeredMutedText}>該当する問題は見つかりませんでした</p>
               </div>
           )}
 
           {grouped.map(({ subject, items }) => (
               <section key={subject} style={section}>
                 <div style={sectionHeader}>
-                  <h2 style={sectionTitle}>{subject}</h2>
+                  <span style={sectionLabel}>{subject}</span>
                   <span style={countBadge}>{items.length}</span>
                 </div>
                 <div style={cardGrid}>
@@ -130,11 +137,12 @@ export default function WeakPage() {
           ))}
         </div>
 
-        {/* Floating Action Button */}
+        {/* FAB - Floating Action Button */}
         {!showAddForm && (
-            <button style={fab} onClick={() => setShowAddForm(true)} title="問題を追加">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            <button style={fab} onClick={() => setShowAddForm(true)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
         )}
@@ -148,10 +156,9 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
   return (
       <button type="button" onClick={onClick} style={{
         ...pillBase,
-        backgroundColor: active ? '#5c3a1e' : '#fff',
-        color: active ? '#fff' : '#8a7b6e',
-        borderColor: active ? '#5c3a1e' : '#edeae6',
-        fontWeight: active ? 700 : 400,
+        backgroundColor: active ? '#edeae6' : 'transparent',
+        color: active ? '#37352f' : 'rgba(55, 53, 47, 0.45)',
+        fontWeight: active ? 600 : 400,
       }}>
         {children}
       </button>
@@ -160,95 +167,102 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-const container: React.CSSProperties = { minHeight: '100vh', backgroundColor: '#fdfcfb' }
+const container: React.CSSProperties = { minHeight: '100vh', backgroundColor: '#fff', color: '#37352f' }
 
 const stickyHeader: React.CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 100,
-  backgroundColor: 'rgba(253, 252, 251, 0.95)',
-  backdropFilter: 'blur(8px)',
-  borderBottom: '1px solid #edeae6',
-  padding: '0.75rem 1rem',
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(10px)',
+  borderBottom: '1px solid rgba(55, 53, 47, 0.09)',
+  padding: '12px 16px',
 }
 
 const headerContent: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  maxWidth: '640px',
-  margin: '0 auto 0.75rem',
+  maxWidth: '720px',
+  margin: '0 auto 12px',
 }
 
-const title: React.CSSProperties = { fontSize: '1rem', fontWeight: 800, color: '#1a1108', margin: 0 }
+const title: React.CSSProperties = { fontSize: '16px', fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }
 
-const controls: React.CSSProperties = { display: 'flex', gap: '0.5rem' }
+const controls: React.CSSProperties = { display: 'flex', gap: '8px' }
 
 const select: React.CSSProperties = {
-  padding: '0.3rem 0.5rem',
-  fontSize: '0.75rem',
-  borderRadius: '6px',
-  border: '1px solid #edeae6',
-  backgroundColor: '#fff',
-  color: '#5c3a1e',
+  padding: '4px 8px',
+  fontSize: '12px',
+  borderRadius: '4px',
+  border: '1px solid rgba(55, 53, 47, 0.16)',
+  backgroundColor: 'transparent',
+  color: 'rgba(55, 53, 47, 0.65)',
   outline: 'none',
+  cursor: 'pointer',
 }
 
 const subjectScroll: React.CSSProperties = {
   display: 'flex',
-  gap: '0.5rem',
+  gap: '4px',
   overflowX: 'auto',
-  maxWidth: '640px',
+  maxWidth: '720px',
   margin: '0 auto',
   paddingBottom: '4px',
-  msOverflowStyle: 'none',
+  scrollbarWidth: 'none', // Firefox
 }
 
-const mainContent: React.CSSProperties = { maxWidth: '640px', margin: '0 auto', padding: '1.25rem' }
+const mainContent: React.CSSProperties = { maxWidth: '720px', margin: '0 auto', padding: '24px 16px 120px' }
 
-const section: React.CSSProperties = { marginBottom: '2rem' }
+const section: React.CSSProperties = { marginBottom: '32px' }
 
 const sectionHeader: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  marginBottom: '0.75rem',
+  gap: '8px',
+  marginBottom: '12px',
 }
 
-const sectionTitle: React.CSSProperties = { fontSize: '0.875rem', fontWeight: 700, color: '#5c3a1e', margin: 0 }
+const sectionLabel: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 700,
+  color: 'rgba(55, 53, 47, 0.3)',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+}
 
 const countBadge: React.CSSProperties = {
-  fontSize: '0.7rem',
-  backgroundColor: '#f0ece8',
-  color: '#8a7b6e',
+  fontSize: '10px',
+  backgroundColor: 'rgba(55, 53, 47, 0.06)',
+  color: 'rgba(55, 53, 47, 0.45)',
   padding: '1px 6px',
   borderRadius: '10px',
-  fontWeight: 700,
+  fontWeight: 600,
 }
 
-const cardGrid: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '0.75rem' }
+const cardGrid: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '12px' }
 
 const pillBase: React.CSSProperties = {
-  padding: '0.25rem 0.875rem',
-  fontSize: '0.8125rem',
-  borderRadius: '20px',
-  border: '1px solid',
+  padding: '4px 12px',
+  fontSize: '13px',
+  borderRadius: '4px',
+  border: 'none',
   whiteSpace: 'nowrap',
   cursor: 'pointer',
-  transition: 'all 0.2s',
+  transition: 'background 0.2s',
 }
 
 const fab: React.CSSProperties = {
   position: 'fixed',
-  bottom: '1.5rem',
-  right: '1.5rem',
-  width: '56px',
-  height: '56px',
-  borderRadius: '28px',
-  backgroundColor: '#5c3a1e',
+  bottom: '80px', // BottomNavを避ける
+  right: '20px',
+  width: '48px',
+  height: '48px',
+  borderRadius: '24px',
+  backgroundColor: '#2383e2', // NotionのBlue
   color: '#fff',
   border: 'none',
-  boxShadow: '0 4px 16px rgba(92, 58, 30, 0.3)',
+  boxShadow: '0 4px 12px rgba(35, 131, 226, 0.35)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -259,23 +273,42 @@ const fab: React.CSSProperties = {
 const modalOverlay: React.CSSProperties = {
   position: 'fixed',
   top: 0, left: 0, right: 0, bottom: 0,
-  backgroundColor: 'rgba(26, 17, 8, 0.4)',
+  backgroundColor: 'rgba(15, 15, 15, 0.6)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   zIndex: 2000,
-  padding: '1rem',
+  padding: '16px',
 }
 
 const modalContent: React.CSSProperties = {
   backgroundColor: '#fff',
-  borderRadius: '16px',
+  borderRadius: '8px',
   width: '100%',
-  maxWidth: '500px',
-  maxHeight: '90vh',
+  maxWidth: '520px',
+  maxHeight: '85vh',
   overflowY: 'auto',
+  boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
 }
 
-const mutedText: React.CSSProperties = { color: '#b5a99a', textAlign: 'center', marginTop: '4rem', fontSize: '0.875rem' }
-const errorText: React.CSSProperties = { color: '#c0392b', textAlign: 'center', padding: '2rem' }
-const emptyState: React.CSSProperties = { padding: '4rem 0' }
+const modalHeader: React.CSSProperties = {
+  padding: '16px 20px',
+  borderBottom: '1px solid rgba(55, 53, 47, 0.09)',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+}
+
+const modalTitle: React.CSSProperties = { fontWeight: 600, fontSize: '15px' }
+
+const closeBtn: React.CSSProperties = {
+  background: 'none', border: 'none', fontSize: '20px', color: 'rgba(55, 53, 47, 0.4)', cursor: 'pointer'
+}
+
+const modalBody: React.CSSProperties = { padding: '20px' }
+
+const centeredMutedText: React.CSSProperties = {
+  color: 'rgba(55, 53, 47, 0.45)', textAlign: 'center', marginTop: '60px', fontSize: '14px'
+}
+const errorText: React.CSSProperties = { color: '#eb5757', textAlign: 'center', padding: '2rem', fontSize: '14px' }
+const emptyState: React.CSSProperties = { padding: '60px 0' }

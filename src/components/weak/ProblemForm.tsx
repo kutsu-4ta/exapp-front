@@ -37,7 +37,7 @@ export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
 
   function toggleFailureType(ft: FailureType) {
     setFailureTypes((prev) =>
-      prev.includes(ft) ? prev.filter((x) => x !== ft) : [...prev, ft],
+        prev.includes(ft) ? prev.filter((x) => x !== ft) : [...prev, ft],
     )
   }
 
@@ -58,7 +58,6 @@ export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
         solvedAt,
       })
       if (!isEdit) {
-        // keep subject, reset everything else for consecutive entry
         setMaterial('')
         setQuestionRef('')
         setNote('')
@@ -75,241 +74,256 @@ export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
   }
 
   return (
-    <div style={formWrap}>
-      {/* Row 1: subject + material */}
-      <div style={row}>
-        <div style={field}>
-          <label style={labelStyle} htmlFor={subjectId}>科目</label>
-          <input
-            id={subjectId}
-            list="pf-subjects"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="科目を選択または入力"
-            style={inp}
-          />
-          <datalist id="pf-subjects">
-            {SUBJECTS.map((s) => <option key={s} value={s} />)}
-          </datalist>
+      <div style={formWrap}>
+        {/* Row 1: subject + material */}
+        <div style={row}>
+          <div style={field}>
+            <label style={labelStyle} htmlFor={subjectId}>科目</label>
+            <input
+                id={subjectId}
+                list="pf-subjects"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="選択または入力"
+                style={inp}
+            />
+            <datalist id="pf-subjects">
+              {SUBJECTS.map((s) => <option key={s} value={s} />)}
+            </datalist>
+          </div>
+          <div style={field}>
+            <label style={labelStyle} htmlFor={materialId}>教材</label>
+            <input
+                id={materialId}
+                list="pf-materials"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                placeholder="教材名"
+                style={inp}
+            />
+            <datalist id="pf-materials">
+              {MATERIALS.map((m) => <option key={m} value={m} />)}
+            </datalist>
+          </div>
         </div>
-        <div style={field}>
-          <label style={labelStyle} htmlFor={materialId}>教材</label>
-          <input
-            id={materialId}
-            list="pf-materials"
-            value={material}
-            onChange={(e) => setMaterial(e.target.value)}
-            placeholder="教材"
-            style={inp}
-          />
-          <datalist id="pf-materials">
-            {MATERIALS.map((m) => <option key={m} value={m} />)}
-          </datalist>
-        </div>
-      </div>
 
-      {/* Row 2: question ref + date */}
-      <div style={row}>
-        <div style={{ ...field, flex: 2 }}>
-          <label style={labelStyle}>問題番号</label>
-          <input
-            value={questionRef}
-            onChange={(e) => setQuestionRef(e.target.value)}
-            placeholder="Q23 / 2023年第3問A など"
-            style={inp}
-          />
+        {/* Row 2: question ref + date */}
+        <div style={row}>
+          <div style={{ ...field, flex: 2 }}>
+            <label style={labelStyle}>問題番号</label>
+            <input
+                value={questionRef}
+                onChange={(e) => setQuestionRef(e.target.value)}
+                placeholder="例: 2026年度 第1問"
+                style={inp}
+            />
+          </div>
+          <div style={field}>
+            <label style={labelStyle}>解いた日</label>
+            <input
+                type="date"
+                value={solvedAt}
+                onChange={(e) => setSolvedAt(e.target.value)}
+                style={inp}
+            />
+          </div>
         </div>
-        <div style={field}>
-          <label style={labelStyle}>日付</label>
-          <input
-            type="date"
-            value={solvedAt}
-            onChange={(e) => setSolvedAt(e.target.value)}
-            style={inp}
-          />
-        </div>
-      </div>
 
-      {/* Row 3: proficiency */}
-      <div>
-        <p style={labelStyle}>習熟度</p>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.375rem' }}>
-          {PROFICIENCY_VALUES.map((p) => (
-            <button
-              key={p}
+        {/* Row 3: proficiency (Segmented Control style) */}
+        <div>
+          <p style={labelStyle}>習熟度</p>
+          <div style={segmentedControl}>
+            {PROFICIENCY_VALUES.map((p) => (
+                <button
+                    key={p}
+                    type="button"
+                    onClick={() => setProficiency(p)}
+                    style={{
+                      ...segmentBtn,
+                      backgroundColor: proficiency === p ? '#edeae6' : 'transparent',
+                      color: proficiency === p ? '#37352f' : 'rgba(55, 53, 47, 0.45)',
+                      fontWeight: proficiency === p ? 600 : 400,
+                    }}
+                >
+                  {p}
+                </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 4: failure types (Pill style) */}
+        <div>
+          <p style={labelStyle}>ミスの種類</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+            {FAILURE_TYPE_VALUES.map((ft) => {
+              const selected = failureTypes.includes(ft)
+              return (
+                  <button
+                      key={ft}
+                      type="button"
+                      onClick={() => toggleFailureType(ft)}
+                      style={{
+                        ...pillBtn,
+                        backgroundColor: selected ? 'rgba(55, 53, 47, 0.08)' : 'transparent',
+                        borderColor: selected ? 'rgba(55, 53, 47, 0.16)' : 'rgba(55, 53, 47, 0.09)',
+                        color: selected ? '#37352f' : 'rgba(55, 53, 47, 0.45)',
+                      }}
+                  >
+                    {ft}
+                  </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Row 5: good question toggle */}
+        <div style={{ marginTop: '4px' }}>
+          <button
               type="button"
-              onClick={() => setProficiency(p)}
+              onClick={() => setIsGoodQuestion((v) => !v)}
               style={{
-                flex: 1,
-                minHeight: '44px',
-                borderRadius: '8px',
-                border: proficiency === p ? 'none' : '1px solid #edeae6',
-                backgroundColor: proficiency === p ? '#5c3a1e' : 'transparent',
-                color: proficiency === p ? '#ffffff' : '#8a7b6e',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
+                ...pillBtn,
+                backgroundColor: isGoodQuestion ? '#fdf3df' : 'transparent',
+                borderColor: isGoodQuestion ? '#e8c97a' : 'rgba(55, 53, 47, 0.09)',
+                color: isGoodQuestion ? '#c8860a' : 'rgba(55, 53, 47, 0.45)',
               }}
-            >
-              {p}
-            </button>
-          ))}
+          >
+            {isGoodQuestion ? '★ 良問として保存中' : '☆ 良問マークをつける'}
+          </button>
+        </div>
+
+        {/* Row 6: note */}
+        <div style={field}>
+          <label style={labelStyle}>分析・メモ</label>
+          <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              placeholder="間違えた原因や、思い出したかった知識を言語化してください"
+              style={textarea}
+          />
+        </div>
+
+        {error && <p style={errorText}>{error}</p>}
+
+        {/* Actions */}
+        <div style={actions}>
+          <button type="button" onClick={onCancel} style={ghostBtn}>
+            キャンセル
+          </button>
+          <button type="button" onClick={handleSubmit} disabled={loading} style={primaryBtn}>
+            {loading ? '保存中...' : '保存'}
+          </button>
         </div>
       </div>
-
-      {/* Row 4: failure types */}
-      <div>
-        <p style={labelStyle}>ミスの種類</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.375rem' }}>
-          {FAILURE_TYPE_VALUES.map((ft) => {
-            const selected = failureTypes.includes(ft)
-            return (
-              <button
-                key={ft}
-                type="button"
-                onClick={() => toggleFailureType(ft)}
-                style={{
-                  padding: '0.375rem 0.875rem',
-                  minHeight: '36px',
-                  borderRadius: '20px',
-                  border: selected ? '1px solid #d4c4b0' : '1px solid #edeae6',
-                  backgroundColor: selected ? '#f0e8dd' : 'transparent',
-                  color: selected ? '#5c3a1e' : '#8a7b6e',
-                  fontSize: '0.8125rem',
-                  fontWeight: selected ? 600 : 400,
-                  cursor: 'pointer',
-                }}
-              >
-                {ft}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Row 5: good question toggle */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setIsGoodQuestion((v) => !v)}
-          style={{
-            padding: '0.375rem 0.875rem',
-            minHeight: '36px',
-            borderRadius: '20px',
-            border: isGoodQuestion ? '1px solid #e8c97a' : '1px solid #edeae6',
-            backgroundColor: isGoodQuestion ? '#fdf3df' : 'transparent',
-            color: isGoodQuestion ? '#c8860a' : '#b5a99a',
-            fontSize: '0.8125rem',
-            fontWeight: isGoodQuestion ? 600 : 400,
-            cursor: 'pointer',
-          }}
-        >
-          ★ 良問
-        </button>
-      </div>
-
-      {/* Row 6: note */}
-      <div>
-        <label style={labelStyle}>メモ</label>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={2}
-          placeholder="ポイント・間違えた原因など"
-          style={{
-            width: '100%',
-            resize: 'none',
-            border: '1px solid #edeae6',
-            borderRadius: '6px',
-            padding: '0.5rem 0.75rem',
-            fontSize: '0.875rem',
-            color: '#1a1108',
-            backgroundColor: '#faf8f6',
-            outline: 'none',
-            fontFamily: 'inherit',
-            marginTop: '0.375rem',
-            boxSizing: 'border-box',
-          }}
-        />
-      </div>
-
-      {/* Error */}
-      {error && <p style={{ fontSize: '0.8125rem', color: '#c0392b' }}>{error}</p>}
-
-      {/* Row 7: actions */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-        <button type="button" onClick={onCancel} style={cancelBtn}>
-          キャンセル
-        </button>
-        <button type="button" onClick={handleSubmit} disabled={loading} style={submitBtn}>
-          {loading ? '保存中…' : '保存'}
-        </button>
-      </div>
-    </div>
   )
 }
 
+// ── Styles ─────────────────────────────────────────────────────────────────────
+
 const formWrap: React.CSSProperties = {
-  backgroundColor: '#faf8f6',
-  border: '1px solid #edeae6',
-  borderRadius: '10px',
-  padding: '1rem 1.125rem',
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: '20px',
 }
 
 const row: React.CSSProperties = {
   display: 'flex',
-  gap: '0.75rem',
+  gap: '12px',
 }
 
 const field: React.CSSProperties = {
   flex: 1,
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: '6px',
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
-  color: '#8a7b6e',
-  letterSpacing: '0.03em',
+  fontSize: '11px',
+  fontWeight: 700,
+  color: 'rgba(55, 53, 47, 0.3)',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
 }
 
 const inp: React.CSSProperties = {
   width: '100%',
-  border: '1px solid #edeae6',
-  borderRadius: '6px',
-  padding: '0.5rem 0.75rem',
-  fontSize: '0.875rem',
-  color: '#1a1108',
-  backgroundColor: '#ffffff',
+  border: '1px solid rgba(55, 53, 47, 0.09)',
+  borderRadius: '4px',
+  padding: '8px 10px',
+  fontSize: '14px',
+  color: '#37352f',
+  backgroundColor: 'rgba(55, 53, 47, 0.02)',
   outline: 'none',
-  fontFamily: 'inherit',
   boxSizing: 'border-box',
 }
 
-const cancelBtn: React.CSSProperties = {
-  padding: '0.5rem 1rem',
-  minHeight: '40px',
-  border: '1px solid #edeae6',
-  borderRadius: '8px',
-  backgroundColor: 'transparent',
-  color: '#8a7b6e',
-  fontSize: '0.875rem',
+const textarea: React.CSSProperties = {
+  ...inp,
+  resize: 'none',
+  minHeight: '80px',
+  lineHeight: '1.5',
+}
+
+const segmentedControl: React.CSSProperties = {
+  display: 'flex',
+  gap: '2px',
+  backgroundColor: 'rgba(55, 53, 47, 0.04)',
+  padding: '2px',
+  borderRadius: '6px',
+  marginTop: '4px',
+}
+
+const segmentBtn: React.CSSProperties = {
+  flex: 1,
+  border: 'none',
+  borderRadius: '4px',
+  padding: '8px',
+  fontSize: '13px',
+  cursor: 'pointer',
+  transition: 'all 0.1s ease',
+}
+
+const pillBtn: React.CSSProperties = {
+  padding: '4px 12px',
+  borderRadius: '4px',
+  border: '1px solid',
+  fontSize: '12px',
+  cursor: 'pointer',
+  transition: 'all 0.1s ease',
+}
+
+const actions: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: '8px',
+  paddingTop: '8px',
+}
+
+const primaryBtn: React.CSSProperties = {
+  backgroundColor: '#2383e2',
+  color: '#fff',
+  border: 'none',
+  padding: '6px 16px',
+  borderRadius: '4px',
+  fontSize: '14px',
+  fontWeight: 500,
   cursor: 'pointer',
 }
 
-const submitBtn: React.CSSProperties = {
-  padding: '0.5rem 1.25rem',
-  minHeight: '40px',
-  border: 'none',
-  borderRadius: '8px',
-  backgroundColor: '#5c3a1e',
-  color: '#ffffff',
-  fontSize: '0.875rem',
-  fontWeight: 600,
+const ghostBtn: React.CSSProperties = {
+  backgroundColor: 'transparent',
+  color: 'rgba(55, 53, 47, 0.45)',
+  border: '1px solid rgba(55, 53, 47, 0.16)',
+  padding: '6px 16px',
+  borderRadius: '4px',
+  fontSize: '14px',
   cursor: 'pointer',
+}
+
+const errorText: React.CSSProperties = {
+  fontSize: '12px',
+  color: '#eb5757',
+  margin: 0,
 }
