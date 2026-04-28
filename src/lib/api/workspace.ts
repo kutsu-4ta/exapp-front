@@ -2,9 +2,12 @@
 
 import type {
   DailyLog,
-  DailyLogSummary, Problem,
+  DailyLogSummary,
+  DashboardStats,
+  Problem,
   StudySession,
   StudySessionInput,
+  TimeSlot,
   FailureType,
 } from '@/types/workspace'
 import { SUBJECTS } from '@/types/workspace'
@@ -236,16 +239,6 @@ export async function updateStudySession(
 }
 
 // GET /api/dashboard/stats
-export type DashboardStats = {
-  thisMonthMinutes: number
-  thisMonthDays: number
-  last7DaysMinutes: number
-  weeklyAvgMinutes: number
-  subjectMinutes: { subject: string; minutes: number }[]
-  lastTouchedBySubject: { subject: string; lastDate: string | null }[]
-  dailyMinutes: { date: string; minutes: number }[]
-}
-
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== 'false') {
     const sessions = loadSessions()
@@ -423,25 +416,26 @@ function injectDummyDailyLogs() {
     };
 
     // セッション（早朝、昼、深夜の固定ブロック）
-    const dailyBlocks = [
-      { label: '早朝ブロック', start: '05:00', duration: 120, subj: '財務・会計' },
-      { label: '昼スキマ', start: '12:15', duration: 45, subj: '企業経営理論' },
-      { label: '深夜ブロック', start: '22:00', duration: 180, subj: i % 2 === 0 ? '経済学・経済政策' : '運営管理' },
+    const dailyBlocks: { timeSlot: TimeSlot; duration: number; subj: string; material: string }[] = [
+      { timeSlot: 'morning', duration: 120, subj: '財務・会計', material: 'スピード問題集' },
+      { timeSlot: 'lunch', duration: 45, subj: '企業経営理論', material: 'テキスト' },
+      { timeSlot: 'night', duration: 180, subj: i % 2 === 0 ? '経済学・経済政策' : '運営管理', material: '問題集' },
     ];
 
     if (isWeekend) {
-      // 休日は午後のロングブロックを追加
-      dailyBlocks.push({ label: '午後集中', start: '14:00', duration: 240, subj: '過去問演習' });
+      // 休日は通勤時間帯にロングブロックを追加
+      dailyBlocks.push({ timeSlot: 'commute', duration: 240, subj: '経営法務', material: '過去問' });
     }
 
-    dailyBlocks.forEach((block, idx) => {
+    dailyBlocks.forEach((block) => {
       sessions.push({
         id: sessions.length + 1,
         dailyLogDate: dateStr,
-        title: block.label,
+        timeSlot: block.timeSlot,
         subject: block.subj,
+        material: block.material,
+        memo: null,
         minutes: block.duration,
-        startedAt: `${dateStr}T${block.start}:00Z`,
         createdAt: now(),
         updatedAt: now(),
       });

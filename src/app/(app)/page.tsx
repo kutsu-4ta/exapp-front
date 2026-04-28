@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { type DashboardStats, DUMMY_STATS, DUMMY_PROBLEMS } from '@/lib/api/workspace'
+import { DUMMY_STATS, DUMMY_PROBLEMS } from '@/lib/api/workspace'
 import {
     SUBJECTS, FAILURE_TYPE_VALUES, formatHours, todayString, daysAgo,
-    type Problem, type ChartDataPoint,
+    type DashboardStats, type Problem, type ChartDataPoint,
 } from '@/types/workspace'
 import { c, sectionLabelStyle, triangleStyle } from '@/styles/notion'
 import { DashboardChart } from '@/components/dashboard/DashboardChart'

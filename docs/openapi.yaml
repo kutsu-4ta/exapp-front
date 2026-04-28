@@ -46,7 +46,7 @@ components:
 
     StudySession:
       type: object
-      required: [id, dailyLogDate, timeSlot, startTime, endTime, subject, material]
+      required: [id, dailyLogDate, timeSlot, minutes, subject, material]
       properties:
         id:
           type: integer
@@ -56,14 +56,11 @@ components:
           example: "2026-04-28"
         timeSlot:
           $ref: '#/components/schemas/TimeSlot'
-        startTime:
-          type: string
-          pattern: '^\d{2}:\d{2}$'
-          example: "06:00"
-        endTime:
-          type: string
-          pattern: '^\d{2}:\d{2}$'
-          example: "07:30"
+        minutes:
+          type: integer
+          minimum: 1
+          description: 学習時間（分）
+          example: 90
         subject:
           $ref: '#/components/schemas/Subject'
         material:
@@ -82,16 +79,14 @@ components:
 
     StudySessionInput:
       type: object
-      required: [timeSlot, startTime, endTime, subject, material]
+      required: [timeSlot, minutes, subject, material]
       properties:
         timeSlot:
           $ref: '#/components/schemas/TimeSlot'
-        startTime:
-          type: string
-          pattern: '^\d{2}:\d{2}$'
-        endTime:
-          type: string
-          pattern: '^\d{2}:\d{2}$'
+        minutes:
+          type: integer
+          minimum: 1
+          description: 学習時間（分）
         subject:
           $ref: '#/components/schemas/Subject'
         material:
@@ -147,6 +142,134 @@ components:
           type: integer
         sessionCount:
           type: integer
+
+    Proficiency:
+      type: string
+      enum: ['○', '△', '×']
+      description: 習熟度（正解 / 曖昧 / 不正解）
+
+    FailureType:
+      type: string
+      enum: ['定義漏れ', '解法ミス', '計算ミス']
+      description: ミスの種別
+
+    Problem:
+      type: object
+      required: [id, subject, material, questionRef, proficiency, failureTypes, isGoodQuestion, solvedAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        subject:
+          $ref: '#/components/schemas/Subject'
+        material:
+          $ref: '#/components/schemas/Material'
+        questionRef:
+          type: string
+          description: 問題番号・参照（例："p.123 Q4"）
+          example: "p.123 Q4"
+        note:
+          type: string
+          nullable: true
+          description: 補足メモ
+        proficiency:
+          $ref: '#/components/schemas/Proficiency'
+        failureTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailureType'
+        isGoodQuestion:
+          type: boolean
+          description: 良問フラグ
+        solvedAt:
+          type: string
+          format: date
+          description: 解いた日
+          example: "2026-04-28"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProblemInput:
+      type: object
+      required: [subject, material, questionRef, proficiency, failureTypes, isGoodQuestion, solvedAt]
+      properties:
+        subject:
+          $ref: '#/components/schemas/Subject'
+        material:
+          $ref: '#/components/schemas/Material'
+        questionRef:
+          type: string
+        note:
+          type: string
+          nullable: true
+        proficiency:
+          $ref: '#/components/schemas/Proficiency'
+        failureTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailureType'
+        isGoodQuestion:
+          type: boolean
+        solvedAt:
+          type: string
+          format: date
+
+    DashboardStats:
+      type: object
+      required: [thisMonthMinutes, thisMonthDays, last7DaysMinutes, weeklyAvgMinutes, subjectMinutes, lastTouchedBySubject, dailyMinutes]
+      properties:
+        thisMonthMinutes:
+          type: integer
+          description: 今月の合計学習時間（分）
+        thisMonthDays:
+          type: integer
+          description: 今月の学習日数
+        last7DaysMinutes:
+          type: integer
+          description: 直近7日間の合計学習時間（分）
+        weeklyAvgMinutes:
+          type: number
+          format: float
+          description: 週平均学習時間（分）
+        subjectMinutes:
+          type: array
+          description: 科目別今月累計（分）、降順
+          items:
+            type: object
+            required: [subject, minutes]
+            properties:
+              subject:
+                type: string
+              minutes:
+                type: integer
+        lastTouchedBySubject:
+          type: array
+          description: 科目ごとの最終学習日
+          items:
+            type: object
+            required: [subject, lastDate]
+            properties:
+              subject:
+                type: string
+              lastDate:
+                type: string
+                format: date
+                nullable: true
+        dailyMinutes:
+          type: array
+          description: 直近30日間の日別学習時間（分）
+          items:
+            type: object
+            required: [date, minutes]
+            properties:
+              date:
+                type: string
+                format: date
+              minutes:
+                type: integer
 
     Error:
       type: object
@@ -379,6 +502,115 @@ paths:
           description: 削除成功
         '404':
           description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Problems ───────────────────────────────────────────────────────────────
+
+  /problems:
+    get:
+      summary: 苦手問題一覧を取得
+      tags: [Problems]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Problem'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: 苦手問題を追加
+      tags: [Problems]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemInput'
+      responses:
+        '201':
+          description: 追加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /problems/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    put:
+      summary: 苦手問題を更新
+      tags: [Problems]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemInput'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: 苦手問題を削除
+      tags: [Problems]
+      responses:
+        '204':
+          description: 削除成功
+        '404':
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Dashboard ───────────────────────────────────────────────────────────────
+
+  /dashboard/stats:
+    get:
+      summary: ダッシュボード集計データを取得
+      tags: [Dashboard]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+        '401':
+          description: 未認証
           content:
             application/json:
               schema:

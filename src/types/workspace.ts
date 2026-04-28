@@ -60,13 +60,6 @@ export type DailyLogSummary = {
   sessionCount: number
 }
 
-export function calcMinutes(startTime: string, endTime: string): number {
-  if (!startTime || !endTime) return 0
-  const [sh, sm] = startTime.split(':').map(Number)
-  const [eh, em] = endTime.split(':').map(Number)
-  return Math.max(0, (eh * 60 + em) - (sh * 60 + sm))
-}
-
 export function formatMinutes(minutes: number): string {
   if (minutes < 60) return `${minutes}分`
   const h = Math.floor(minutes / 60)
@@ -127,3 +120,15 @@ export type ChartDataPoint = {
 
 
 export type ProblemInput = Omit<Problem, 'id' | 'createdAt' | 'updatedAt'>
+
+// ── Dashboard stats ──────────────────────────────────────────────────────────
+
+export type DashboardStats = {
+  thisMonthMinutes: number
+  thisMonthDays: number
+  last7DaysMinutes: number
+  weeklyAvgMinutes: number
+  subjectMinutes: { subject: string; minutes: number }[]
+  lastTouchedBySubject: { subject: string; lastDate: string | null }[]
+  dailyMinutes: { date: string; minutes: number }[]
+}
