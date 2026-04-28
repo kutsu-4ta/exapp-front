@@ -170,7 +170,7 @@ const content: React.CSSProperties = {
   width: '100%',
   maxWidth: '720px', // 900pxから少し絞るとモバイル/デスクトップ両方で綺麗です
   margin: '0 auto',
-  padding: '60px 40px 100px', // 上の余白をしっかり取る
+  padding: '60px 20px 100px', // 上の余白をしっかり取る
 }
 const section: React.CSSProperties = { marginBottom: '40px' }
 

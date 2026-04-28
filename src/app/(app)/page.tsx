@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { fetchDashboardStats, type DashboardStats } from '@/lib/api/workspace'
 import { fetchProblems } from '@/lib/api/problem'
@@ -11,9 +11,9 @@ import {
     todayString,
     type Problem,
 } from '@/types/workspace'
-import {DashboardChart} from "@/components/dashboard/DashboardChart";
+import { DashboardChart } from "@/components/dashboard/DashboardChart";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers (Logic remains same) ──────────────────────────────────────────────
 
 function daysAgo(dateStr: string): number {
     const today = new Date(todayString() + 'T00:00:00')
@@ -21,13 +21,13 @@ function daysAgo(dateStr: string): number {
     return Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function lastTouchedLabel(lastDate: string | null): { text: string; color: string } {
-    if (!lastDate) return { text: '未学習', color: '#b5a99a' }
+function lastTouchedLabel(lastDate: string | null): { text: string; color: string; bg: string } {
+    if (!lastDate) return { text: '未学習', color: '#8a7b6e', bg: 'rgba(55, 53, 47, 0.08)' }
     const n = daysAgo(lastDate)
-    if (n === 0) return { text: '今日', color: '#3a7a2a' }
-    if (n === 1) return { text: '昨日', color: '#5a9a4a' }
-    if (n <= 6) return { text: `${n}日前`, color: '#c8860a' }
-    return { text: `${n}日前`, color: '#c0392b' }
+    if (n === 0) return { text: '今日', color: '#3a7a2a', bg: 'rgba(58, 122, 42, 0.1)' }
+    if (n === 1) return { text: '昨日', color: '#5c3a1e', bg: 'rgba(92, 58, 30, 0.1)' }
+    if (n <= 6) return { text: `${n}日前`, color: '#c8860a', bg: 'rgba(200, 134, 10, 0.1)' }
+    return { text: `${n}日前`, color: '#eb5757', bg: 'rgba(235, 87, 87, 0.1)' }
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -41,136 +41,193 @@ export default function DashboardPage() {
         fetchProblems().then(setProblems).catch(() => {})
     }, [])
 
-    const now = new Date()
-    const monthLabel = `${now.getMonth() + 1}月`
-
-    const failureData = FAILURE_TYPE_VALUES.map((ft) => ({
+    const failureData = useMemo(() => FAILURE_TYPE_VALUES.map((ft) => ({
         type: ft,
         count: problems.filter((p) => p.failureTypes.includes(ft)).length,
-    }))
-    const maxFailureCount = Math.max(...failureData.map((f) => f.count), 1)
-    const hasFailureData = failureData.some((f) => f.count > 0)
+    })), [problems]);
 
-    const subjectTouched = (
+    const subjectTouched = useMemo(() => (
         stats?.lastTouchedBySubject ?? SUBJECTS.map((s) => ({ subject: s, lastDate: null }))
-    )
-        .slice()
-        .sort((a, b) => {
-            if (!a.lastDate && !b.lastDate) return 0
-            if (!a.lastDate) return -1
-            if (!b.lastDate) return 1
-            return a.lastDate < b.lastDate ? -1 : 1
-        })
+    ).slice().sort((a, b) => {
+        if (!a.lastDate && !b.lastDate) return 0
+        if (!a.lastDate) return 1
+        if (!b.lastDate) return -1
+        return a.lastDate < b.lastDate ? 1 : -1
+    }), [stats]);
 
     return (
-        <div style={content}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.875rem' }}>
-                <StatCard
-                    label={`今月（${monthLabel}）`}
-                    value={formatHours(stats?.thisMonthMinutes ?? 0)}
-                    sub={`${stats?.thisMonthDays ?? 0}日`}
-                />
-                <StatCard
-                    label="直近7日"
-                    value={formatHours(stats?.last7DaysMinutes ?? 0)}
-                    sub={`週平均 ${formatHours(stats?.weeklyAvgMinutes ?? 0)}`}
-                />
-            </div>
-
-            <div style={card}>
-                <p style={sectionLabel}>学習進捗（直近30日 / 分）</p>
-                <DashboardChart data={stats?.dailyMinutes ?? []} />
-            </div>
-
-            <div style={card}>
-                <p style={sectionLabel}>科目別 最終学習日</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.625rem' }}>
-                    {subjectTouched.map(({ subject, lastDate }) => {
-                        const { text, color } = lastTouchedLabel(lastDate)
-                        const overdue = !lastDate || daysAgo(lastDate) >= 7
-                        return (
-                            <div key={subject} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: color }} />
-                                    <span style={{ fontSize: '0.875rem', color: '#1a1108' }}>{subject}</span>
-                                </div>
-                                <span style={{ fontSize: '0.8125rem', color, fontWeight: overdue ? 600 : 400 }}>
-                  {text}
-                </span>
-                            </div>
-                        )
-                    })}
+        <div style={pageWrapper}>
+            <div style={content}>
+                {/* Stats Summary Row */}
+                <div style={statsGrid}>
+                    <StatCard
+                        label="Monthly"
+                        value={formatHours(stats?.thisMonthMinutes ?? 0)}
+                        sub={`${stats?.thisMonthDays ?? 0} days active`}
+                    />
+                    <StatCard
+                        label="Last 7 Days"
+                        value={formatHours(stats?.last7DaysMinutes ?? 0)}
+                        sub={`Avg ${formatHours(stats?.weeklyAvgMinutes ?? 0)} / day`}
+                    />
                 </div>
-            </div>
 
-            <div style={card}>
-                <p style={sectionLabel}>ミスの傾向</p>
-                {!hasFailureData ? (
-                    <p style={{ fontSize: '0.8125rem', color: '#b5a99a', marginTop: '0.375rem' }}>
-                        弱点データが不足しています
-                    </p>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.625rem' }}>
-                        {failureData.map(({ type, count }) => (
-                            <div key={type}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                                    <span style={{ fontSize: '0.875rem', color: '#1a1108' }}>{type}</span>
-                                    <span style={{ fontSize: '0.875rem', color: '#8a7b6e' }}>{count}件</span>
+                {/* Progress Chart */}
+                <section style={section}>
+                    <div style={sectionLabel}><span style={triangle}>▼</span> STUDY PROGRESS</div>
+                    <div style={chartCard}>
+                        <DashboardChart data={stats?.dailyMinutes ?? []} />
+                    </div>
+                </section>
+
+                {/* Subject Status List */}
+                <section style={section}>
+                    <div style={sectionLabel}><span style={triangle}>▼</span> SUBJECT STATUS</div>
+                    <div style={listContainer}>
+                        {subjectTouched.map(({ subject, lastDate }) => {
+                            const { text, color, bg } = lastTouchedLabel(lastDate)
+                            return (
+                                <div key={subject} style={rowItem}>
+                                    <div style={subjectNameGroup}>
+                                        <span style={subjectIcon}>📔</span>
+                                        <span style={subjectText}>{subject}</span>
+                                    </div>
+                                    <span style={{ ...statusTag, color, backgroundColor: bg }}>
+                                        {text}
+                                    </span>
                                 </div>
-                                <div style={{ height: '4px', backgroundColor: '#f0ece8', borderRadius: '2px' }}>
-                                    <div
-                                        style={{
-                                            height: '100%',
-                                            width: `${(count / maxFailureCount) * 100}%`,
-                                            backgroundColor: count > 0 ? '#5c3a1e' : 'transparent',
-                                            borderRadius: '2px',
-                                            transition: 'width 0.4s ease',
-                                        }}
-                                    />
+                            )
+                        })}
+                    </div>
+                </section>
+
+                {/* Failure Analysis */}
+                <section style={section}>
+                    <div style={sectionLabel}><span style={triangle}>▼</span> FAILURE ANALYSIS</div>
+                    <div style={listContainer}>
+                        {failureData.map(({ type, count }) => (
+                            <div key={type} style={analysisRow}>
+                                <div style={analysisHeader}>
+                                    <span style={analysisText}>{type}</span>
+                                    <span style={countText}>{count} cases</span>
+                                </div>
+                                <div style={progressBarBg}>
+                                    <div style={{
+                                        ...progressBarFill,
+                                        width: `${Math.min((count / (Math.max(...failureData.map(d => d.count)) || 1)) * 100, 100)}%`,
+                                        backgroundColor: count > 10 ? '#eb5757' : '#2383e2'
+                                    }} />
                                 </div>
                             </div>
                         ))}
                     </div>
-                )}
-            </div>
+                </section>
 
-            <Link
-                href={`/workspace/${todayString()}`}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '1rem 1.125rem',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #edeae6',
-                    borderRadius: '10px',
-                    textDecoration: 'none',
-                }}
-            >
-                <div>
-                    <p style={{ fontSize: '0.75rem', color: '#b5a99a', marginBottom: '0.25rem' }}>今日のログ</p>
-                    <p style={{ fontSize: '1rem', fontWeight: 600, color: '#1a1108' }}>{todayString().replace(/-/g, '/')}</p>
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9c0b8" strokeWidth="2">
-                    <path d="M9 18l6-6-6-6" />
-                </svg>
-            </Link>
+                {/* Today's Log Link */}
+                <Link href={`/workspace/${todayString()}`} style={ctaCard}>
+                    <div style={ctaInfo}>
+                        <span style={ctaLabel}>Go to Today's Page</span>
+                        <span style={ctaValue}>{todayString().replace(/-/g, '/')}</span>
+                    </div>
+                    <span style={ctaIcon}>→</span>
+                </Link>
+            </div>
         </div>
     )
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
     return (
-        <div style={card}>
-            <p style={{ ...sectionLabel, marginBottom: '0.375rem' }}>{label}</p>
-            <p style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1a1108' }}>{value}</p>
-            {sub && <p style={{ fontSize: '0.75rem', color: '#b5a99a', marginTop: '0.125rem' }}>{sub}</p>}
+        <div style={statCard}>
+            <p style={statLabel}>{label}</p>
+            <p style={statValue}>{value}</p>
+            {sub && <p style={statSub}>{sub}</p>}
         </div>
     )
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
+// ── Styles (Notion-inspired) ──────────────────────────────────────────────────
 
-const content: React.CSSProperties = { padding: '1.25rem', maxWidth: '640px', margin: '0 auto' }
-const card: React.CSSProperties = { backgroundColor: '#ffffff', border: '1px solid #edeae6', borderRadius: '10px', padding: '1rem 1.125rem', marginBottom: '0.875rem' }
-const sectionLabel: React.CSSProperties = { fontSize: '0.75rem', color: '#8a7b6e', letterSpacing: '0.03em' }
+const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
+
+const content: React.CSSProperties = { maxWidth: '800px', margin: '0 auto', padding: '60px 20px 100px' }
+
+const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }
+
+const statCard: React.CSSProperties = {
+    padding: '16px',
+    borderRadius: '8px',
+    border: '1px solid rgba(55, 53, 47, 0.09)',
+}
+
+const statLabel: React.CSSProperties = { fontSize: '12px', color: 'rgba(55, 53, 47, 0.5)', fontWeight: 500, marginBottom: '4px' }
+const statValue: React.CSSProperties = { fontSize: '24px', fontWeight: 700, margin: 0 }
+const statSub: React.CSSProperties = { fontSize: '11px', color: 'rgba(55, 53, 47, 0.4)', marginTop: '4px' }
+
+const section: React.CSSProperties = { marginBottom: '48px' }
+
+const sectionLabel: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: 'rgba(55, 53, 47, 0.35)',
+    marginBottom: '16px',
+    letterSpacing: '0.05em',
+}
+
+const triangle: React.CSSProperties = { fontSize: '8px' }
+
+const chartCard: React.CSSProperties = {
+    padding: '12px',
+    border: '1px solid rgba(55, 53, 47, 0.06)',
+    borderRadius: '8px',
+}
+
+const listContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '2px' }
+
+const rowItem: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '8px 4px',
+    borderBottom: '1px solid rgba(55, 53, 47, 0.04)',
+}
+
+const subjectNameGroup: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
+const subjectIcon: React.CSSProperties = { fontSize: '16px' }
+const subjectText: React.CSSProperties = { fontSize: '14px', fontWeight: 500 }
+
+const statusTag: React.CSSProperties = {
+    padding: '2px 8px',
+    borderRadius: '3px',
+    fontSize: '12px',
+    fontWeight: 500,
+}
+
+const analysisRow: React.CSSProperties = { padding: '12px 0' }
+const analysisHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }
+const analysisText: React.CSSProperties = { fontSize: '14px' }
+const countText: React.CSSProperties = { fontSize: '13px', color: 'rgba(55, 53, 47, 0.45)' }
+
+const progressBarBg: React.CSSProperties = { height: '6px', backgroundColor: 'rgba(55, 53, 47, 0.05)', borderRadius: '3px', overflow: 'hidden' }
+const progressBarFill: React.CSSProperties = { height: '100%', borderRadius: '3px', transition: 'width 0.6s ease' }
+
+const ctaCard: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '20px 24px',
+    backgroundColor: 'rgba(35, 131, 226, 0.04)',
+    border: '1px solid rgba(35, 131, 226, 0.15)',
+    borderRadius: '12px',
+    textDecoration: 'none',
+    color: '#2383e2',
+    marginTop: '20px',
+}
+
+const ctaInfo: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
+const ctaLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, marginBottom: '2px' }
+const ctaValue: React.CSSProperties = { fontSize: '18px', fontWeight: 700 }
+const ctaIcon: React.CSSProperties = { fontSize: '20px', fontWeight: 700 }
