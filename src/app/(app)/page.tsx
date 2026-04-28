@@ -31,13 +31,14 @@ function lastTouchedLabel(lastDate: string | null): { text: string; color: strin
     return { text: `${n}日前`, color: '#eb5757', bg: 'rgba(235, 87, 87, 0.1)' }
 }
 
-// 目標定数（分単位）
-const TARGET_MIN_MINUTES = 8400; // 140h
-const TARGET_MAX_MINUTES = 10800; // 180h
-
 export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [problems, setProblems] = useState<Problem[]>([])
+
+    // 目標設定用ステート（localStorageなどで永続化する予定）
+    const [targetMin, setTargetMin] = useState(140) // 単位: 時間 (h)
+    const [targetMax, setTargetMax] = useState(180) // 単位: 時間 (h)
+    const [isEditingGoal, setIsEditingGoal] = useState(false)
 
     useEffect(() => {
         setStats(DUMMY_STATS)
@@ -62,8 +63,8 @@ export default function DashboardPage() {
             }
 
             // 線形ターゲットの計算 (1日〜月末に向けて積み上がる帯)
-            const rangeMin = (TARGET_MIN_MINUTES / daysInMonth) * dayNum;
-            const rangeMax = (TARGET_MAX_MINUTES / daysInMonth) * dayNum;
+            const rangeMin = (targetMin / daysInMonth) * dayNum;
+            const rangeMax = (targetMax / daysInMonth) * dayNum;
 
             return {
                 day: dayNum,
@@ -87,7 +88,7 @@ export default function DashboardPage() {
             }
             return p;
         });
-    }, [stats]);
+        }, [stats, targetMin, targetMax]);
 
     const failureData = useMemo(() => FAILURE_TYPE_VALUES.map((ft) => ({
         type: ft,
@@ -115,24 +116,53 @@ export default function DashboardPage() {
                         sub={`${stats?.thisMonthDays ?? 0} days active`}
                     />
                     <StatCard
-                        label="Daily Average"
-                        value={formatHours(stats?.weeklyAvgMinutes ?? 0)}
-                        sub="Current Pace"
+                        label="Monthly Target (Min)"
+                        value={`${targetMin}h`}
+                        sub={`Remaining: ${Math.max(0, targetMin - (stats?.thisMonthMinutes ?? 0) / 60).toFixed(1)}h`}
                     />
                 </div>
 
+                {/* 目標設定パネル */}
+                <div style={goalControlCard}>
+                    <div style={goalInfo}>
+                        <span style={sectionLabel}>MONTHLY GOAL</span>
+                        {!isEditingGoal ? (
+                            <div style={goalDisplay} onClick={() => setIsEditingGoal(true)}>
+                                <span style={goalValueText}>{targetMin}h 〜 {targetMax}h</span>
+                                <span style={editIcon}>✎</span>
+                            </div>
+                        ) : (
+                            <div style={goalEditGroup}>
+                                <input
+                                    type="number"
+                                    value={targetMin}
+                                    onChange={(e) => setTargetMin(Number(e.target.value))}
+                                    style={goalInput}
+                                />
+                                <span style={{color: 'rgba(55, 53, 47, 0.4)'}}>〜</span>
+                                <input
+                                    type="number"
+                                    value={targetMax}
+                                    onChange={(e) => setTargetMax(Number(e.target.value))}
+                                    style={goalInput}
+                                />
+                                <button style={saveBtn} onClick={() => setIsEditingGoal(false)}>確定</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <section style={section}>
                     <div style={sectionLabel}><span style={triangle}>▼</span> STUDY PROGRESS (CUMULATIVE)</div>
                     <div style={chartCard}>
                         <DashboardChart
                             data={transformedChartData}
-                            targetMin={TARGET_MIN_MINUTES / 60}
-                            targetMax={TARGET_MAX_MINUTES / 60}
+                            targetMin={targetMin}
+                            targetMax={targetMax}
                         />
                     </div>
                 </section>
 
-                {/* 以下、既存のSubject Status / Failure Analysis セクション */}
+                {/* Subject Status / Failure Analysis セクション */}
                 <section style={section}>
                     <div style={sectionLabel}><span style={triangle}>▼</span> SUBJECT STATUS</div>
                     <div style={listContainer}>
@@ -186,7 +216,64 @@ export default function DashboardPage() {
     )
 }
 
-// ── Styles & StatCard (略: 変更なし) ──────────────────────────────────────────
+// ── Styles & StatCard ──────────────────────────────────────────
+const goalControlCard: React.CSSProperties = {
+    marginBottom: '24px',
+    padding: '4px 0',
+}
+
+const goalInfo: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+}
+
+const goalDisplay: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    cursor: 'pointer',
+    padding: '4px 0',
+}
+
+const goalValueText: React.CSSProperties = {
+    fontSize: '18px',
+    fontWeight: 600,
+    color: '#37352f',
+}
+
+const editIcon: React.CSSProperties = {
+    fontSize: '12px',
+    color: 'rgba(55, 53, 47, 0.2)',
+}
+
+const goalEditGroup: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+}
+
+const goalInput: React.CSSProperties = {
+    width: '70px',
+    padding: '4px 8px',
+    fontSize: '16px',
+    border: '1px solid rgba(55, 53, 47, 0.15)',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(55, 53, 47, 0.02)',
+    outline: 'none',
+}
+
+const saveBtn: React.CSSProperties = {
+    padding: '4px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    backgroundColor: '#37352f',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+}
+
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
     return (
         <div style={statCard}>
