@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { SUBJECTS } from '@/types/workspace'
+import AnalysisView from "@/components/exam/AnalysisView";
 
 // --- 追加された型定義 ---
 type ViewMode = 'input' | 'analysis';
@@ -273,13 +274,8 @@ export default function ExamPage() {
                     <footer style={footer}><button style={saveBtn}>分析ログを保存して終了</button></footer>
                 </>
             ) : (
-                /* ── Analysis View: ここにグラフ等の実装を入れる ── */
-                <div style={analysisPlaceholder}>
-                    <p style={{ fontSize: '14px', color: '#888' }}>
-                        ここにグラフと科目別詳細が表示されます。<br/>
-                        （現在は動線のみ実装済みです）
-                    </p>
-                </div>
+                /* ── Analysis View ── */
+                <AnalysisView />
             )}
         </div>
     )
