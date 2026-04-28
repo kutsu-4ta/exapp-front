@@ -7,6 +7,7 @@ import {
     SUBJECTS, FAILURE_TYPE_VALUES, formatHours, todayString, daysAgo,
     type Problem, type ChartDataPoint,
 } from '@/types/workspace'
+import { c, sectionLabelStyle, triangleStyle } from '@/styles/notion'
 import { DashboardChart } from '@/components/dashboard/DashboardChart'
 import { StopWatchWidget } from '@/components/dashboard/StopWatchWidget'
 import { StatCard } from '@/components/dashboard/StatCard'
@@ -36,33 +37,33 @@ export default function DashboardPage() {
             const dayNum = index + 1
             const isFuture = d.date > todayStr
             if (!isFuture) cumulative += d.minutes
-            const rangeMin = (targetMin / daysInMonth) * dayNum
-            const rangeMax = (targetMax / daysInMonth) * dayNum
             return {
-                day: dayNum,
-                date: d.date,
+                day: dayNum, date: d.date,
                 actual: isFuture ? undefined : Number((cumulative / 60).toFixed(1)),
-                range: [Number((rangeMin / 60).toFixed(1)), Number((rangeMax / 60).toFixed(1))] as [number, number],
+                range: [
+                    Number(((targetMin / daysInMonth) * dayNum / 60).toFixed(1)),
+                    Number(((targetMax / daysInMonth) * dayNum / 60).toFixed(1)),
+                ] as [number, number],
             }
         })
         const elapsedDays = chartPoints.filter(p => p.date <= todayStr).length
-        const avgPerDayMinutes = cumulative / (elapsedDays || 1)
-        let forecastCumulative = cumulative
+        const avgPerDay = cumulative / (elapsedDays || 1)
+        let forecast = cumulative
         return chartPoints.map(p => {
             if (p.date > todayStr) {
-                forecastCumulative += avgPerDayMinutes
-                return { ...p, forecast: Number((forecastCumulative / 60).toFixed(1)) }
-            } else if (p.date === todayStr) {
-                return { ...p, forecast: p.actual }
+                forecast += avgPerDay
+                return { ...p, forecast: Number((forecast / 60).toFixed(1)) }
             }
-            return p
+            return p.date === todayStr ? { ...p, forecast: p.actual } : p
         })
     }, [stats, targetMin, targetMax])
 
-    const failureData = useMemo(() => FAILURE_TYPE_VALUES.map((ft) => ({
-        type: ft,
-        count: problems.filter((p) => p.failureTypes.includes(ft)).length,
-    })), [problems])
+    const failureData = useMemo(() =>
+        FAILURE_TYPE_VALUES.map((ft) => ({
+            type: ft,
+            count: problems.filter((p) => p.failureTypes.includes(ft)).length,
+        }))
+    , [problems])
 
     const subjectTouched = useMemo(() => (
         stats?.lastTouchedBySubject ?? SUBJECTS.map((s) => ({ subject: s, lastDate: null }))
@@ -82,9 +83,7 @@ export default function DashboardPage() {
             <div style={content}>
                 <StopWatchWidget />
 
-                {warningSubjects.length > 0 && (
-                    <AlertWidget warningSubjects={warningSubjects} />
-                )}
+                {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
                 <div style={statsGrid}>
                     <StatCard
@@ -93,35 +92,26 @@ export default function DashboardPage() {
                         sub={`${stats?.thisMonthDays ?? 0} days active`}
                     />
                     <MonthlyGoalCard
-                        targetMin={targetMin}
-                        targetMax={targetMax}
-                        isEditing={isEditingGoal}
-                        onTargetMinChange={setTargetMin}
-                        onTargetMaxChange={setTargetMax}
-                        onEditStart={() => setIsEditingGoal(true)}
-                        onEditDone={() => setIsEditingGoal(false)}
+                        targetMin={targetMin} targetMax={targetMax} isEditing={isEditingGoal}
+                        onTargetMinChange={setTargetMin} onTargetMaxChange={setTargetMax}
+                        onEditStart={() => setIsEditingGoal(true)} onEditDone={() => setIsEditingGoal(false)}
                     />
                 </div>
 
                 <section style={section}>
-                    <div style={sectionLabel}><span style={triangle}>▼</span> STUDY PROGRESS (CUMULATIVE)</div>
+                    <div style={sectionLabelStyle}><span style={triangleStyle}>▼</span> STUDY PROGRESS (CUMULATIVE)</div>
                     <div style={chartCard}>
-                        <DashboardChart
-                            data={transformedChartData}
-                            targetMin={targetMin}
-                            targetMax={targetMax}
-                        />
+                        <DashboardChart data={transformedChartData} targetMin={targetMin} targetMax={targetMax} />
                     </div>
                 </section>
 
                 <SubjectStatus subjectTouched={subjectTouched} />
-
                 <FailureAnalysisSection failureData={failureData} />
 
                 <Link href={`/workspace/${todayString()}`} style={ctaCard}>
-                    <div style={ctaInfo}>
-                        <span style={ctaLabel}>Go to Today's Page</span>
-                        <span style={ctaValue}>{todayString().replace(/-/g, '/')}</span>
+                    <div>
+                        <div style={ctaLabel}>Go to Today's Page</div>
+                        <div style={ctaValue}>{todayString().replace(/-/g, '/')}</div>
                     </div>
                     <span style={ctaIcon}>→</span>
                 </Link>
@@ -131,60 +121,18 @@ export default function DashboardPage() {
 }
 
 const pageWrapper: React.CSSProperties = {
-    backgroundColor: '#fff',
-    minHeight: '100vh',
-    color: '#37352f',
+    backgroundColor: c.bg, minHeight: '100vh', color: c.text,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif',
 }
-
-const content: React.CSSProperties = {
-    maxWidth: '800px',
-    margin: '0 auto',
-    padding: '40px 20px 120px',
-}
-
-const statsGrid: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px',
-    marginBottom: '40px',
-}
-
+const content: React.CSSProperties = { maxWidth: '800px', margin: '0 auto', padding: '40px 20px 120px' }
+const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '40px' }
 const section: React.CSSProperties = { marginBottom: '48px' }
-
-const sectionLabel: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'rgba(55, 53, 47, 0.35)',
-    letterSpacing: '0.05em',
-    marginBottom: '12px',
-}
-
-const triangle: React.CSSProperties = { fontSize: '8px' }
-
-const chartCard: React.CSSProperties = {
-    padding: '12px',
-    border: '1px solid rgba(55, 53, 47, 0.06)',
-    borderRadius: '8px',
-}
-
+const chartCard: React.CSSProperties = { padding: '12px', border: `1px solid rgba(55, 53, 47, 0.06)`, borderRadius: '8px' }
 const ctaCard: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '20px 24px',
-    backgroundColor: 'rgba(35, 131, 226, 0.04)',
-    border: '1px solid rgba(35, 131, 226, 0.15)',
-    borderRadius: '12px',
-    textDecoration: 'none',
-    color: '#2383e2',
-    marginTop: '20px',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '20px 24px', backgroundColor: c.blueBg, border: `1px solid ${c.blueBorder}`,
+    borderRadius: '12px', textDecoration: 'none', color: c.blue, marginTop: '20px',
 }
-
-const ctaInfo: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const ctaLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, marginBottom: '2px' }
 const ctaValue: React.CSSProperties = { fontSize: '18px', fontWeight: 700 }
 const ctaIcon: React.CSSProperties = { fontSize: '20px', fontWeight: 700 }

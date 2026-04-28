@@ -25,8 +25,7 @@ export type StudySession = {
   id: number
   dailyLogDate: string // YYYY-MM-DD
   timeSlot: TimeSlot
-  startTime: string // HH:mm
-  endTime: string // HH:mm — empty string if not yet filled
+  minutes: number
   subject: string
   material: string
   memo: string | null
@@ -37,8 +36,7 @@ export type StudySession = {
 export type StudySessionInput = {
   dailyLogDate: string
   timeSlot: TimeSlot
-  startTime: string
-  endTime: string
+  minutes: number
   subject: string
   material: string
   memo: string | null

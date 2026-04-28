@@ -50,7 +50,7 @@ function IconExam({ active }: { active: boolean }) {
 
 const TABS = [
     { href: '/', label: 'ホーム', Icon: IconHome, exact: true },
-    { href: '/workspace', label: 'ログ', Icon: IconLog, exact: false },
+    { href: '/workspace', label: 'デイリー', Icon: IconLog, exact: false },
     { href: '/weak', label: '弱点', Icon: IconWeak, exact: false },
     { href: '/exam', label: '過去問', Icon: IconExam, exact: false },
 ]

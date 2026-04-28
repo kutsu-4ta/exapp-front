@@ -1,7 +1,7 @@
 'use client'
 
 import type { DailyLog } from '@/types/workspace'
-import { formatDate, formatMinutes, calcMinutes } from '@/types/workspace'
+import { formatDate, formatMinutes } from '@/types/workspace'
 
 type Props = {
     log: DailyLog
@@ -12,7 +12,7 @@ type Props = {
 
 export function DayHeader({ log, onComplete, onUncomplete, loading }: Props) {
     const subjectTotals = log.studySessions.reduce<Record<string, number>>((acc, s) => {
-        acc[s.subject] = (acc[s.subject] ?? 0) + calcMinutes(s.startTime, s.endTime)
+        acc[s.subject] = (acc[s.subject] ?? 0) + s.minutes
         return acc
     }, {})
 

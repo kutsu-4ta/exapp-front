@@ -9,6 +9,7 @@ import { fetchProblems, addProblem, updateProblem, deleteProblem } from '@/lib/a
 import { ProblemCard } from '@/components/weak/ProblemCard'
 import { FilterPill } from '@/components/weak/FilterPill'
 import { AddProblemModal } from '@/components/weak/AddProblemModal'
+import { c, font } from '@/styles/notion'
 
 export default function WeakPage() {
     const [problems, setProblems] = useState<Problem[]>([])
@@ -61,19 +62,11 @@ export default function WeakPage() {
                 <div style={headerContent}>
                     <h1 style={title}>弱点管理</h1>
                     <div style={controls}>
-                        <select
-                            style={select}
-                            value={filterProficiency}
-                            onChange={(e) => setFilterProficiency(e.target.value as Proficiency | 'all')}
-                        >
+                        <select style={select} value={filterProficiency} onChange={(e) => setFilterProficiency(e.target.value as Proficiency | 'all')}>
                             <option value="all">習熟度: すべて</option>
                             {PROFICIENCY_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
-                        <select
-                            style={select}
-                            value={filterFailureType}
-                            onChange={(e) => setFilterFailureType(e.target.value as FailureType | 'all')}
-                        >
+                        <select style={select} value={filterFailureType} onChange={(e) => setFilterFailureType(e.target.value as FailureType | 'all')}>
                             <option value="all">ミス: すべて</option>
                             {FAILURE_TYPE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
@@ -88,24 +81,17 @@ export default function WeakPage() {
             </div>
 
             <div style={mainContent}>
-                {showAddForm && (
-                    <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} />
-                )}
+                {showAddForm && <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} />}
 
-                {loading && <p style={centeredMutedText}>Loading data...</p>}
+                {loading && <p style={mutedText}>Loading data...</p>}
                 {error && <p style={errorText}>{error}</p>}
-
-                {!loading && grouped.length === 0 && (
-                    <div style={emptyState}>
-                        <p style={centeredMutedText}>該当する問題は見つかりませんでした</p>
-                    </div>
-                )}
+                {!loading && grouped.length === 0 && <div style={emptyState}><p style={mutedText}>該当する問題は見つかりませんでした</p></div>}
 
                 {grouped.map(({ subject, items }) => (
                     <section key={subject} style={section}>
                         <div style={sectionHeader}>
                             <span style={sectionLabel}>{subject}</span>
-                            <span style={countBadge}>{items.length}</span>
+                            <span style={badge}>{items.length}</span>
                         </div>
                         <div style={cardGrid}>
                             {items.map((p) => (
@@ -128,101 +114,48 @@ export default function WeakPage() {
     )
 }
 
-const container: React.CSSProperties = { minHeight: '100vh', backgroundColor: '#fff', color: '#37352f' }
+const container: React.CSSProperties = { minHeight: '100vh', backgroundColor: c.bg, color: c.text }
 
 const stickyHeader: React.CSSProperties = {
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(55, 53, 47, 0.09)',
-    padding: '12px 16px',
+    position: 'sticky', top: 0, zIndex: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)',
+    borderBottom: `1px solid ${c.border}`, padding: '12px 16px',
 }
-
 const headerContent: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    maxWidth: '720px',
-    margin: '0 auto 12px',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    maxWidth: '720px', margin: '0 auto 12px',
 }
-
-const title: React.CSSProperties = { fontSize: '16px', fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }
-
+const title: React.CSSProperties = { fontSize: font.md, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }
 const controls: React.CSSProperties = { display: 'flex', gap: '8px' }
-
 const select: React.CSSProperties = {
-    padding: '4px 8px',
-    fontSize: '12px',
-    borderRadius: '4px',
-    border: '1px solid rgba(55, 53, 47, 0.16)',
-    backgroundColor: 'transparent',
-    color: 'rgba(55, 53, 47, 0.65)',
-    outline: 'none',
-    cursor: 'pointer',
+    padding: '4px 8px', fontSize: '12px', borderRadius: '4px',
+    border: `1px solid rgba(55, 53, 47, 0.16)`, backgroundColor: 'transparent',
+    color: c.textSub, outline: 'none', cursor: 'pointer',
 }
-
 const subjectScroll: React.CSSProperties = {
-    display: 'flex',
-    gap: '4px',
-    overflowX: 'auto',
-    maxWidth: '720px',
-    margin: '0 auto',
-    paddingBottom: '4px',
-    scrollbarWidth: 'none',
+    display: 'flex', gap: '4px', overflowX: 'auto',
+    maxWidth: '720px', margin: '0 auto', paddingBottom: '4px', scrollbarWidth: 'none',
 }
-
 const mainContent: React.CSSProperties = { maxWidth: '720px', margin: '0 auto', padding: '24px 16px 120px' }
-
 const section: React.CSSProperties = { marginBottom: '32px' }
-
-const sectionHeader: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-}
-
+const sectionHeader: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }
 const sectionLabel: React.CSSProperties = {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'rgba(55, 53, 47, 0.3)',
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
+    fontSize: font.sm, fontWeight: 700, color: c.textFaint,
+    letterSpacing: '0.06em', textTransform: 'uppercase',
 }
-
-const countBadge: React.CSSProperties = {
-    fontSize: '10px',
-    backgroundColor: 'rgba(55, 53, 47, 0.06)',
-    color: 'rgba(55, 53, 47, 0.45)',
-    padding: '1px 6px',
-    borderRadius: '10px',
-    fontWeight: 600,
+const badge: React.CSSProperties = {
+    fontSize: font.xs, backgroundColor: 'rgba(55, 53, 47, 0.06)',
+    color: c.textSub, padding: '1px 6px', borderRadius: '10px', fontWeight: 600,
 }
-
 const cardGrid: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '12px' }
-
 const fab: React.CSSProperties = {
-    position: 'fixed',
-    bottom: '80px',
-    right: '20px',
-    width: '48px',
-    height: '48px',
-    borderRadius: '24px',
-    backgroundColor: '#2383e2',
-    color: '#fff',
-    border: 'none',
+    position: 'fixed', bottom: '80px', right: '20px',
+    width: '48px', height: '48px', borderRadius: '24px',
+    backgroundColor: c.blue, color: c.bg, border: 'none',
     boxShadow: '0 4px 12px rgba(35, 131, 226, 0.35)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    zIndex: 1000,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', zIndex: 1000,
 }
-
-const centeredMutedText: React.CSSProperties = {
-    color: 'rgba(55, 53, 47, 0.45)', textAlign: 'center', marginTop: '60px', fontSize: '14px',
-}
-const errorText: React.CSSProperties = { color: '#eb5757', textAlign: 'center', padding: '2rem', fontSize: '14px' }
+const mutedText: React.CSSProperties = { color: c.textSub, textAlign: 'center', marginTop: '60px', fontSize: font.base }
+const errorText: React.CSSProperties = { color: c.red, textAlign: 'center', padding: '2rem', fontSize: font.base }
 const emptyState: React.CSSProperties = { padding: '60px 0' }

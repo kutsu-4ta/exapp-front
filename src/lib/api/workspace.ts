@@ -5,8 +5,9 @@ import type {
   DailyLogSummary, Problem,
   StudySession,
   StudySessionInput,
+  FailureType,
 } from '@/types/workspace'
-import { calcMinutes, SUBJECTS } from '@/types/workspace'
+import { SUBJECTS } from '@/types/workspace'
 import { getToken } from '@/lib/auth'
 
 // localStorage keys
@@ -54,10 +55,7 @@ function buildDailyLog(
   sessions: StudySession[],
 ): DailyLog {
   const daySessions = sessions.filter((s) => s.dailyLogDate === raw.date)
-  const totalMinutes = daySessions.reduce(
-    (acc, s) => acc + Math.max(0, calcMinutes(s.startTime, s.endTime)),
-    0,
-  )
+  const totalMinutes = daySessions.reduce((acc, s) => acc + Math.max(0, s.minutes), 0)
   return { ...raw, studySessions: daySessions, totalMinutes }
 }
 
@@ -81,10 +79,7 @@ export async function fetchMonthlyLogs(year: number, month: number): Promise<Dai
       .filter((l) => l.date.startsWith(prefix))
       .map((l) => {
         const daySessions = sessions.filter((s) => s.dailyLogDate === l.date)
-        const totalMinutes = daySessions.reduce(
-          (acc, s) => acc + Math.max(0, calcMinutes(s.startTime, s.endTime)),
-          0,
-        )
+        const totalMinutes = daySessions.reduce((acc, s) => acc + Math.max(0, s.minutes), 0)
         return { date: l.date, isCompleted: l.isCompleted, totalMinutes, sessionCount: daySessions.length }
       })
   }
@@ -265,7 +260,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
     const last7Sessions = sessions.filter((s) => s.dailyLogDate >= sevenDaysAgoStr)
 
     const sumMins = (ss: typeof sessions) =>
-      ss.reduce((acc, s) => acc + Math.max(0, calcMinutes(s.startTime, s.endTime)), 0)
+      ss.reduce((acc, s) => acc + Math.max(0, s.minutes), 0)
 
     const thisMonthMinutes = sumMins(monthSessions)
     const thisMonthDays = new Set(monthSessions.map((s) => s.dailyLogDate)).size
@@ -275,7 +270,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
     const subjectMap: Record<string, number> = {}
     monthSessions.forEach((s) => {
       if (!s.subject) return
-      subjectMap[s.subject] = (subjectMap[s.subject] ?? 0) + calcMinutes(s.startTime, s.endTime)
+      subjectMap[s.subject] = (subjectMap[s.subject] ?? 0) + s.minutes
     })
     const subjectMinutes = Object.entries(subjectMap)
       .map(([subject, minutes]) => ({ subject, minutes }))
@@ -368,10 +363,14 @@ export const DUMMY_STATS: DashboardStats = {
   ],
   dailyMinutes: generateDailyMinutes(),
 }
+const dummyProblemBase = {
+  subject: '財務・会計', material: 'スピード問題集', questionRef: '',
+  note: null, proficiency: '×' as const, isGoodQuestion: false, solvedAt: '2026-04-01',
+  createdAt: '', updatedAt: '',
+}
 export const DUMMY_PROBLEMS: Problem[] = [
-  // 実際にはもっと大量にある想定だが、分析用に偏りを持たせる
-  ...Array(12).fill(null).map((_, i) => ({ id: i, failureTypes: ['理解不足', '知識の混同'] } as Problem)),
-  ...Array(8).fill(null).map((_, i) => ({ id: i + 20, failureTypes: ['計算ミス'] } as Problem)),
-  ...Array(5).fill(null).map((_, i) => ({ id: i + 40, failureTypes: ['問題文の読み飛ばし'] } as Problem)),
-  ...Array(3).fill(null).map((_, i) => ({ id: i + 60, failureTypes: ['時間切れ'] } as Problem)),
+  ...Array(12).fill(null).map((_, i) => ({ ...dummyProblemBase, id: i,      failureTypes: ['定義漏れ', '解法ミス'] as FailureType[] })),
+  ...Array(8).fill(null).map((_, i)  => ({ ...dummyProblemBase, id: i + 20, failureTypes: ['計算ミス'] as FailureType[] })),
+  ...Array(5).fill(null).map((_, i)  => ({ ...dummyProblemBase, id: i + 40, failureTypes: ['解法ミス'] as FailureType[] })),
+  ...Array(3).fill(null).map((_, i)  => ({ ...dummyProblemBase, id: i + 60, failureTypes: ['定義漏れ'] as FailureType[] })),
 ]

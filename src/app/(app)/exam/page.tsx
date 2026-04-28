@@ -27,7 +27,7 @@ export default function ExamPage() {
     // --- 表示切り替え用のステート追加 ---
     const [viewMode, setViewMode] = useState<ViewMode>('input');
 
-    const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
+    const [selectedSubject, setSelectedSubject] = useState<string>(SUBJECTS[0]);
     const [examYear, setExamYear] = useState('R07');
     const [activeMenu, setActiveMenu] = useState<number | null>(null);
 

@@ -1,17 +1,15 @@
 'use client'
 
-type Props = {
-    active: boolean
-    onClick: () => void
-    children: React.ReactNode
-}
+import { c } from '@/styles/notion'
+
+type Props = { active: boolean; onClick: () => void; children: React.ReactNode }
 
 export function FilterPill({ active, onClick, children }: Props) {
     return (
         <button type="button" onClick={onClick} style={{
-            ...pillBase,
+            ...base,
             backgroundColor: active ? '#edeae6' : 'transparent',
-            color: active ? '#37352f' : 'rgba(55, 53, 47, 0.45)',
+            color: active ? c.text : c.textSub,
             fontWeight: active ? 600 : 400,
         }}>
             {children}
@@ -19,12 +17,7 @@ export function FilterPill({ active, onClick, children }: Props) {
     )
 }
 
-const pillBase: React.CSSProperties = {
-    padding: '4px 12px',
-    fontSize: '13px',
-    borderRadius: '4px',
-    border: 'none',
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-    transition: 'background 0.2s',
+const base: React.CSSProperties = {
+    padding: '4px 12px', fontSize: '13px', borderRadius: '4px',
+    border: 'none', whiteSpace: 'nowrap', cursor: 'pointer', transition: 'background 0.2s',
 }
