@@ -115,20 +115,13 @@ export default function DashboardPage() {
                         value={formatHours(stats?.thisMonthMinutes ?? 0)}
                         sub={`${stats?.thisMonthDays ?? 0} days active`}
                     />
-                    <StatCard
-                        label="Monthly Target (Min)"
-                        value={`${targetMin}h`}
-                        sub={`Remaining: ${Math.max(0, targetMin - (stats?.thisMonthMinutes ?? 0) / 60).toFixed(1)}h`}
-                    />
-                </div>
 
-                {/* 目標設定パネル */}
-                <div style={goalControlCard}>
-                    <div style={goalInfo}>
-                        <span style={sectionLabel}>MONTHLY GOAL</span>
+                    {/* 目標設定カードをStatCardのスタイルに統合 */}
+                    <div style={statCard}>
+                        <span style={statLabel}>MONTHLY GOAL</span>
                         {!isEditingGoal ? (
                             <div style={goalDisplay} onClick={() => setIsEditingGoal(true)}>
-                                <span style={goalValueText}>{targetMin}h 〜 {targetMax}h</span>
+                                <p style={statValue}>{targetMin}h <span style={goalRangeSep}>〜</span> {targetMax}h</p>
                                 <span style={editIcon}>✎</span>
                             </div>
                         ) : (
@@ -138,19 +131,24 @@ export default function DashboardPage() {
                                     value={targetMin}
                                     onChange={(e) => setTargetMin(Number(e.target.value))}
                                     style={goalInput}
+                                    autoFocus
                                 />
-                                <span style={{color: 'rgba(55, 53, 47, 0.4)'}}>〜</span>
+                                <span style={goalRangeSep}>-</span>
                                 <input
                                     type="number"
                                     value={targetMax}
                                     onChange={(e) => setTargetMax(Number(e.target.value))}
                                     style={goalInput}
                                 />
-                                <button style={saveBtn} onClick={() => setIsEditingGoal(false)}>確定</button>
+                                <button style={saveBtn} onClick={() => setIsEditingGoal(false)}>
+                                    OK
+                                </button>
                             </div>
                         )}
+                        <p style={statSub}>Target Range</p>
                     </div>
                 </div>
+
                 <section style={section}>
                     <div style={sectionLabel}><span style={triangle}>▼</span> STUDY PROGRESS (CUMULATIVE)</div>
                     <div style={chartCard}>
@@ -217,61 +215,115 @@ export default function DashboardPage() {
 }
 
 // ── Styles & StatCard ──────────────────────────────────────────
-const goalControlCard: React.CSSProperties = {
-    marginBottom: '24px',
-    padding: '4px 0',
+const pageWrapper: React.CSSProperties = {
+    backgroundColor: '#fff',
+    minHeight: '100vh',
+    color: '#37352f',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif'
 }
 
-const goalInfo: React.CSSProperties = {
+const content: React.CSSProperties = {
+    maxWidth: '800px',
+    margin: '0 auto',
+    padding: '40px 20px 120px' // 下部に余白を確保
+}
+
+const statsGrid: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    marginBottom: '40px'
+}
+
+const statCard: React.CSSProperties = {
+    padding: '16px',
+    borderRadius: '8px',
+    border: '1px solid rgba(55, 53, 47, 0.09)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    justifyContent: 'center',
+    position: 'relative',
+    transition: 'background 0.2s ease'
 }
+
+const statLabel: React.CSSProperties = {
+    fontSize: '11px',
+    color: 'rgba(55, 53, 47, 0.45)',
+    fontWeight: 600,
+    marginBottom: '6px',
+    letterSpacing: '0.02em'
+}
+
+const statValue: React.CSSProperties = {
+    fontSize: '22px',
+    fontWeight: 700,
+    margin: 0,
+    color: '#37352f',
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '4px'
+}
+
+const statSub: React.CSSProperties = {
+    fontSize: '11px',
+    color: 'rgba(55, 53, 47, 0.35)',
+    marginTop: '6px'
+}
+
+// --- Goal Edit Styles ---
 
 const goalDisplay: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    justifyContent: 'space-between',
     cursor: 'pointer',
-    padding: '4px 0',
-}
-
-const goalValueText: React.CSSProperties = {
-    fontSize: '18px',
-    fontWeight: 600,
-    color: '#37352f',
+    borderRadius: '4px',
+    margin: '-4px',
+    padding: '4px',
 }
 
 const editIcon: React.CSSProperties = {
     fontSize: '12px',
     color: 'rgba(55, 53, 47, 0.2)',
+    marginLeft: '8px'
+}
+
+const goalRangeSep: React.CSSProperties = {
+    fontSize: '14px',
+    color: 'rgba(55, 53, 47, 0.3)',
+    fontWeight: 400,
+    margin: '0 4px'
 }
 
 const goalEditGroup: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '4px',
+    height: '32px'
 }
 
 const goalInput: React.CSSProperties = {
-    width: '70px',
-    padding: '4px 8px',
-    fontSize: '16px',
-    border: '1px solid rgba(55, 53, 47, 0.15)',
+    width: '56px',
+    padding: '2px 6px',
+    fontSize: '18px',
+    fontWeight: 600,
+    border: '1px solid #2383e2', // フォーカス色に近い青
     borderRadius: '4px',
-    backgroundColor: 'rgba(55, 53, 47, 0.02)',
+    backgroundColor: '#fff',
     outline: 'none',
+    color: '#37352f',
 }
 
 const saveBtn: React.CSSProperties = {
-    padding: '4px 12px',
-    fontSize: '12px',
-    fontWeight: 600,
-    backgroundColor: '#37352f',
+    padding: '4px 8px',
+    fontSize: '11px',
+    fontWeight: 700,
+    backgroundColor: '#2383e2',
     color: '#fff',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
+    marginLeft: '4px'
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -284,13 +336,6 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
     )
 }
 
-const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
-const content: React.CSSProperties = { maxWidth: '800px', margin: '0 auto', padding: '60px 20px 100px' }
-const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }
-const statCard: React.CSSProperties = { padding: '16px', borderRadius: '8px', border: '1px solid rgba(55, 53, 47, 0.09)' }
-const statLabel: React.CSSProperties = { fontSize: '12px', color: 'rgba(55, 53, 47, 0.5)', fontWeight: 500, marginBottom: '4px' }
-const statValue: React.CSSProperties = { fontSize: '24px', fontWeight: 700, margin: 0 }
-const statSub: React.CSSProperties = { fontSize: '11px', color: 'rgba(55, 53, 47, 0.4)', marginTop: '4px' }
 const section: React.CSSProperties = { marginBottom: '48px' }
 const sectionLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, color: 'rgba(55, 53, 47, 0.35)', marginBottom: '16px', letterSpacing: '0.05em' }
 const triangle: React.CSSProperties = { fontSize: '8px' }
