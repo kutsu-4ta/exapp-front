@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import {useParams, useSearchParams} from 'next/navigation'
-import type { DailyLog, StudySession, StudySessionInput } from '@/types/workspace'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
+import type { DailyLog, StudySession } from '@/types/workspace'
 import {
   fetchDailyLog, createDailyLog, updateReflection,
   completeDailyLog, uncompleteDailyLog,
@@ -13,10 +13,23 @@ import { StudyBlockList } from '@/components/workspace/StudyBlockList'
 import { DayReflection } from '@/components/workspace/DayReflection'
 
 export default function WorkspaceDatePage() {
+  return (
+      <Suspense fallback={<div style={loaderStyle}>Loading...</div>}>
+        <WorkspaceDateContent />
+      </Suspense>
+  )
+}
+
+function WorkspaceDateContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const date = Array.isArray(params.date) ? params.date[0] : params.date
-  const initialMinutes = searchParams.get('minutes') // URLから取得
+
+  // ストップウォッチから渡された "minutes" パラメータ
+  const initialMinutes = searchParams.get('minutes')
+      ? parseInt(searchParams.get('minutes')!, 10)
+      : undefined
+
   const [log, setLog] = useState<DailyLog | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -30,7 +43,7 @@ export default function WorkspaceDatePage() {
         if (!data) data = await createDailyLog(date)
         setLog(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : '読み込み失敗')
+        setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました')
       } finally {
         setLoading(false)
       }
@@ -49,7 +62,6 @@ export default function WorkspaceDatePage() {
     try { setLog(await uncompleteDailyLog(date)) } finally { setActionLoading(false) }
   }, [date])
 
-  // --- Render ---
   if (loading) return <div style={content}><p style={infoText}>Loading...</p></div>
   if (error || !log) return <div style={content}><p style={errorText}>{error}</p></div>
 
@@ -84,35 +96,31 @@ export default function WorkspaceDatePage() {
               loading={actionLoading}
           />
 
+          {/* Content Section */}
           <div style={section}>
-            <div style={sectionLabel}>
-              CONTENT
-            </div>
-            <div style={section}>
-              <div style={sectionLabel}>CONTENT</div>
-              <StudyBlockList
-                  date={log.date}
-                  sessions={log.studySessions}
-                  readonly={log.isCompleted}
-                  // ストップウォッチから来た時間を初期値として渡す（コンポーネント側の対応が必要）
-                  initialMinutes={initialMinutes ? parseInt(initialMinutes, 10) : undefined}
-                  onAdd={async (i) => {
-                    const s = await addStudySession(i)
-                    if (date) setLog(await fetchDailyLog(date))
-                    return s
-                  }}
-                  onUpdate={async (id, i) => {
-                    await updateStudySession(id, i)
-                    if (date) setLog(await fetchDailyLog(date))
-                  }}
-                  onDelete={async (id) => {
-                    await deleteStudySession(id)
-                    if (date) setLog(await fetchDailyLog(date))
-                  }}
-              />
-            </div>
+            <div style={sectionLabel}>CONTENT</div>
+            <StudyBlockList
+                date={log.date}
+                sessions={log.studySessions}
+                readonly={log.isCompleted}
+                initialMinutes={initialMinutes}
+                onAdd={async (i) => {
+                  const s = await addStudySession(i)
+                  if (date) setLog(await fetchDailyLog(date))
+                  return s
+                }}
+                onUpdate={async (id, i) => {
+                  await updateStudySession(id, i)
+                  if (date) setLog(await fetchDailyLog(date))
+                }}
+                onDelete={async (id) => {
+                  await deleteStudySession(id)
+                  if (date) setLog(await fetchDailyLog(date))
+                }}
+            />
           </div>
 
+          {/* Reflection Section */}
           <div style={reflectionWrapper}>
             <div style={sectionLabel}>REFLECTION</div>
             <DayReflection
@@ -127,75 +135,20 @@ export default function WorkspaceDatePage() {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
-
-const navBar: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '10px 16px',
-  borderBottom: '1px solid rgba(55, 53, 47, 0.09)',
-}
-
-const breadcrumb: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  fontSize: '13px', // 少し小さく
-  color: 'rgba(55, 53, 47, 0.45)'
-}
+const navBar: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid rgba(55, 53, 47, 0.09)' }
+const breadcrumb: React.CSSProperties = { display: 'flex', alignItems: 'center', fontSize: '13px', color: 'rgba(55, 53, 47, 0.45)' }
 const navIcon: React.CSSProperties = { marginRight: '6px' }
 const navLink: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.5)', cursor: 'pointer' }
 const sep: React.CSSProperties = { margin: '0 6px', color: 'rgba(55, 53, 47, 0.16)' }
 const activeNav: React.CSSProperties = { fontWeight: 500 }
-
 const navActions: React.CSSProperties = { display: 'flex', gap: '8px' }
-
-const primaryBtn: React.CSSProperties = {
-  backgroundColor: '#2383e2',
-  color: '#fff',
-  border: 'none',
-  padding: '4px 12px',
-  borderRadius: '4px',
-  fontSize: '14px',
-  fontWeight: 500,
-  cursor: 'pointer',
-}
-
-const ghostBtn: React.CSSProperties = {
-  backgroundColor: 'transparent',
-  color: 'rgba(55, 53, 47, 0.45)',
-  border: '1px solid rgba(55, 53, 47, 0.16)',
-  padding: '4px 12px',
-  borderRadius: '4px',
-  fontSize: '14px',
-  cursor: 'pointer',
-}
-
-const content: React.CSSProperties = {
-  width: '100%',
-  maxWidth: '720px', // 900pxから少し絞るとモバイル/デスクトップ両方で綺麗です
-  margin: '0 auto',
-  padding: '60px 20px 100px', // 上の余白をしっかり取る
-}
+const primaryBtn: React.CSSProperties = { backgroundColor: '#2383e2', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: '4px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }
+const ghostBtn: React.CSSProperties = { backgroundColor: 'transparent', color: 'rgba(55, 53, 47, 0.45)', border: '1px solid rgba(55, 53, 47, 0.16)', padding: '4px 12px', borderRadius: '4px', fontSize: '14px', cursor: 'pointer' }
+const content: React.CSSProperties = { width: '100%', maxWidth: '720px', margin: '0 auto', padding: '60px 20px 100px' }
 const section: React.CSSProperties = { marginBottom: '40px' }
-
-const sectionLabel: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '6px',
-  fontSize: '11px',
-  fontWeight: 700,
-  color: 'rgba(55, 53, 47, 0.3)',
-  marginBottom: '12px',
-  letterSpacing: '0.06em',
-}
-
-const reflectionWrapper: React.CSSProperties = {
-  marginTop: '40px',
-  paddingTop: '32px',
-  borderTop: '1px solid rgba(55, 53, 47, 0.09)',
-}
-
+const sectionLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'rgba(55, 53, 47, 0.3)', marginBottom: '12px', letterSpacing: '0.06em' }
+const reflectionWrapper: React.CSSProperties = { marginTop: '40px', paddingTop: '32px', borderTop: '1px solid rgba(55, 53, 47, 0.09)' }
 const infoText: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.45)', fontSize: '14px' }
 const errorText: React.CSSProperties = { color: '#eb5757', fontSize: '14px' }
+const loaderStyle: React.CSSProperties = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'rgba(55, 53, 47, 0.45)' }

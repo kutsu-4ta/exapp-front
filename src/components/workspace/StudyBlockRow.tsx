@@ -2,23 +2,19 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { StudySession, StudySessionInput } from '@/types/workspace'
-import { SUBJECTS, MATERIALS, calcMinutes, formatMinutes } from '@/types/workspace'
-
-function nowHHmm(): string {
-  const d = new Date()
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
+import { SUBJECTS, MATERIALS } from '@/types/workspace'
 
 type SaveInput = Omit<StudySessionInput, 'dailyLogDate' | 'timeSlot'>
 
 type Props = {
   session?: StudySession
+  initialMinutes?: number // ストップウォッチからの値を受け取る
   onSave: (currentId: number | null, input: SaveInput) => Promise<number>
   onDelete: (currentId: number | null) => Promise<void>
   readonly?: boolean
 }
 
-// Inline text input — Notion style (bottom border only)
+// --- Styles (Notion-style) ---
 const textInp: React.CSSProperties = {
   border: 'none',
   borderBottom: '1px solid #edeae6',
@@ -33,8 +29,7 @@ const textInp: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-// Time picker input — slightly structured
-const timeInp: React.CSSProperties = {
+const numInp: React.CSSProperties = {
   border: '1px solid #edeae6',
   borderRadius: '5px',
   background: '#faf8f6',
@@ -43,7 +38,8 @@ const timeInp: React.CSSProperties = {
   fontFamily: 'inherit',
   outline: 'none',
   padding: '0.3rem 0.5rem',
-  minWidth: '5.5rem',
+  width: '4rem',
+  textAlign: 'right',
   boxSizing: 'border-box',
 }
 
@@ -56,26 +52,22 @@ const rowLabel: React.CSSProperties = {
   userSelect: 'none',
 }
 
-export function StudyBlockRow({ session, onSave, onDelete, readonly }: Props) {
+export function StudyBlockRow({ session, initialMinutes, onSave, onDelete, readonly }: Props) {
   const uid = useId()
 
   const savedIdRef = useRef<number | null>(session?.id ?? null)
   const onSaveRef = useRef(onSave)
   const pendingRef = useRef<SaveInput | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const initialRef = useRef({
-    startTime: session?.startTime ?? '',
-    endTime: session?.endTime ?? '',
-    subject: session?.subject ?? '',
-    material: session?.material ?? '',
-    memo: session?.memo ?? '',
-  })
 
-  const [startTime, setStartTime] = useState(session?.startTime ?? nowHHmm())
-  const [endTime, setEndTime] = useState(session?.endTime ?? '')
+  // ステートを「時刻」から「分」に変更
+  const [minutes, setMinutes] = useState<string>(
+      String(session?.minutes ?? initialMinutes ?? '')
+  )
   const [subject, setSubject] = useState(session?.subject ?? '')
   const [material, setMaterial] = useState(session?.material ?? '')
   const [memo, setMemo] = useState(session?.memo ?? '')
+
   const [saving, setSaving] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -102,13 +94,13 @@ export function StudyBlockRow({ session, onSave, onDelete, readonly }: Props) {
   }, [])
 
   const scheduleSave = useCallback(
-    (values: SaveInput) => {
-      if (!values.subject.trim()) return
-      pendingRef.current = values
-      if (timerRef.current) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => doSave(values), 800)
-    },
-    [doSave],
+      (values: SaveInput) => {
+        if (!values.subject.trim() || values.minutes <= 0) return
+        pendingRef.current = values
+        if (timerRef.current) clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => doSave(values), 800)
+      },
+      [doSave],
   )
 
   const flushSave = useCallback(() => {
@@ -121,22 +113,21 @@ export function StudyBlockRow({ session, onSave, onDelete, readonly }: Props) {
     }
   }, [doSave])
 
+  // 値の変更を検知して自動保存
   useEffect(() => {
-    const init = initialRef.current
-    if (
-      startTime === init.startTime &&
-      endTime === init.endTime &&
-      subject === init.subject &&
-      material === init.material &&
-      memo === init.memo
-    )
-      return
+    const minsNum = parseInt(minutes, 10)
+    if (isNaN(minsNum) || (!session && !subject.trim())) return
 
-    scheduleSave({ startTime, endTime, subject, material, memo: memo.trim() || null })
+    scheduleSave({
+      minutes: minsNum,
+      subject,
+      material,
+      memo: memo.trim() || null
+    })
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [startTime, endTime, subject, material, memo, scheduleSave])
+  }, [minutes, subject, material, memo, scheduleSave, session])
 
   useEffect(() => {
     const handleHide = () => {
@@ -163,158 +154,123 @@ export function StudyBlockRow({ session, onSave, onDelete, readonly }: Props) {
     }
   }
 
-  const minutes = calcMinutes(startTime, endTime)
-
   // ── Readonly ────────────────────────────────────────────────────────────
   if (readonly) {
     return (
-      <div
-        style={{
-          padding: '0.875rem 1rem',
-          background: '#ffffff',
-          border: '1px solid #edeae6',
-          borderRadius: '8px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
-          <span style={{ fontSize: '0.8125rem', color: '#8a7b6e', fontVariantNumeric: 'tabular-nums' }}>
-            {startTime}
-            {endTime ? ` — ${endTime}` : ''}
+        <div
+            style={{
+              padding: '0.875rem 1rem',
+              background: '#ffffff',
+              border: '1px solid #edeae6',
+              borderRadius: '8px',
+            }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
+          <span style={{ fontSize: '0.8125rem', color: '#8a7b6e', fontWeight: 600 }}>
+            {minutes} 分
           </span>
-          {minutes > 0 && (
-            <span style={{ fontSize: '0.75rem', color: '#b5a99a' }}>{formatMinutes(minutes)}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, color: '#1a1108', fontSize: '0.9375rem' }}>{subject}</span>
+            {material && <span style={{ fontSize: '0.8125rem', color: '#8a7b6e' }}>{material}</span>}
+          </div>
+          {memo && (
+              <p style={{ fontSize: '0.875rem', color: '#5c4a38', marginTop: '0.375rem', lineHeight: 1.5 }}>
+                {memo}
+              </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 600, color: '#1a1108', fontSize: '0.9375rem' }}>{subject}</span>
-          {material && <span style={{ fontSize: '0.8125rem', color: '#8a7b6e' }}>{material}</span>}
-        </div>
-        {memo && (
-          <p style={{ fontSize: '0.875rem', color: '#5c4a38', marginTop: '0.375rem', lineHeight: 1.5 }}>
-            {memo}
-          </p>
-        )}
-      </div>
     )
   }
 
   // ── Editable ────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        background: '#ffffff',
-        border: '1px solid #edeae6',
-        borderRadius: '8px',
-        padding: '0.75rem 1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-      }}
-    >
-      {/* 時刻 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <input
-          type="time"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-          style={timeInp}
-        />
-        <span style={{ color: '#c9c0b8', fontSize: '0.875rem', flexShrink: 0 }}>—</span>
-        <input
-          type="time"
-          value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-          style={timeInp}
-        />
-        {minutes > 0 && (
-          <span style={{ fontSize: '0.75rem', color: '#b5a99a', flexShrink: 0 }}>
-            {formatMinutes(minutes)}
-          </span>
-        )}
-        {/* Status + delete */}
-        <div
+      <div
           style={{
-            marginLeft: 'auto',
+            background: '#ffffff',
+            border: '1px solid #edeae6',
+            borderRadius: '8px',
+            padding: '0.75rem 1rem',
             display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            flexShrink: 0,
+            flexDirection: 'column',
+            gap: '0.5rem',
           }}
-        >
-          {saving && (
-            <span style={{ fontSize: '0.625rem', color: '#c9c0b8' }} aria-label="保存中">
-              ●
-            </span>
-          )}
-          {!saving && justSaved && (
-            <span style={{ fontSize: '0.625rem', color: '#4c7a3a' }} aria-label="保存済み">
-              ✓
-            </span>
-          )}
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            aria-label="削除"
-            style={{
-              fontSize: '1rem',
-              lineHeight: 1,
-              color: '#c9c0b8',
-              background: 'none',
-              border: 'none',
-              cursor: deleting ? 'not-allowed' : 'pointer',
-              padding: '0.125rem 0.25rem',
-              borderRadius: '4px',
-            }}
-          >
-            ×
-          </button>
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={rowLabel}>時間</span>
+          <input
+              type="number"
+              inputMode="numeric"
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value)}
+              style={numInp}
+              placeholder="0"
+          />
+          <span style={{ fontSize: '0.8125rem', color: '#b5a99a' }}>分</span>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+            {saving && <span style={{ fontSize: '0.625rem', color: '#c9c0b8' }}>●</span>}
+            {!saving && justSaved && <span style={{ fontSize: '0.625rem', color: '#4c7a3a' }}>✓</span>}
+            <button
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{
+                  fontSize: '1rem',
+                  lineHeight: 1,
+                  color: '#c9c0b8',
+                  background: 'none',
+                  border: 'none',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  padding: '0.125rem 0.25rem',
+                }}
+            >
+              ×
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* 実績: 科目 + 教材 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-        <span style={rowLabel}>実績</span>
-        <input
-          list={`${uid}-subj`}
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          placeholder="科目"
-          style={{ ...textInp, flex: 2 }}
-        />
-        <datalist id={`${uid}-subj`}>
-          {SUBJECTS.map((s) => (
-            <option key={s} value={s} />
-          ))}
-        </datalist>
-        <input
-          list={`${uid}-mat`}
-          value={material}
-          onChange={(e) => setMaterial(e.target.value)}
-          placeholder="教材"
-          style={{ ...textInp, flex: 1 }}
-        />
-        <datalist id={`${uid}-mat`}>
-          {MATERIALS.map((m) => (
-            <option key={m} value={m} />
-          ))}
-        </datalist>
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <span style={rowLabel}>実績</span>
+          <input
+              list={`${uid}-subj`}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="科目"
+              style={{ ...textInp, flex: 2 }}
+          />
+          <datalist id={`${uid}-subj`}>
+            {SUBJECTS.map((s) => (
+                <option key={s} value={s} />
+            ))}
+          </datalist>
+          <input
+              list={`${uid}-mat`}
+              value={material}
+              onChange={(e) => setMaterial(e.target.value)}
+              placeholder="教材"
+              style={{ ...textInp, flex: 1 }}
+          />
+          <datalist id={`${uid}-mat`}>
+            {MATERIALS.map((m) => (
+                <option key={m} value={m} />
+            ))}
+          </datalist>
+        </div>
 
-      {/* 備考 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-        <span style={rowLabel}>備考</span>
-        <input
-          type="text"
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          placeholder="完 / 苦手問題のみ など"
-          style={textInp}
-        />
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <span style={rowLabel}>備考</span>
+          <input
+              type="text"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="完 / 苦手問題のみ など"
+              style={textInp}
+          />
+        </div>
 
-      {saveError && (
-        <p style={{ fontSize: '0.75rem', color: '#c0392b', marginTop: '0.125rem' }}>{saveError}</p>
-      )}
-    </div>
+        {saveError && (
+            <p style={{ fontSize: '0.75rem', color: '#c0392b', marginTop: '0.125rem' }}>{saveError}</p>
+        )}
+      </div>
   )
 }
