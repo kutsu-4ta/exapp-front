@@ -1,15 +1,17 @@
-import {apiFetch} from "@/lib/client";
-import {AuthUser} from "@/lib/store/auth";
+import { apiFetch } from "@/lib/client";
+import { AuthUser } from "@/lib/store/auth";
 
+/**
+ * 新規登録
+ */
 export async function register(
     name: string,
     email: string,
     password: string,
     passwordConfirmation: string,
 ): Promise<{ token: string; user: AuthUser }> {
-    const res = await fetch('/api/auth/register', {
+    const res = await apiFetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, password_confirmation: passwordConfirmation }),
     })
 
@@ -28,10 +30,12 @@ export async function register(
     return data as { token: string; user: AuthUser }
 }
 
+/**
+ * メールアドレス・パスワードログイン
+ */
 export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
-    const res = await fetch('/api/auth/login', {
+    const res = await apiFetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
     })
 
@@ -45,6 +49,27 @@ export async function login(email: string, password: string): Promise<{ token: s
     return data as { token: string; user: AuthUser }
 }
 
+/**
+ * Googleログイン (Firebase ID Token検証)
+ */
+export async function googleLogin(idToken: string): Promise<{ token: string; user: AuthUser }> {
+    const res = await apiFetch('/api/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ id_token: idToken }),
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+        throw new Error(data.message || 'Googleログインに失敗しました。')
+    }
+
+    return data as { token: string; user: AuthUser }
+}
+
+/**
+ * ログアウト
+ */
 export async function logout(): Promise<void> {
     await apiFetch('/api/auth/logout', {
         method: 'POST'
