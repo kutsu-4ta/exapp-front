@@ -22,7 +22,8 @@ interface QuestionResult {
 const ANSWER_OPTIONS = ['ア', 'イ', 'ウ', 'エ', 'オ'];
 
 export default function ExamPage() {
-    const [viewMode, setViewMode] = useState<ViewMode>('input');
+    // グラフ画面（analysis）を起点にする
+    const [viewMode, setViewMode] = useState<ViewMode>('analysis');
     const [isExamFinished, setIsExamFinished] = useState(false);
 
     const [selectedSubject, setSelectedSubject] = useState<string>(SUBJECTS[0]);
@@ -139,28 +140,35 @@ export default function ExamPage() {
     };
 
     const handleFinishExam = () => {
+        if (!window.confirm('試験を終了して自己採点を開始しますか？')) return;
         setIsExamFinished(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const startNewExam = () => {
+        setIsExamFinished(false);
+        setViewMode('input');
+    };
+
     return (
         <div style={container}>
-            <div style={tabContainer}>
-                <button
-                    style={{...tabBtn, ...(viewMode === 'input' ? activeTab : {})}}
-                    onClick={() => setViewMode('input')}
-                >
-                    {isExamFinished ? '自己採点' : '解答記入'}
-                </button>
-                <button
-                    style={{...tabBtn, ...(viewMode === 'analysis' ? activeTab : {})}}
-                    onClick={() => setViewMode('analysis')}
-                >
-                    実績確認
-                </button>
+            {/* 分析画面：ここがスタート地点 */}
+            <div style={{ display: viewMode === 'analysis' ? 'block' : 'none' }}>
+                <div style={analysisHeader}>
+                    <h2 style={title}>学習実績</h2>
+                    <button style={startBtn} onClick={startNewExam}>＋ 解答を入力する</button>
+                </div>
+                <AnalysisView />
             </div>
 
+            {/* 入力・採点画面 */}
             <div style={{ display: viewMode === 'input' ? 'block' : 'none' }}>
+                <div style={statusNav}>
+                    <span style={isExamFinished ? navInactive : navActive}>1. 解答入力</span>
+                    <span style={navArrow}>&gt;</span>
+                    <span style={isExamFinished ? navActive : navInactive}>2. 自己採点</span>
+                </div>
+
                 <div style={stickyHeader}>
                     <div style={headerTopRow}>
                         <div style={metaArea}>
@@ -205,7 +213,6 @@ export default function ExamPage() {
                         {questions.map((q) => (
                             <div key={q.id} style={{
                                 ...questionItem,
-                                // スタイル修正：設問あり/なしでのデザイン出し分け
                                 ...(q.isSub ? subQuestionStyle : parentQuestionStyle),
                                 borderLeft: q.hasChildren ? '4px solid #eee' : (q.isSub ? '4px solid #2383e2' : '1px solid #f0f0ef'),
                             }}>
@@ -233,7 +240,6 @@ export default function ExamPage() {
 
                                         {!q.hasChildren && (
                                             <>
-                                                {/* 解答記入エリア */}
                                                 {!isExamFinished ? (
                                                     <div style={answerControlGroup}>
                                                         <div style={optionBtnGroup}>
@@ -257,12 +263,10 @@ export default function ExamPage() {
                                                             value={ANSWER_OPTIONS.includes(q.myAnswer) ? '' : q.myAnswer}
                                                             onChange={(e) => updateQuestion(q.id, { myAnswer: e.target.value })}
                                                         />
-                                                        {/* isDoubtfulを記入中に配置 */}
                                                         <button onClick={() => updateQuestion(q.id, { isDoubtful: !q.isDoubtful })}
                                                                 style={{...doubtBtn, opacity: q.isDoubtful ? 1 : 0.15}}>💭</button>
                                                     </div>
                                                 ) : (
-                                                    /* 採点エリア */
                                                     <>
                                                         <div style={myAnswerDisplay}>{q.myAnswer || '-'}</div>
                                                         <button onClick={() => {
@@ -306,38 +310,29 @@ export default function ExamPage() {
                     {!isExamFinished ? (
                         <button style={finishBtn} onClick={handleFinishExam}>試験終了（採点へ）</button>
                     ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <button >解答へ戻る</button>
-                            <button style={saveBtn} onClick={() => setViewMode('analysis')}>分析ログを保存して実績を確認</button>
+                        <div style={footerActionGroup}>
+                            <button style={backBtn} onClick={() => setIsExamFinished(false)}>解答を修正する</button>
+                            <button style={saveBtn} onClick={() => setViewMode('analysis')}>保存して実績を確認</button>
                         </div>
                     )}
                 </footer>
-            </div>
-
-            <div style={{ display: viewMode === 'analysis' ? 'block' : 'none' }}>
-                <AnalysisView />
             </div>
         </div>
     )
 }
 
 // ── Styles ──
-const parentQuestionStyle: React.CSSProperties = {
-    padding: '16px 14px',
-    borderRadius: '12px',
-    border: '1px solid #f0f0ef',
-    backgroundColor: '#fff',
-    marginTop: '12px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-};
-const subQuestionStyle: React.CSSProperties = {
-    padding: '10px 14px',
-    borderRadius: '0 8px 8px 0',
-    backgroundColor: '#f9f9f9',
-    marginTop: '2px', // 設問同士は詰める
-    marginLeft: '12px', // インデント
-    borderBottom: '1px solid #eee'
-};
+const analysisHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0' };
+const title: React.CSSProperties = { fontSize: '18px', fontWeight: 900 };
+const startBtn: React.CSSProperties = { padding: '10px 16px', backgroundColor: '#37352f', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' };
+
+const statusNav: React.CSSProperties = { display: 'flex', gap: '12px', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #eee', marginBottom: '10px' };
+const navActive: React.CSSProperties = { fontSize: '13px', fontWeight: 800, color: '#37352f' };
+const navInactive: React.CSSProperties = { fontSize: '13px', fontWeight: 600, color: '#ccc' };
+const navArrow: React.CSSProperties = { fontSize: '12px', color: '#eee' };
+
+const parentQuestionStyle: React.CSSProperties = { padding: '16px 14px', borderRadius: '12px', border: '1px solid #f0f0ef', backgroundColor: '#fff', marginTop: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' };
+const subQuestionStyle: React.CSSProperties = { padding: '10px 14px', borderRadius: '0 8px 8px 0', backgroundColor: '#f9f9f9', marginTop: '2px', marginLeft: '12px', borderBottom: '1px solid #eee' };
 
 const answerControlGroup: React.CSSProperties = { display: 'flex', flex: 1, gap: '6px', alignItems: 'center', marginLeft: 'auto' };
 const optionBtnGroup: React.CSSProperties = { display: 'flex', gap: '2px' };
@@ -346,9 +341,6 @@ const myAnswerInput: React.CSSProperties = { width: '32px', padding: '4px', bord
 const myAnswerDisplay: React.CSSProperties = { fontSize: '13px', fontWeight: 800, color: '#37352f', backgroundColor: '#f4f4f3', padding: '4px 8px', borderRadius: '4px', minWidth: '30px', textAlign: 'center' };
 
 const container: React.CSSProperties = { maxWidth: '600px', margin: '0 auto', padding: '0 16px', color: '#37352f' };
-const tabContainer: React.CSSProperties = { display: 'flex', gap: '20px', borderBottom: '1px solid #eee', marginBottom: '20px', paddingTop: '10px' };
-const tabBtn: React.CSSProperties = { padding: '8px 4px', border: 'none', background: 'none', fontSize: '14px', fontWeight: 600, color: '#aaa', cursor: 'pointer', borderBottom: '2px solid transparent' };
-const activeTab: React.CSSProperties = { color: '#37352f', borderBottom: '2px solid #37352f' };
 const stickyHeader: React.CSSProperties = { position: 'sticky', top: 0, zIndex: 1000, backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #eee', margin: '0 -16px 20px -16px', padding: '12px 20px' };
 const headerTopRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' };
 const metaArea: React.CSSProperties = { flex: 1 };
@@ -368,7 +360,7 @@ const contentBody: React.CSSProperties = { paddingTop: '10px' };
 const setupRow: React.CSSProperties = { display: 'flex', gap: '8px', marginBottom: '24px' };
 const autoCompleteInput: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', fontWeight: 600 };
 const yearInput: React.CSSProperties = { width: '60px', padding: '8px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', textAlign: 'center' };
-const gridContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' }; // 全体の隙間は詰め、各項目のmarginで制御
+const gridContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' };
 const questionItem: React.CSSProperties = { display: 'flex', alignItems: 'flex-start' };
 const sideControl: React.CSSProperties = { width: '28px', marginRight: '10px', display: 'flex', flexDirection: 'column', gap: '4px' };
 const miniBtn: React.CSSProperties = { width: '24px', height: '24px', borderRadius: '6px', border: 'none', backgroundColor: '#f0f0f0', color: '#888', cursor: 'pointer' };
@@ -389,5 +381,7 @@ const pointInput: React.CSSProperties = { width: '22px', border: 'none', fontSiz
 const pointUnit: React.CSSProperties = { fontSize: '9px', color: '#aaa' };
 const noteInput: React.CSSProperties = { width: '100%', marginTop: '8px', padding: '8px 10px', fontSize: '12px', border: 'none', borderRadius: '6px', backgroundColor: '#f4f4f3' };
 const footer: React.CSSProperties = { marginTop: '40px', textAlign: 'center', paddingBottom: '100px' };
+const footerActionGroup: React.CSSProperties = { display: 'flex', gap: '10px' };
 const finishBtn: React.CSSProperties = { width: '100%', padding: '16px', backgroundColor: '#2383e2', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' };
-const saveBtn: React.CSSProperties = { width: '100%', padding: '16px', backgroundColor: '#37352f', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' };
+const saveBtn: React.CSSProperties = { flex: 2, padding: '16px', backgroundColor: '#37352f', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' };
+const backBtn: React.CSSProperties = { flex: 1, padding: '16px', backgroundColor: '#fff', color: '#37352f', border: '1px solid #eee', borderRadius: '12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' };
