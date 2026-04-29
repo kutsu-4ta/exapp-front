@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { DailyLogSummary } from '@/types/workspace'
 import { fetchDailyLogs, createDailyLog } from '@/lib/api/workspace'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-f
+
 type ViewMode = 'list' | 'chart'
 
 export default function DailyLogsPage() {
