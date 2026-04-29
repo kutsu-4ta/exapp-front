@@ -54,15 +54,12 @@ export default function LoginPage() {
 
     return (
         <div style={pageWrapper}>
-            {/* ...ナビゲーション部分は変更なし... */}
+
             <nav style={navBar}>
                 <div style={breadcrumb}>
                     <span style={navIcon}>📝</span>
                     <span style={activeNav}>Login</span>
                 </div>
-                <Link href="/" style={topBackLink}>
-                    ← トップに戻る
-                </Link>
             </nav>
 
             <div style={mainContent}>

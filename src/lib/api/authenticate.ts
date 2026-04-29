@@ -46,6 +46,11 @@ export async function login(email: string, password: string): Promise<{ token: s
 }
 
 export async function logout(): Promise<void> {
-
-    await apiFetch('/api/auth/logout').catch(() => {})
+    await apiFetch('/api/auth/logout', {
+        method: 'POST'
+    }).catch((err) => {
+        console.error('Logout API failed:', err)
+        // サーバー側が失敗しても、フロント側のステート破棄を優先させるため
+        // ここでは rethrow せずに飲み込む設計とする
+    })
 }
