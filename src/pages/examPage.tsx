@@ -145,7 +145,6 @@ export default function ExamPage() {
 
     return (
         <div style={container}>
-            {/* --- タブエリア --- */}
             <div style={tabContainer}>
                 <button
                     style={{...tabBtn, ...(viewMode === 'input' ? activeTab : {})}}
@@ -206,8 +205,9 @@ export default function ExamPage() {
                         {questions.map((q) => (
                             <div key={q.id} style={{
                                 ...questionItem,
-                                backgroundColor: q.isSub ? 'rgba(55, 53, 47, 0.02)' : '#fff',
-                                borderLeft: q.hasChildren ? '3px solid #eee' : 'none',
+                                // スタイル修正：設問あり/なしでのデザイン出し分け
+                                ...(q.isSub ? subQuestionStyle : parentQuestionStyle),
+                                borderLeft: q.hasChildren ? '4px solid #eee' : (q.isSub ? '4px solid #2383e2' : '1px solid #f0f0ef'),
                             }}>
                                 {!isExamFinished && (
                                     <div style={sideControl}>
@@ -257,6 +257,9 @@ export default function ExamPage() {
                                                             value={ANSWER_OPTIONS.includes(q.myAnswer) ? '' : q.myAnswer}
                                                             onChange={(e) => updateQuestion(q.id, { myAnswer: e.target.value })}
                                                         />
+                                                        {/* isDoubtfulを記入中に配置 */}
+                                                        <button onClick={() => updateQuestion(q.id, { isDoubtful: !q.isDoubtful })}
+                                                                style={{...doubtBtn, opacity: q.isDoubtful ? 1 : 0.15}}>💭</button>
                                                     </div>
                                                 ) : (
                                                     /* 採点エリア */
@@ -273,11 +276,10 @@ export default function ExamPage() {
                                                             <button onClick={() => updateQuestion(q.id, { isCorrect: q.isCorrect === false ? null : false })}
                                                                     style={{...statusBtn, ...(q.isCorrect === false ? activeIncorrect : {})}}>×</button>
                                                         </div>
+                                                        <button onClick={() => updateQuestion(q.id, { isDoubtful: !q.isDoubtful })}
+                                                                style={{...doubtBtn, opacity: q.isDoubtful ? 1 : 0.15}}>💭</button>
                                                     </>
                                                 )}
-
-                                                <button onClick={() => updateQuestion(q.id, { isDoubtful: !q.isDoubtful })}
-                                                        style={{...doubtBtn, opacity: q.isDoubtful ? 1 : 0.15}}>💭</button>
 
                                                 {isExamFinished && (
                                                     <div style={pointGroup}>
@@ -316,14 +318,30 @@ export default function ExamPage() {
     )
 }
 
-// ── Styles (不足分を追加) ──
-const answerControlGroup: React.CSSProperties = { display: 'flex', flex: 1, gap: '8px', alignItems: 'center', marginLeft: 'auto' };
+// ── Styles ──
+const parentQuestionStyle: React.CSSProperties = {
+    padding: '16px 14px',
+    borderRadius: '12px',
+    border: '1px solid #f0f0ef',
+    backgroundColor: '#fff',
+    marginTop: '12px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+};
+const subQuestionStyle: React.CSSProperties = {
+    padding: '10px 14px',
+    borderRadius: '0 8px 8px 0',
+    backgroundColor: '#f9f9f9',
+    marginTop: '2px', // 設問同士は詰める
+    marginLeft: '12px', // インデント
+    borderBottom: '1px solid #eee'
+};
+
+const answerControlGroup: React.CSSProperties = { display: 'flex', flex: 1, gap: '6px', alignItems: 'center', marginLeft: 'auto' };
 const optionBtnGroup: React.CSSProperties = { display: 'flex', gap: '2px' };
-const optionBtn: React.CSSProperties = { width: '28px', height: '28px', border: '1px solid #eee', borderRadius: '4px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' };
+const optionBtn: React.CSSProperties = { width: '28px', height: '28px', border: '1px solid #eee', borderRadius: '4px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', backgroundColor: '#fff' };
 const myAnswerInput: React.CSSProperties = { width: '32px', padding: '4px', border: '1px solid #eee', borderRadius: '6px', fontSize: '11px', textAlign: 'center', outline: 'none' };
 const myAnswerDisplay: React.CSSProperties = { fontSize: '13px', fontWeight: 800, color: '#37352f', backgroundColor: '#f4f4f3', padding: '4px 8px', borderRadius: '4px', minWidth: '30px', textAlign: 'center' };
 
-// 既存スタイル（省略なし）
 const container: React.CSSProperties = { maxWidth: '600px', margin: '0 auto', padding: '0 16px', color: '#37352f' };
 const tabContainer: React.CSSProperties = { display: 'flex', gap: '20px', borderBottom: '1px solid #eee', marginBottom: '20px', paddingTop: '10px' };
 const tabBtn: React.CSSProperties = { padding: '8px 4px', border: 'none', background: 'none', fontSize: '14px', fontWeight: 600, color: '#aaa', cursor: 'pointer', borderBottom: '2px solid transparent' };
@@ -347,13 +365,13 @@ const contentBody: React.CSSProperties = { paddingTop: '10px' };
 const setupRow: React.CSSProperties = { display: 'flex', gap: '8px', marginBottom: '24px' };
 const autoCompleteInput: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', fontWeight: 600 };
 const yearInput: React.CSSProperties = { width: '60px', padding: '8px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', textAlign: 'center' };
-const gridContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '12px' };
-const questionItem: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', padding: '12px 14px', borderRadius: '12px', border: '1px solid #f0f0ef' };
+const gridContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' }; // 全体の隙間は詰め、各項目のmarginで制御
+const questionItem: React.CSSProperties = { display: 'flex', alignItems: 'flex-start' };
 const sideControl: React.CSSProperties = { width: '28px', marginRight: '10px', display: 'flex', flexDirection: 'column', gap: '4px' };
 const miniBtn: React.CSSProperties = { width: '24px', height: '24px', borderRadius: '6px', border: 'none', backgroundColor: '#f0f0f0', color: '#888', cursor: 'pointer' };
 const rowTop: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' };
 const qNumberParent: React.CSSProperties = { minWidth: '60px', fontWeight: 900, fontSize: '13px', cursor: 'pointer' };
-const qNumberSub: React.CSSProperties = { minWidth: '60px', fontWeight: 700, fontSize: '12px', color: '#888', paddingLeft: '8px' };
+const qNumberSub: React.CSSProperties = { minWidth: '60px', fontWeight: 700, fontSize: '12px', color: '#666' };
 const dropdownMenu: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, zIndex: 1100, backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: '8px', border: '1px solid #eee', minWidth: '120px' };
 const menuItem: React.CSSProperties = { padding: '8px 12px', fontSize: '11px', cursor: 'pointer' };
 const rankBadge: React.CSSProperties = { width: '24px', height: '24px', borderRadius: '5px', border: 'none', fontSize: '10px', fontWeight: 900, cursor: 'pointer' };
