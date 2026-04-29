@@ -10,5 +10,12 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      - API_INTERNAL_URL=${API_INTERNAL_URL:-http://localhost:8000}
+      - API_INTERNAL_URL=${API_INTERNAL_URL:-http://backend:8000} #バックエンドコンテナに向ける
+    networks:
+      - exapp-network
     restart: unless-stopped
+
+networks:
+  exapp-network:
+    external: true
+    name: exapp-backend_exapp-network #バックエンドのコンテナを起動しておくこと

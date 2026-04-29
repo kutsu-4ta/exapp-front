@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { DUMMY_STATS, DUMMY_PROBLEMS } from '@/lib/api/workspace'
+import { fetchDashboardStats } from '@/lib/api/workspace'
+import { fetchProblems } from '@/lib/api/problem'
 import {
     SUBJECTS, FAILURE_TYPE_VALUES, formatHours, todayString, daysAgo,
     type DashboardStats, type Problem, type ChartDataPoint,
@@ -24,8 +25,8 @@ export default function DashboardPage() {
     const [isEditingGoal, setIsEditingGoal] = useState(false)
 
     useEffect(() => {
-        setStats(DUMMY_STATS)
-        setProblems(DUMMY_PROBLEMS)
+        fetchDashboardStats().then(setStats).catch(console.error)
+        fetchProblems().then(setProblems).catch(console.error)
     }, [])
 
     const transformedChartData = useMemo(() => {

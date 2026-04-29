@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { DailyLog } from '@/types/workspace'
+import { DailyLogSummary } from '@/types/workspace'
 import { fetchDailyLogs } from '@/lib/api/workspace'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 
 type ViewMode = 'list' | 'chart'
 
 export default function DailyLogsPage() {
-    const [logs, setLogs] = useState<DailyLog[]>([])
+    const [logs, setLogs] = useState<DailyLogSummary[]>([])
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<ViewMode>('list')
 
@@ -32,7 +32,7 @@ export default function DailyLogsPage() {
             .sort((a, b) => a.date.localeCompare(b.date))
             .map(log => ({
                 date: log.date.slice(5), // MM-DD 形式
-                minutes: log.studySessions.reduce((sum, s) => sum + s.minutes, 0)
+                minutes: log.totalMinutes,
             }))
     }, [logs])
 
@@ -81,16 +81,15 @@ export default function DailyLogsPage() {
                         </div>
 
                         {logs.map((log) => {
-                            const totalMinutes = log.studySessions.reduce((sum, s) => sum + s.minutes, 0)
-                            const hours = Math.floor(totalMinutes / 60)
-                            const mins = totalMinutes % 60
+                            const hours = Math.floor(log.totalMinutes / 60)
+                            const mins = log.totalMinutes % 60
 
                             return (
                                 <Link key={log.date} href={`/workspace/${log.date}`} style={logItem}>
                                     <div style={itemDate}>
                                         <span style={dateTxt}>{log.date}</span>
                                         <span style={reflectionSnippet}>
-                                            {log.reflection ? log.reflection.substring(0, 30) + '...' : '記録なし'}
+                                            {log.sessionCount ? `${log.sessionCount}セッション` : '記録なし'}
                                         </span>
                                     </div>
                                     <div style={itemTime}>{hours}h {mins}m</div>
