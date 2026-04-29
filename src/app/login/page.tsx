@@ -42,8 +42,6 @@ export default function LoginPage() {
             // APIからトークンとユーザー情報を取得
             const { token, user } = await login(email, password)
 
-            // Zustandストアを更新。これにより persist ミドルウェアが自動で
-            // localStorage へ保存し、apiFetch でトークンが使われるようになります。
             setAuth(user, token)
 
             router.push('/')
@@ -115,10 +113,26 @@ export default function LoginPage() {
                     </form>
 
                     <footer style={footerStyle}>
-                        アカウントをお持ちでない方は{' '}
-                        <Link href="/register" style={registerLink}>
-                            新規登録
-                        </Link>
+                        <div style={{ marginBottom: '24px' }}>
+                            アカウントをお持ちでない方は{' '}
+                            <Link href="/register" style={registerLink}>
+                                新規登録
+                            </Link>
+                        </div>
+
+                        <div style={metaInfoSection}>
+                            <div style={metaLinks}>
+                                <Link href="/terms" style={metaLink}>利用規約</Link>
+                                <span style={metaDivider}>•</span>
+                                <Link href="/privacy" style={metaLink}>プライバシーポリシー</Link>
+                            </div>
+
+                            <div style={brandAndVersion}>
+                                <span style={brandText}>by antapp</span>
+                                <span style={metaDivider}>•</span>
+                                <span style={versionText}>v1.0.4-stable</span>
+                            </div>
+                        </div>
                     </footer>
                 </div>
             </div>
@@ -126,8 +140,62 @@ export default function LoginPage() {
     )
 }
 
-// ── Styles (変更なし) ──────────────────────────────────────────────────────────
+// ── Styles ──────────────────────────────────────────────────────────
+const brandAndVersion: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginTop: '4px'
+}
 
+const brandText: React.CSSProperties = {
+    fontSize: '10px',
+    fontWeight: 600,
+    color: 'rgba(55, 53, 47, 0.4)',
+    letterSpacing: '0.02em',
+    // ちょっとしたこだわり：屋号だけ少しだけ濃く、あるいはフォントを変えるのもアリです
+}
+
+const footerStyle: React.CSSProperties = {
+    marginTop: '32px',
+    textAlign: 'center',
+    fontSize: '12px',
+    color: 'rgba(55, 53, 47, 0.5)'
+}
+
+const metaInfoSection: React.CSSProperties = {
+    marginTop: '40px',
+    paddingTop: '20px',
+    borderTop: '1px solid rgba(55, 53, 47, 0.06)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    alignItems: 'center'
+}
+
+const metaLinks: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+}
+
+const metaLink: React.CSSProperties = {
+    color: 'rgba(55, 53, 47, 0.4)',
+    textDecoration: 'none',
+    transition: 'color 0.2s ease',
+}
+
+const metaDivider: React.CSSProperties = {
+    color: 'rgba(55, 53, 47, 0.15)',
+    fontSize: '10px'
+}
+
+const versionText: React.CSSProperties = {
+    fontSize: '10px',
+    color: 'rgba(55, 53, 47, 0.3)',
+    letterSpacing: '0.05em',
+    fontFamily: 'monospace' // バージョン表記は等幅フォントがストイック
+}
 const inputStyle: React.CSSProperties = {
     width: '100%',
     backgroundColor: 'rgba(242, 241, 238, 0.6)',
@@ -157,5 +225,4 @@ const formGroup: React.CSSProperties = { display: 'flex', flexDirection: 'column
 const inputWrapper: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' }
 const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: 'rgba(55, 53, 47, 0.6)' }
 const submitBtn: React.CSSProperties = { width: '100%', padding: '10px', backgroundColor: '#2383e2', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }
-const footerStyle: React.CSSProperties = { marginTop: '32px', textAlign: 'center', fontSize: '12px', color: 'rgba(55, 53, 47, 0.5)' }
 const registerLink: React.CSSProperties = { color: '#2383e2', textDecoration: 'none', fontWeight: 500 }
