@@ -3,15 +3,14 @@ import {useAuthStore} from "@/lib/store/auth";
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     // ストアから現在のトークンを取得
     const token = useAuthStore.getState().token
-
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(options.headers || {}),
-    }
+        ...(options.headers as Record<string, string> || {}),
+    };
 
     if (token) {
-        headers['Authorization'] = `Bearer ${token}`
+        headers['Authorization'] = `Bearer ${token}`;
     }
 
     const res = await fetch(endpoint, { ...options, headers })
