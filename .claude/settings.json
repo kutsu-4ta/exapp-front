@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"/opt/homebrew/bin:$PATH\")",
+      "Read(//Users/yamashita/**)",
+      "Bash(export PATH=\"/Users/yamashita/.local/share/nvm/v23.3.0/bin:$PATH\")",
+    ]
+  }
+}

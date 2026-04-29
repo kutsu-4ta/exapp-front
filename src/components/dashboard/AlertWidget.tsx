@@ -1,0 +1,62 @@
+import {daysAgo} from "../../types/workspace";
+import {useState} from "react";
+import {c, font} from "../../styles/notion";
+
+
+type SubjectEntry = { subject: string; lastDate: string | null }
+type Props = { warningSubjects: SubjectEntry[] }
+
+export function AlertWidget({ warningSubjects }: Props) {
+    const [isCollapsed, setIsCollapsed] = useState(true)
+
+    return (
+        <div style={container}>
+            <div style={header} onClick={() => setIsCollapsed(!isCollapsed)}>
+                <div style={titleGroup}>
+                    <span style={icon}>⚠️</span>
+                    <span style={title}>{warningSubjects.length}科目の学習が滞っています</span>
+                </div>
+                <span style={toggle}>{isCollapsed ? '表示' : '隠す'}</span>
+            </div>
+
+            {!isCollapsed && (
+                <div style={body}>
+                    <div style={chips}>
+                        {warningSubjects.map(({ subject, lastDate }) => (
+                            <div key={subject} style={chip}>
+                                <span style={chipLabel}>{subject}</span>
+                                <span style={chipSub}>{lastDate ? `${daysAgo(lastDate)}日前` : '未学習'}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <p style={footer}>「手薄な科目」を優先して、知識の風化を防ぎましょう。</p>
+                </div>
+            )}
+        </div>
+    )
+}
+
+const container: React.CSSProperties = {
+    backgroundColor: c.redBg, border: `1px solid ${c.redBorder}`,
+    borderRadius: '8px', marginBottom: '24px', overflow: 'hidden',
+}
+const header: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '10px 16px', cursor: 'pointer',
+}
+const titleGroup: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
+const icon: React.CSSProperties = { fontSize: '14px' }
+const title: React.CSSProperties = { fontSize: '13px', fontWeight: 600, color: c.red }
+const toggle: React.CSSProperties = {
+    fontSize: font.sm, fontWeight: 600, color: 'rgba(235, 87, 87, 0.5)',
+    textTransform: 'uppercase', letterSpacing: '0.02em',
+}
+const body: React.CSSProperties = { padding: '0 16px 16px', borderTop: 'rgba(235, 87, 87, 0.08) 1px solid' }
+const chips: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '12px' }
+const chip: React.CSSProperties = {
+    display: 'flex', flexDirection: 'column', padding: '6px 10px',
+    backgroundColor: c.bg, border: `1px solid ${c.redBorder}`, borderRadius: '6px', minWidth: '100px',
+}
+const chipLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, color: c.text }
+const chipSub: React.CSSProperties = { fontSize: font.xs, color: c.textSub, marginTop: '2px' }
+const footer: React.CSSProperties = { fontSize: font.sm, color: 'rgba(235, 87, 87, 0.6)', marginTop: '12px', fontStyle: 'italic' }
