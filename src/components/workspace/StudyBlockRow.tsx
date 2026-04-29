@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import type { StudySession, StudySessionInput } from '@/types/workspace'
+import type { StudySession, StudySessionInput, SubCategory } from '@/types/workspace'
 import { SUBJECTS, MATERIALS } from '@/types/workspace'
 
 type SaveInput = Omit<StudySessionInput, 'dailyLogDate' | 'timeSlot'>
@@ -9,6 +9,7 @@ type SaveInput = Omit<StudySessionInput, 'dailyLogDate' | 'timeSlot'>
 type Props = {
   session?: StudySession
   initialMinutes?: number // ストップウォッチからの値を受け取る
+  subCategories?: SubCategory[]
   onSave: (currentId: number | null, input: SaveInput) => Promise<number>
   onDelete: (currentId: number | null) => Promise<void>
   readonly?: boolean
@@ -52,7 +53,7 @@ const rowLabel: React.CSSProperties = {
   userSelect: 'none',
 }
 
-export function StudyBlockRow({ session, initialMinutes, onSave, onDelete, readonly }: Props) {
+export function StudyBlockRow({ session, initialMinutes, subCategories = [], onSave, onDelete, readonly }: Props) {
   const uid = useId()
 
   const savedIdRef = useRef<number | null>(session?.id ?? null)
@@ -66,6 +67,11 @@ export function StudyBlockRow({ session, initialMinutes, onSave, onDelete, reado
   )
   const [subject, setSubject] = useState(session?.subject ?? '')
   const [material, setMaterial] = useState(session?.material ?? '')
+  const [subCategoryName, setSubCategoryName] = useState<string>(
+    session?.subCategoryId
+      ? subCategories.find((sc) => sc.id === session.subCategoryId)?.name ?? ''
+      : ''
+  )
   const [memo, setMemo] = useState(session?.memo ?? '')
 
   const [saving, setSaving] = useState(false)
@@ -122,12 +128,17 @@ export function StudyBlockRow({ session, initialMinutes, onSave, onDelete, reado
       minutes: minsNum,
       subject,
       material,
+      subCategoryId: subCategories.find(
+        (sc) => sc.subject === subject && sc.name === subCategoryName.trim()
+      )?.id ?? null,
       memo: memo.trim() || null
     })
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [minutes, subject, material, memo, scheduleSave, session])
+  }, [minutes, subject, material, subCategoryName, memo, scheduleSave, session, subCategories])
+
+  const filteredSubCategories = subCategories.filter((sc) => sc.subject === subject)
 
   useEffect(() => {
     const handleHide = () => {
@@ -172,6 +183,7 @@ export function StudyBlockRow({ session, initialMinutes, onSave, onDelete, reado
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, color: '#1a1108', fontSize: '0.9375rem' }}>{subject}</span>
+            {subCategoryName && <span style={{ fontSize: '0.8125rem', color: '#5c4a38' }}>{subCategoryName}</span>}
             {material && <span style={{ fontSize: '0.8125rem', color: '#8a7b6e' }}>{material}</span>}
           </div>
           {memo && (
@@ -234,13 +246,25 @@ export function StudyBlockRow({ session, initialMinutes, onSave, onDelete, reado
           <input
               list={`${uid}-subj`}
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => { setSubject(e.target.value); setSubCategoryName('') }}
               placeholder="科目"
               style={{ ...textInp, flex: 2 }}
           />
           <datalist id={`${uid}-subj`}>
             {SUBJECTS.map((s) => (
                 <option key={s} value={s} />
+            ))}
+          </datalist>
+          <input
+              list={`${uid}-subcat`}
+              value={subCategoryName}
+              onChange={(e) => setSubCategoryName(e.target.value)}
+              placeholder="小分類"
+              style={{ ...textInp, flex: 1 }}
+          />
+          <datalist id={`${uid}-subcat`}>
+            {filteredSubCategories.map((sc) => (
+                <option key={sc.id} value={sc.name} />
             ))}
           </datalist>
           <input

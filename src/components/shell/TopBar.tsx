@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter, usePathname } from 'next/navigation' // usePathnameを追加
+import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { useTimer } from '@/context/TimerContext'
 import { useAuthStore } from '@/lib/store/auth'
 import { logout as apiLogout } from '@/lib/api/authenticate'
@@ -11,6 +12,7 @@ export function TopBar() {
     const { time, isActive } = useTimer()
 
     const token = useAuthStore((state) => state.token)
+    const user = useAuthStore((state) => state.user)
     const clearAuth = useAuthStore((state) => state.logout)
 
     // 非表示にするパスの判定
@@ -89,23 +91,28 @@ export function TopBar() {
                 )}
             </div>
 
-            <button
-                onClick={handleLogout}
-                style={{
-                    fontSize: '12px',
-                    color: 'rgba(55, 53, 47, 0.45)',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    transition: 'background 0.2s ease',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(55, 53, 47, 0.08)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-                ログアウト
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Link
+                    href="/profile"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: '#2383e2',
+                        color: '#fff',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        flexShrink: 0,
+                    }}
+                    title="プロフィール"
+                >
+                    {user?.name?.charAt(0).toUpperCase() ?? '?'}
+                </Link>
+            </div>
 
             <style jsx>{`
                 @keyframes pulse {

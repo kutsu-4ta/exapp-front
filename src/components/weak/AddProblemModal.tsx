@@ -1,12 +1,16 @@
 'use client'
 
-import { type ProblemInput } from '@/types/workspace'
+import { type ProblemInput, type SubCategory } from '@/types/workspace'
 import { ProblemForm } from './ProblemForm'
 import { c } from '@/styles/notion'
 
-type Props = { onSubmit: (input: ProblemInput) => Promise<void>; onClose: () => void }
+type Props = {
+  onSubmit: (input: ProblemInput) => Promise<void>
+  onClose: () => void
+  subCategories?: SubCategory[]
+}
 
-export function AddProblemModal({ onSubmit, onClose }: Props) {
+export function AddProblemModal({ onSubmit, onClose, subCategories = [] }: Props) {
     return (
         <div style={overlay}>
             <div style={panel}>
@@ -15,7 +19,7 @@ export function AddProblemModal({ onSubmit, onClose }: Props) {
                     <button onClick={onClose} style={closeBtn}>×</button>
                 </div>
                 <div style={body}>
-                    <ProblemForm onSubmit={onSubmit} onCancel={onClose} />
+                    <ProblemForm onSubmit={onSubmit} onCancel={onClose} subCategories={subCategories} />
                 </div>
             </div>
         </div>

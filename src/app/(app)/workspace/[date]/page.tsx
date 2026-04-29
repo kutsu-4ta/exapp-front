@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import type { DailyLog, StudySession } from '@/types/workspace'
+import type { DailyLog, StudySession, SubCategory } from '@/types/workspace'
 import {
   fetchDailyLog, createDailyLog, updateReflection,
   completeDailyLog, uncompleteDailyLog,
   addStudySession, updateStudySession, deleteStudySession,
 } from '@/lib/api/workspace'
+import { fetchSubCategories } from '@/lib/api/subcategory'
 import { DayHeader } from '@/components/workspace/DayHeader'
 import { StudyBlockList } from '@/components/workspace/StudyBlockList'
 import { DayReflection } from '@/components/workspace/DayReflection'
@@ -31,6 +32,7 @@ function WorkspaceDateContent() {
       : undefined
 
   const [log, setLog] = useState<DailyLog | null>(null)
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,10 +41,12 @@ function WorkspaceDateContent() {
     if (!date) return
         ;(async () => {
       try {
-
-        let data = await fetchDailyLog(date)
-        if (!data) data = await createDailyLog(date)
-        setLog(data)
+        const [logData, subCats] = await Promise.all([
+          fetchDailyLog(date).then((d) => d ?? createDailyLog(date)),
+          fetchSubCategories(),
+        ])
+        setLog(logData)
+        setSubCategories(subCats)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました')
       } finally {
@@ -108,6 +112,7 @@ function WorkspaceDateContent() {
                 sessions={log.studySessions}
                 readonly={log.isCompleted}
                 initialMinutes={initialMinutes}
+                subCategories={subCategories}
                 onAdd={async (i) => {
                   const s = await addStudySession(i)
                   if (date) setLog(await fetchDailyLog(date))

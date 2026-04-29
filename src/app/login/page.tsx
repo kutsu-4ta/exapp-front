@@ -24,7 +24,7 @@ export default function LoginPage() {
         try {
             // Firebase SDKでGoogle認証
             const result = await signInWithPopup(auth, googleProvider)
-            const idToken = await result.user.getIdToken()
+            const idToken = await await result.user.getIdToken(true)
 
             // 自前バックエンドへ検証＆トークン発行を依頼
             const { token, user } = await googleLogin(idToken)

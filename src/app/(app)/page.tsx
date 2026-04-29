@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { fetchDashboardStats } from '@/lib/api/workspace'
+import { fetchDashboardStats, fetchMonthlySettings, updateMonthlySettings } from '@/lib/api/workspace'
 import { fetchProblems } from '@/lib/api/problem'
 import {
     SUBJECTS, FAILURE_TYPE_VALUES, formatHours, todayString, daysAgo,
@@ -25,9 +25,20 @@ export default function DashboardPage() {
     const [isEditingGoal, setIsEditingGoal] = useState(false)
 
     useEffect(() => {
+        const now = new Date()
         fetchDashboardStats().then(setStats).catch(console.error)
         fetchProblems().then(setProblems).catch(console.error)
+        fetchMonthlySettings(now.getFullYear(), now.getMonth() + 1)
+            .then((s) => { setTargetMin(s.targetMin); setTargetMax(s.targetMax) })
+            .catch(console.error)
     }, [])
+
+    const handleGoalDone = async () => {
+        setIsEditingGoal(false)
+        const now = new Date()
+        await updateMonthlySettings(now.getFullYear(), now.getMonth() + 1, { targetMin, targetMax })
+            .catch(console.error)
+    }
 
     const transformedChartData = useMemo(() => {
         if (!stats?.dailyMinutes) return []
@@ -95,7 +106,7 @@ export default function DashboardPage() {
                     <MonthlyGoalCard
                         targetMin={targetMin} targetMax={targetMax} isEditing={isEditingGoal}
                         onTargetMinChange={setTargetMin} onTargetMaxChange={setTargetMax}
-                        onEditStart={() => setIsEditingGoal(true)} onEditDone={() => setIsEditingGoal(false)}
+                        onEditStart={() => setIsEditingGoal(true)} onEditDone={handleGoalDone}
                     />
                 </div>
 
