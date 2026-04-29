@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import {
     SUBJECTS, PROFICIENCY_VALUES, FAILURE_TYPE_VALUES,
-    type Problem, type ProblemInput, type Proficiency, type FailureType,
+    type Problem, type ProblemInput, type Proficiency, type FailureType, type SubCategory,
 } from '@/types/workspace'
 import { fetchProblems, addProblem, updateProblem, deleteProblem } from '@/lib/api/problem'
+import { fetchSubCategories } from '@/lib/api/subcategory'
 import { ProblemCard } from '@/components/weak/ProblemCard'
 import { FilterPill } from '@/components/weak/FilterPill'
 import { AddProblemModal } from '@/components/weak/AddProblemModal'
@@ -13,6 +14,7 @@ import { c, font } from '@/styles/notion'
 
 export default function WeakPage() {
     const [problems, setProblems] = useState<Problem[]>([])
+    const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [showAddForm, setShowAddForm] = useState(false)
@@ -22,8 +24,8 @@ export default function WeakPage() {
     const [filterFailureType, setFilterFailureType] = useState<FailureType | 'all'>('all')
 
     useEffect(() => {
-        fetchProblems()
-            .then(setProblems)
+        Promise.all([fetchProblems(), fetchSubCategories()])
+            .then(([p, sc]) => { setProblems(p); setSubCategories(sc) })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setLoading(false))
     }, [])
@@ -81,7 +83,7 @@ export default function WeakPage() {
             </div>
 
             <div style={mainContent}>
-                {showAddForm && <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} />}
+                {showAddForm && <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} subCategories={subCategories} />}
 
                 {loading && <p style={mutedText}>Loading data...</p>}
                 {error && <p style={errorText}>{error}</p>}
@@ -95,7 +97,7 @@ export default function WeakPage() {
                         </div>
                         <div style={cardGrid}>
                             {items.map((p) => (
-                                <ProblemCard key={p.id} problem={p} onUpdate={handleUpdate} onDelete={handleDelete} />
+                                <ProblemCard key={p.id} problem={p} subCategories={subCategories} onUpdate={handleUpdate} onDelete={handleDelete} />
                             ))}
                         </div>
                     </section>

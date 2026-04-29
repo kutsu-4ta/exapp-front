@@ -1,12 +1,7 @@
 export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 
-export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
-  morning: '早朝',
-  lunch: '昼',
-  commute: '通勤',
-  night: '深夜',
-}
 
+// TODO: バックエンドから取得したものをフェッチで状態に持たせてそれを使用するので削除予定
 export const SUBJECTS = [
   '経済学・経済政策',
   '財務・会計',
@@ -16,10 +11,29 @@ export const SUBJECTS = [
   '経営情報システム',
   '中小企業経営・政策',
 ] as const
-export type Subject = (typeof SUBJECTS)[number]
 
+// TODO: バックエンドから取得したものをフェッチで状態に持たせてそれを使用するので削除予定
 export const MATERIALS = ['テキスト', '問題集', 'スピード問題集', '過去問', 'その他'] as const
-export type Material = (typeof MATERIALS)[number]
+
+export type SubCategory = {
+  id: number
+  subject: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type SubCategoryInput = {
+  subject: string
+  name: string
+}
+
+export type MonthlySettings = {
+  year: number
+  month: number
+  targetMin: number
+  targetMax: number
+}
 
 export type StudySession = {
   id: number
@@ -28,6 +42,7 @@ export type StudySession = {
   minutes: number
   subject: string
   material: string
+  subCategoryId: number | null
   memo: string | null
   createdAt: string
   updatedAt: string
@@ -39,6 +54,7 @@ export type StudySessionInput = {
   minutes: number
   subject: string
   material: string
+  subCategoryId?: number | null
   memo: string | null
 }
 
@@ -93,13 +109,14 @@ export function daysAgo(dateStr: string): number {
 export const PROFICIENCY_VALUES = ['○', '△', '×'] as const
 export type Proficiency = (typeof PROFICIENCY_VALUES)[number]
 
-export const FAILURE_TYPE_VALUES = ['定義漏れ', '解法ミス', '計算ミス'] as const
+export const FAILURE_TYPE_VALUES = ['定義ミス', '解法ミス', '計算ミス'] as const
 export type FailureType = (typeof FAILURE_TYPE_VALUES)[number]
 
 export type Problem = {
   id: number
   subject: string
   material: string
+  subCategoryId: number | null
   questionRef: string
   note: string | null
   proficiency: Proficiency

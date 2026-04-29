@@ -5,7 +5,8 @@
       "Bash(mkdir -p \"src/app/\\(app\\)/workspace/[date]\")",
       "Bash(cp \"src/app/workspace/[date]/page.tsx\" \"src/app/\\(app\\)/workspace/[date]/page.tsx\")",
       "Read(//Users/yamashita/**)",
-      "Bash(export PATH=\"/Users/yamashita/.local/share/nvm/v20.15.0/bin:$PATH\")"
+      "Bash(export PATH=\"/Users/yamashita/.local/share/nvm/v20.15.0/bin:$PATH\")",
+      "Bash(git -C /Users/yamashita/Develop/exapp-frontend diff --name-only)"
     ]
   }
 }

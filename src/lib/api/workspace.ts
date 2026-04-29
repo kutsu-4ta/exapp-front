@@ -4,6 +4,7 @@ import type {
   DailyLog,
   DailyLogSummary,
   DashboardStats,
+  MonthlySettings,
   StudySession,
   StudySessionInput,
 } from '@/types/workspace'
@@ -109,5 +110,30 @@ export async function deleteStudySession(id: number): Promise<void> {
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   const res = await apiFetch('/api/dashboard/stats')
   if (!res.ok) throw new Error('統計の取得に失敗しました')
+  return res.json()
+}
+
+/**
+ * ── Monthly Settings ────────────────────────────────────────────────────────
+ */
+
+// GET /api/monthly-settings/:year/:month
+export async function fetchMonthlySettings(year: number, month: number): Promise<MonthlySettings> {
+  const res = await apiFetch(`/api/monthly-settings/${year}/${month}`)
+  if (!res.ok) throw new Error('月間設定の取得に失敗しました')
+  return res.json()
+}
+
+// PUT /api/monthly-settings/:year/:month
+export async function updateMonthlySettings(
+  year: number,
+  month: number,
+  input: { targetMin: number; targetMax: number },
+): Promise<MonthlySettings> {
+  const res = await apiFetch(`/api/monthly-settings/${year}/${month}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('月間設定の保存に失敗しました')
   return res.json()
 }

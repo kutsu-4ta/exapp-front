@@ -10,19 +10,26 @@ import {
   type Proficiency,
   type FailureType,
   type ProblemInput,
+  type SubCategory,
 } from '@/types/workspace'
 
 type Props = {
   initial?: ProblemInput
+  subCategories?: SubCategory[]
   onSubmit: (input: ProblemInput) => Promise<void>
   onCancel: () => void
 }
 
-export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
+export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel }: Props) {
   const isEdit = initial !== undefined
 
   const [subject, setSubject] = useState(initial?.subject ?? '')
   const [material, setMaterial] = useState(initial?.material ?? '')
+  const [subCategoryName, setSubCategoryName] = useState<string>(
+    initial?.subCategoryId
+      ? subCategories.find((sc) => sc.id === initial.subCategoryId)?.name ?? ''
+      : ''
+  )
   const [questionRef, setQuestionRef] = useState(initial?.questionRef ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
   const [proficiency, setProficiency] = useState<Proficiency>(initial?.proficiency ?? '×')
@@ -50,6 +57,9 @@ export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
       await onSubmit({
         subject: subject.trim(),
         material: material.trim(),
+        subCategoryId: subCategories.find(
+          (sc) => sc.subject === subject.trim() && sc.name === subCategoryName.trim()
+        )?.id ?? null,
         questionRef: questionRef.trim(),
         note: note.trim() || null,
         proficiency,
@@ -59,6 +69,7 @@ export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
       })
       if (!isEdit) {
         setMaterial('')
+        setSubCategoryName('')
         setQuestionRef('')
         setNote('')
         setProficiency('×')
@@ -75,7 +86,7 @@ export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
 
   return (
       <div style={formWrap}>
-        {/* Row 1: subject + material */}
+        {/* Row 1: subject + subcategory + material */}
         <div style={row}>
           <div style={field}>
             <label style={labelStyle} htmlFor={subjectId}>科目</label>
@@ -83,12 +94,29 @@ export function ProblemForm({ initial, onSubmit, onCancel }: Props) {
                 id={subjectId}
                 list="pf-subjects"
                 value={subject}
-                onChange={(e) => setSubject(e.target.value)}
+                onChange={(e) => { setSubject(e.target.value); setSubCategoryName('') }}
                 placeholder="選択または入力"
                 style={inp}
             />
             <datalist id="pf-subjects">
               {SUBJECTS.map((s) => <option key={s} value={s} />)}
+            </datalist>
+          </div>
+          <div style={field}>
+            <label style={labelStyle}>小分類（任意）</label>
+            <input
+                list="pf-subcats"
+                value={subCategoryName}
+                onChange={(e) => setSubCategoryName(e.target.value)}
+                placeholder="小分類を入力"
+                style={inp}
+            />
+            <datalist id="pf-subcats">
+              {subCategories
+                .filter((sc) => sc.subject === subject)
+                .map((sc) => (
+                  <option key={sc.id} value={sc.name} />
+                ))}
             </datalist>
           </div>
           <div style={field}>

@@ -2,13 +2,15 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { DailyLogSummary } from '@/types/workspace'
-import { fetchDailyLogs } from '@/lib/api/workspace'
+import { fetchDailyLogs, createDailyLog } from '@/lib/api/workspace'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-
+f
 type ViewMode = 'list' | 'chart'
 
 export default function DailyLogsPage() {
+    const router = useRouter()
     const [logs, setLogs] = useState<DailyLogSummary[]>([])
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -26,12 +28,29 @@ export default function DailyLogsPage() {
         })()
     }, [])
 
-    // グラフ用データの整形（日付の昇順にする）
+    const handleDateSelect = async (date: string) => {
+        if (!date) return
+
+        const exists = logs.find(log => log.date === date)
+
+        if (exists) {
+            router.push(`/workspace/${date}`)
+        } else {
+            try {
+                await createDailyLog(date)
+                router.push(`/workspace/${date}`)
+            } catch (err) {
+                console.error("Failed to create log:", err)
+                router.push(`/workspace/${date}`)
+            }
+        }
+    }
+
     const chartData = useMemo(() => {
         return [...logs]
             .sort((a, b) => a.date.localeCompare(b.date))
             .map(log => ({
-                date: log.date.slice(5), // MM-DD 形式
+                date: log.date.slice(5),
                 minutes: log.totalMinutes,
             }))
     }, [logs])
@@ -40,17 +59,15 @@ export default function DailyLogsPage() {
 
     return (
         <div style={pageWrapper}>
-            {/* Top Bar */}
             <nav style={navBar}>
                 <div style={breadcrumb}>
                     <span style={navIcon}>📝</span>
-                    <Link href="/workspace/daily-logs" style={navLink}>Workspace</Link>
+                    <Link href="/workspace" style={navLink}>Workspace</Link>
                     <span style={sep}>/</span>
                     <span style={activeNav}>Daily Logs</span>
                 </div>
             </nav>
 
-            {/* View Switcher Tabs */}
             <div style={tabBar}>
                 <button
                     onClick={() => setViewMode('list')}
@@ -71,6 +88,18 @@ export default function DailyLogsPage() {
                     <h1 style={title}>Daily Logs</h1>
                     <p style={description}>日々の積み上げと内省の記録</p>
                 </header>
+
+                {/* ツールバーエリア: アイコンのみのスマートなカレンダー選択 */}
+                <div style={toolbar}>
+                    <label style={calendarLabel}>
+                        <span style={{ fontSize: '18px' }}>📅</span>
+                        <input
+                            type="date"
+                            style={hiddenDateInput}
+                            onChange={(e) => handleDateSelect(e.target.value)}
+                        />
+                    </label>
+                </div>
 
                 {viewMode === 'list' ? (
                     <div style={listContainer}>
@@ -115,7 +144,6 @@ export default function DailyLogsPage() {
                                         <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
                                         <YAxis fontSize={10} tickLine={false} axisLine={false} />
                                         <Tooltip contentStyle={tooltipStyle} />
-                                        {/* 1日平均 385分（週45時間相当）の目標線 */}
                                         <ReferenceLine y={385} stroke="#eb5757" strokeDasharray="3 3" label={{ value: 'Target', fontSize: 10, fill: '#eb5757', position: 'insideBottomRight' }} />
                                         <Line
                                             type="monotone"
@@ -159,6 +187,36 @@ const content: React.CSSProperties = { width: '100%', maxWidth: '720px', margin:
 const header: React.CSSProperties = { marginBottom: '40px' }
 const title: React.CSSProperties = { fontSize: '40px', fontWeight: 700, marginBottom: '8px' }
 const description: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.6)', fontSize: '16px' }
+
+const toolbar: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: '12px',
+}
+
+// ボタンとして見せるためのスタイル
+const calendarLabel: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '40px',
+    height: '40px',
+    backgroundColor: '#fff',
+    border: '1px solid rgba(55, 53, 47, 0.16)',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    position: 'relative',
+    transition: 'background 0.2s',
+}
+
+// 実際のinputは透明にして背後に隠す
+const hiddenDateInput: React.CSSProperties = {
+    position: 'absolute',
+    opacity: 0,
+    width: '100%',
+    height: '100%',
+    cursor: 'pointer',
+}
 
 const listContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const listHeader: React.CSSProperties = { display: 'flex', padding: '10px 8px', fontSize: '12px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.35)', borderBottom: '1px solid rgba(55, 53, 47, 0.09)' }

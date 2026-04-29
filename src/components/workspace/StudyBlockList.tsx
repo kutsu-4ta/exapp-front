@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import type { StudySession, StudySessionInput, TimeSlot } from '@/types/workspace'
+import type { StudySession, StudySessionInput, SubCategory, TimeSlot } from '@/types/workspace'
 import { StudyBlockRow } from './StudyBlockRow'
 
 // MEMO: 将来的にユーザーが定義できるようにする
@@ -17,6 +17,7 @@ type Props = {
   sessions: StudySession[]
   readonly: boolean
   initialMinutes?: number // ストップウォッチからの引き継ぎ用
+  subCategories?: SubCategory[]
   onAdd: (input: StudySessionInput) => Promise<StudySession>
   onUpdate: (id: number, input: Omit<StudySessionInput, 'dailyLogDate'>) => Promise<void>
   onDelete: (id: number) => Promise<void>
@@ -24,7 +25,7 @@ type Props = {
 
 type NewRow = { id: string; slot: TimeSlot; defaultMinutes?: number }
 
-export function StudyBlockList({ date, sessions, readonly, initialMinutes, onAdd, onUpdate, onDelete }: Props) {
+export function StudyBlockList({ date, sessions, readonly, initialMinutes, subCategories = [], onAdd, onUpdate, onDelete }: Props) {
   const rowCounter = useRef(0)
 
   const [expandedSlots, setExpandedSlots] = useState<Set<TimeSlot>>(
@@ -98,6 +99,7 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, onAdd
                           <StudyBlockRow
                               key={s.id}
                               session={s}
+                              subCategories={subCategories}
                               onSave={async (_, input) => {
                                 await onUpdate(s.id, { timeSlot: s.timeSlot, ...input })
                                 return s.id
@@ -113,6 +115,7 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, onAdd
                                   key={row.id}
                                   // ここで初期値をRowコンポーネントに渡す
                                   initialMinutes={row.defaultMinutes}
+                                  subCategories={subCategories}
                                   onSave={async (currentId, input) => {
                                     if (currentId === null) {
                                       const newSession = await onAdd({

@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import type { Problem, ProblemInput, Proficiency } from '@/types/workspace'
+import type { Problem, ProblemInput, Proficiency, SubCategory } from '@/types/workspace'
 import { ProblemForm } from './ProblemForm'
 
 type Props = {
   problem: Problem
+  subCategories?: SubCategory[]
   onUpdate: (id: number, input: ProblemInput) => Promise<void>
   onDelete: (id: number) => Promise<void>
 }
@@ -16,7 +17,7 @@ const PROFICIENCY_STYLE: Record<Proficiency, { backgroundColor: string; color: s
   '×': { backgroundColor: '#fce8e6', color: '#c0392b' },
 }
 
-export function ProblemCard({ problem, onUpdate, onDelete }: Props) {
+export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -26,6 +27,7 @@ export function ProblemCard({ problem, onUpdate, onDelete }: Props) {
         initial={{
           subject: problem.subject,
           material: problem.material,
+          subCategoryId: problem.subCategoryId,
           questionRef: problem.questionRef,
           note: problem.note,
           proficiency: problem.proficiency,
@@ -33,6 +35,7 @@ export function ProblemCard({ problem, onUpdate, onDelete }: Props) {
           isGoodQuestion: problem.isGoodQuestion,
           solvedAt: problem.solvedAt,
         }}
+        subCategories={subCategories}
         onSubmit={async (input) => {
           await onUpdate(problem.id, input)
           setEditing(false)

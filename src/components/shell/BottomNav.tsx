@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import {useAuthStore} from "@/lib/store/auth";
 
 // カラー定義を共通化
 const COLOR_ACTIVE = '#37352f'
@@ -57,6 +58,14 @@ const TABS = [
 
 export function BottomNav() {
     const pathname = usePathname()
+
+    const token = useAuthStore((state) => state.token)
+
+    const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/terms' || pathname === '/privacy'
+
+    if (!token || isAuthPage) {
+        return null
+    }
 
     return (
         <nav

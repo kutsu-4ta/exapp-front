@@ -1,17 +1,39 @@
 'use client'
 
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useTimer } from '@/context/TimerContext'
+import { useAuthStore } from '@/lib/store/auth'
+import { logout as apiLogout } from '@/lib/api/authenticate'
 
 export function TopBar() {
+    const router = useRouter()
+    const pathname = usePathname() // パス取得
     const { time, isActive } = useTimer()
 
-    // 表示用の時間をフォーマット
+    const token = useAuthStore((state) => state.token)
+    const user = useAuthStore((state) => state.user)
+    const clearAuth = useAuthStore((state) => state.logout)
+
+    // 非表示にするパスの判定
+    const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/terms' || pathname === '/privacy'
+
+    // ログアウト中または認証関連ページでは表示しない
+    if (!token || isAuthPage) {
+        return null
+    }
+
+    const handleLogout = async () => {
+        // APIを叩く際は明示的にPOSTを指定（apiFetch側の実装に合わせて調整してください）
+        await apiLogout().catch(() => {})
+        clearAuth()
+        router.push('/login')
+    }
+
     const formatShortTime = (ms: number) => {
         const hours = Math.floor(ms / 3600000)
         const minutes = Math.floor((ms % 3600000) / 60000)
         const seconds = Math.floor((ms % 60000) / 1000)
-
         const h = hours > 0 ? `${hours}:` : ''
         const m = minutes < 10 && hours > 0 ? `0${minutes}` : minutes
         const s = seconds < 10 ? `0${seconds}` : seconds
@@ -36,18 +58,10 @@ export function TopBar() {
             }}
         >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span
-            style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#37352f',
-                letterSpacing: '-0.01em',
-            }}
-        >
-            examapp
-        </span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#37352f', letterSpacing: '-0.01em' }}>
+                    examapp
+                </span>
 
-                {/* タイマー稼働中または一時停止中（時間が0でない）場合に表示 */}
                 {time > 0 && (
                     <div style={{
                         display: 'flex',
@@ -56,7 +70,6 @@ export function TopBar() {
                         padding: '2px 8px',
                         backgroundColor: isActive ? 'rgba(35, 131, 226, 0.07)' : 'rgba(55, 53, 47, 0.05)',
                         borderRadius: '4px',
-                        transition: 'all 0.3s ease',
                     }}>
                         <div style={{
                             width: '6px',
@@ -72,31 +85,42 @@ export function TopBar() {
                             color: isActive ? '#2383e2' : 'rgba(55, 53, 47, 0.5)',
                             fontVariantNumeric: 'tabular-nums',
                         }}>
-              {formatShortTime(time)}
-            </span>
+                            {formatShortTime(time)}
+                        </span>
                     </div>
                 )}
             </div>
-            <Link
-                href="/login"
-                style={{
-                    fontSize: '12px',
-                    color: 'rgba(55, 53, 47, 0.45)',
-                    textDecoration: 'none',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                }}
-            >
-                ログアウト
-            </Link>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Link
+                    href="/profile"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: '#2383e2',
+                        color: '#fff',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        flexShrink: 0,
+                    }}
+                    title="プロフィール"
+                >
+                    {user?.name?.charAt(0).toUpperCase() ?? '?'}
+                </Link>
+            </div>
 
             <style jsx>{`
-        @keyframes pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.4; }
-          100% { opacity: 1; }
-        }
-      `}</style>
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.4; }
+                    100% { opacity: 1; }
+                }
+            `}</style>
         </header>
     )
 }
