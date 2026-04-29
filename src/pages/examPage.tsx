@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import AnalysisView from '../components/exam/AnalysisView'
 import { SUBJECTS } from '../types/workspace'
+import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget";
 
 type ViewMode = 'input' | 'analysis';
 const RANKS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -161,14 +162,7 @@ export default function ExamPage() {
                 <AnalysisView />
             </div>
 
-            {/* 入力・採点画面 */}
             <div style={{ display: viewMode === 'input' ? 'block' : 'none' }}>
-                <div style={statusNav}>
-                    <span style={isExamFinished ? navInactive : navActive}>1. 解答入力</span>
-                    <span style={navArrow}>&gt;</span>
-                    <span style={isExamFinished ? navActive : navInactive}>2. 自己採点</span>
-                </div>
-
                 <div style={stickyHeader}>
                     <div style={headerTopRow}>
                         <div style={metaArea}>
@@ -180,6 +174,13 @@ export default function ExamPage() {
                                 <div style={statItem}><span style={dotO}>○</span> {stats.correctCount}</div>
                                 <div style={statItem}><span style={dotX}>×</span> {stats.incorrectCount}</div>
                                 <div style={statItem}>💭 {stats.doubtfulCount}</div>
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        {!isExamFinished && (
+                            <div style={timerWrapperInHeader}>
+                                <StopWatchWidget />
                             </div>
                         )}
                     </div>
@@ -322,6 +323,7 @@ export default function ExamPage() {
 }
 
 // ── Styles ──
+const timerWrapperInHeader: React.CSSProperties = { margin: '0 -20px 12px -20px' };
 const analysisHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0' };
 const title: React.CSSProperties = { fontSize: '18px', fontWeight: 900 };
 const startBtn: React.CSSProperties = { padding: '10px 16px', backgroundColor: '#37352f', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' };
