@@ -306,7 +306,10 @@ export default function ExamPage() {
                     {!isExamFinished ? (
                         <button style={finishBtn} onClick={handleFinishExam}>試験終了（採点へ）</button>
                     ) : (
-                        <button style={saveBtn} onClick={() => setViewMode('analysis')}>分析ログを保存して実績を確認</button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <button >解答へ戻る</button>
+                            <button style={saveBtn} onClick={() => setViewMode('analysis')}>分析ログを保存して実績を確認</button>
+                        </div>
                     )}
                 </footer>
             </div>
