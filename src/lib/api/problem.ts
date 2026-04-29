@@ -1,28 +1,23 @@
 'use client'
 
 import type { Problem, ProblemInput } from '@/types/workspace'
-import { getToken } from '@/lib/auth'
+import { apiFetch } from "@/lib/client";
 
-async function authHeaders(): Promise<HeadersInit> {
-  const token = getToken()
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }
-}
+/**
+ * ── Problems (苦手問題管理) ──────────────────────────────────────────────────
+ */
 
 // GET /api/problems
 export async function fetchProblems(): Promise<Problem[]> {
-  const res = await fetch('/api/problems', { headers: await authHeaders() })
+  const res = await apiFetch('/api/problems')
   if (!res.ok) throw new Error('問題の取得に失敗しました')
   return res.json()
 }
 
 // POST /api/problems
 export async function addProblem(input: ProblemInput): Promise<Problem> {
-  const res = await fetch('/api/problems', {
+  const res = await apiFetch('/api/problems', {
     method: 'POST',
-    headers: await authHeaders(),
     body: JSON.stringify(input),
   })
   if (!res.ok) throw new Error('問題の追加に失敗しました')
@@ -31,9 +26,8 @@ export async function addProblem(input: ProblemInput): Promise<Problem> {
 
 // PUT /api/problems/:id
 export async function updateProblem(id: number, input: ProblemInput): Promise<Problem> {
-  const res = await fetch(`/api/problems/${id}`, {
+  const res = await apiFetch(`/api/problems/${id}`, {
     method: 'PUT',
-    headers: await authHeaders(),
     body: JSON.stringify(input),
   })
   if (!res.ok) throw new Error('問題の更新に失敗しました')
@@ -42,9 +36,6 @@ export async function updateProblem(id: number, input: ProblemInput): Promise<Pr
 
 // DELETE /api/problems/:id
 export async function deleteProblem(id: number): Promise<void> {
-  const res = await fetch(`/api/problems/${id}`, {
-    method: 'DELETE',
-    headers: await authHeaders(),
-  })
+  const res = await apiFetch(`/api/problems/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('問題の削除に失敗しました')
 }

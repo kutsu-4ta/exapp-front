@@ -77,7 +77,6 @@ export function TopBar() {
                     </div>
                 )}
             </div>
-
             <Link
                 href="/login"
                 style={{

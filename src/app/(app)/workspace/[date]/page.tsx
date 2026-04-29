@@ -39,6 +39,7 @@ function WorkspaceDateContent() {
     if (!date) return
         ;(async () => {
       try {
+
         let data = await fetchDailyLog(date)
         if (!data) data = await createDailyLog(date)
         setLog(data)
