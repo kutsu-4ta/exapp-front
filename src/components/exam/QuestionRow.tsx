@@ -141,7 +141,7 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
                     style={freeAnswerTextArea}
                     placeholder="記述解答・メモを入力..."
                     rows={1}
-                    value={ANSWER_OPTIONS.includes(q.myAnswer) ? '' : q.myAnswer}
+                    value={ANSWER_OPTIONS.includes(q.myAnswer as typeof ANSWER_OPTIONS[number]) ? '' : q.myAnswer}
                     onChange={(e) => {
                         onUpdate({myAnswer: e.target.value});
                         // 入力に合わせて高さを自動調整する処理を挟むとよりスマートです
@@ -340,7 +340,6 @@ const parentStyle: React.CSSProperties = { padding: '16px 14px', borderRadius: '
 const subStyle: React.CSSProperties = { padding: '10px 14px', borderRadius: '0 8px 8px 0', backgroundColor: '#f9f9f9', marginTop: '2px', marginLeft: '12px', borderBottom: '1px solid #eee' }
 const sideControl: React.CSSProperties = { width: '28px', marginRight: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }
 const miniBtn: React.CSSProperties = { width: '24px', height: '24px', borderRadius: '6px', border: 'none', backgroundColor: '#f0f0f0', color: '#888', cursor: 'pointer' }
-const rowTop: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
 const qNumberParent: React.CSSProperties = { minWidth: '60px', fontWeight: 900, fontSize: '13px', cursor: 'pointer' }
 const qNumberSub: React.CSSProperties = { minWidth: '60px', fontWeight: 700, fontSize: '12px', color: '#666' }
 const dropdownMenu: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, zIndex: 1100, backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: '8px', border: '1px solid #eee', minWidth: '120px' }
