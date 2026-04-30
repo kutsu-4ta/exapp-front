@@ -60,7 +60,7 @@ export default function DailyLogsPage() {
             <nav style={navBar}>
                 <div style={breadcrumb}>
                     <span style={navIcon}>📝</span>
-                    <Link to="/workspace" style={navLink}>Workspace</Link>
+                    <Link to="/workspace/daily-logs" style={navLink}>Workspace</Link>
                     <span style={sep}>/</span>
                     <span style={activeNav}>Daily Logs</span>
                 </div>
@@ -185,11 +185,16 @@ const description: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.6)', fontS
 const toolbar: React.CSSProperties = { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }
 const calendarLabel: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    width: '40px', height: '40px', backgroundColor: '#fff',
+    width: '44px', height: '44px', backgroundColor: '#fff',
     border: '1px solid rgba(55, 53, 47, 0.16)', borderRadius: '4px',
     cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
 }
-const hiddenDateInput: React.CSSProperties = { position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }
+const hiddenDateInput: React.CSSProperties = {
+    position: 'absolute', top: 0, left: 0,
+    width: '100%', height: '100%',
+    opacity: 0, cursor: 'pointer',
+    zIndex: 1, fontSize: '16px',
+}
 
 const listContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const listHeader: React.CSSProperties = { display: 'flex', padding: '10px 8px', fontSize: '12px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.35)', borderBottom: '1px solid rgba(55, 53, 47, 0.09)' }

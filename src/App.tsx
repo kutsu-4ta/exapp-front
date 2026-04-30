@@ -20,7 +20,7 @@ function AppLayout() {
     return (
         <TimerProvider>
             <TopBar />
-            <main className="pb-20"> {/* BottomNavの高さ分余白を確保 */}
+            <main style={{ paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}>
                 <Outlet />
             </main>
             <BottomNav />
@@ -56,10 +56,8 @@ function App() {
                     <Route path="/exam" element={<ExamPage />} />
                     <Route path="/weak" element={<WeakPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
-
-                {/* 3. 404対応（未定義のパスはTOPへリダイレクト） */}
-                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     );
