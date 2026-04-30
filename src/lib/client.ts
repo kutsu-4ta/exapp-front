@@ -14,7 +14,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
     const res = await fetch(endpoint, { ...options, headers })
 
-    if (res.status === 401 && useAuthStore.getState().user !== null) {
+    if (res.status === 401) {
         useAuthStore.getState().logout()
         window.location.href = '/login'
     }
