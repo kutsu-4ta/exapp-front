@@ -13,12 +13,14 @@ import LoginPage from "./pages/loginPage";
 import PrivacyPage from "./pages/privacyPage";
 import TermsPage from "./pages/termsPage";
 import {BottomNav} from "./shell/BottomNav";
+import {TopBar} from "@/shell/TopBar";
 
 // ナビゲーションバーを表示する共通レイアウト
 function AppLayout() {
     return (
         <TimerProvider>
-            <main className="pb-20"> {/* BottomNavの高さ分余白を確保 */}
+            <TopBar />
+            <main style={{ paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}>
                 <Outlet />
             </main>
             <BottomNav />
@@ -54,10 +56,8 @@ function App() {
                     <Route path="/exam" element={<ExamPage />} />
                     <Route path="/weak" element={<WeakPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
-
-                {/* 3. 404対応（未定義のパスはTOPへリダイレクト） */}
-                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     );

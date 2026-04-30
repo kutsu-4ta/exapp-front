@@ -47,10 +47,10 @@ function IconExam({ active }: { active: boolean }) {
 }
 
 const TABS = [
-    { href: '/', label: 'ホーム', Icon: IconHome, exact: true },
-    { href: '/workspace', label: 'デイリー', Icon: IconLog, exact: false },
-    { href: '/weak', label: '弱点', Icon: IconWeak, exact: false },
-    { href: '/exam', label: '過去問', Icon: IconExam, exact: false },
+    { href: '/', label: 'ホーム', Icon: IconHome, matchPrefix: '/', exact: true },
+    { href: '/workspace/daily-logs', label: 'デイリー', Icon: IconLog, matchPrefix: '/workspace', exact: false },
+    { href: '/weak', label: '弱点', Icon: IconWeak, matchPrefix: '/weak', exact: false },
+    { href: '/exam', label: '過去問', Icon: IconExam, matchPrefix: '/exam', exact: false },
 ]
 
 export function BottomNav() {
@@ -83,8 +83,8 @@ export function BottomNav() {
                 boxSizing: 'content-box',
             }}
         >
-            {TABS.map(({ href, label, Icon, exact }) => {
-                const active = exact ? pathname === href : pathname.startsWith(href)
+            {TABS.map(({ href, label, Icon, matchPrefix, exact }) => {
+                const active = exact ? pathname === matchPrefix : pathname.startsWith(matchPrefix)
                 return (
                     <Link
                         key={href}
@@ -100,7 +100,7 @@ export function BottomNav() {
                             textDecoration: 'none',
                             fontSize: '10px',
                             fontWeight: active ? 600 : 500,
-                            transition: 'all 0.2s ease',
+                            transition: 'color 0.15s ease',
                         }}
                     >
                         <Icon active={active} />
