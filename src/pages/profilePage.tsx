@@ -12,7 +12,6 @@ export default function ProfilePage() {
     const user = useAuthStore((state) => state.user)
     const clearAuth = useAuthStore((state) => state.logout)
 
-    const subjects = useSettingsStore((s) => s.subjects)
     const loadSubjects = useSettingsStore((s) => s.loadSubjects)
 
     const materials = useSettingsStore((s) => s.materials)
@@ -253,12 +252,6 @@ export default function ProfilePage() {
     )
 }
 
-const ChevronIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(55,53,47,0.25)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="9 18 15 12 9 6" />
-    </svg>
-)
-
 // ── Styles ──────────────────────────────────────────────────────────────
 
 const pageWrapper: React.CSSProperties = { backgroundColor: c.bg, minHeight: '100vh', color: c.text }
@@ -290,10 +283,6 @@ const errorText: React.CSSProperties = { fontSize: '12px', color: c.red, marginB
 
 const itemList: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 
-const subjectNavRow: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 0', cursor: 'pointer',
-}
 const itemRow: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '10px 0',

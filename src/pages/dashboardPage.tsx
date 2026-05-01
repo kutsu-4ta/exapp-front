@@ -10,7 +10,6 @@ import {SubjectStatus} from "../components/dashboard/SubjectStatus";
 import {DashboardChart} from "../components/dashboard/DashboardChart";
 import {FailureAnalysisSection} from "../components/dashboard/FailureAnalysisSection";
 import {AlertWidget} from "../components/dashboard/AlertWidget";
-import {StopWatchWidget} from "../components/dashboard/StopWatchWidget";
 import {StatCard} from "../components/dashboard/StatCard";
 import {Link} from "react-router-dom";
 
@@ -139,7 +138,6 @@ export default function DashboardPage() {
     return (
         <div style={pageWrapper}>
             <div style={content}>
-                {/*<StopWatchWidget />*/}
 
                 <Link to={`/workspace/${todayString()}`} style={mainActionCard}>
                     <div style={mainActionBody}>

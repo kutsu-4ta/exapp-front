@@ -2,7 +2,7 @@ import {daysAgo} from "../../types/workspace";
 import {c, font, sectionLabelStyle, triangleStyle} from "../../styles/notion";
 import {useNavigate} from "react-router-dom";
 
-type SubjectResponse = { subject: string; lastdate: string | null };
+type SubjectResponse = { subject: string; lastDate: string | null };
 
 type SubjectEntry = { subject: string; lastDate: string | null };
 
@@ -22,7 +22,7 @@ export function SubjectStatus({ subjectTouched }: Props) {
                 {subjectTouched.map((item) => {
                     const entry: SubjectEntry = {
                         subject: item.subject,
-                        lastDate: item.lastdate,
+                        lastDate: item.lastDate,
                     };
 
                     const label = getStatusLabel(entry.lastDate);

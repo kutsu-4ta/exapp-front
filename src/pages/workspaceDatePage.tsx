@@ -231,14 +231,6 @@ const content: React.CSSProperties = {
     padding: '20px 20px 180px'
 }
 
-const topWidgetSection: React.CSSProperties = {
-    marginBottom: '40px',
-    padding: '20px',
-    backgroundColor: 'rgba(55, 53, 47, 0.02)',
-    borderRadius: '12px',
-    border: '1px solid rgba(55, 53, 47, 0.06)'
-}
-
 const section: React.CSSProperties = {marginBottom: '48px'}
 
 const sectionLabel: React.CSSProperties = {

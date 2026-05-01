@@ -12,6 +12,7 @@ export function TopBar() {
 
     const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/terms' || pathname === '/privacy'
 
+    // 認証されていない、または認証関連ページでは表示しない
     if (!token || isAuthPage) {
         return null
     }
@@ -36,18 +37,27 @@ export function TopBar() {
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
                 borderBottom: '1px solid rgba(55, 53, 47, 0.08)',
-                height: '38px',
+                height: '38px', // バーの高さ
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '0 16px',
             }}
         >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#37352f', letterSpacing: '-0.01em' }}>
-                    examapp
-                </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                    <span style={{
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        color: '#37352f',
+                        letterSpacing: '-0.02em',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"'
+                    }}>
+                        tsumiki
+                    </span>
+                </Link>
 
+                {/* タイマーエリア: 稼働中または時間が記録されている場合 */}
                 {time > 0 && (
                     <div style={{
                         display: 'flex',
@@ -56,12 +66,14 @@ export function TopBar() {
                         padding: '2px 8px',
                         backgroundColor: isActive ? 'rgba(35, 131, 226, 0.07)' : 'rgba(55, 53, 47, 0.05)',
                         borderRadius: '4px',
+                        marginLeft: '4px'
                     }}>
                         <div style={{
                             width: '6px',
                             height: '6px',
                             borderRadius: '50%',
                             backgroundColor: isActive ? '#2383e2' : 'rgba(55, 53, 47, 0.3)',
+                            // グローバルCSSに定義された pulse アニメーションを想定
                             animation: isActive ? 'pulse 2s infinite' : 'none',
                         }} />
                         <span style={{
@@ -77,6 +89,7 @@ export function TopBar() {
                 )}
             </div>
 
+            {/* 右側: プロフィールアイコン */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Link
                     to="/profile"
@@ -95,7 +108,6 @@ export function TopBar() {
                         flexShrink: 0,
                     }}
                     title="プロフィール"
-                    onClick={() => {}}
                 >
                     {user?.name?.charAt(0).toUpperCase() ?? '?'}
                 </Link>

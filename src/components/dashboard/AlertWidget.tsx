@@ -3,7 +3,7 @@ import {useState} from "react";
 import {c, font} from "../../styles/notion";
 import {useSettingsStore} from "../../lib/store/settings";
 
-type SubjectResponse = { subject: string; lastdate: string | null };
+type SubjectResponse = { subject: string; lastDate: string | null };
 
 type Props = {
     warningSubjects: SubjectResponse[];
@@ -14,9 +14,9 @@ export function AlertWidget({ warningSubjects }: Props) {
     const alertSettings = useSettingsStore((s) => s.alertSettings);
 
     const filteredSubjects = warningSubjects.filter((item) => {
-        if (!item.lastdate) return alertSettings.includeUntouched;
+        if (!item.lastDate) return alertSettings.includeUntouched;
 
-        const diff = daysAgo(item.lastdate);
+        const diff = daysAgo(item.lastDate);
         return diff >= alertSettings.thresholdDays;
     });
 
@@ -37,7 +37,7 @@ export function AlertWidget({ warningSubjects }: Props) {
                 <div style={body}>
                     <div style={chips}>
                         {filteredSubjects.map((item) => {
-                            const days = item.lastdate ? `${daysAgo(item.lastdate)}日前` : "未学習";
+                            const days = item.lastDate ? `${daysAgo(item.lastDate)}日前` : "未学習";
 
                             return (
                                 <div key={item.subject} style={chip}>

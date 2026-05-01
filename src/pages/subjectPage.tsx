@@ -4,7 +4,7 @@ import { useSettingsStore } from '../lib/store/settings'
 import { renameSubject, deleteSubject } from '../lib/api/subjects'
 import { addSubCategory, updateSubCategory, deleteSubCategory } from '../lib/api/subcategory'
 import type { SubCategory } from '../types/workspace'
-import {backBtn, c, font} from '../styles/notion'
+import {backBtn, c} from '../styles/notion'
 
 export default function SubjectPage() {
     const { name: encodedName } = useParams<{ name: string }>()
@@ -82,6 +82,11 @@ export default function SubjectPage() {
             setSubCategories([...subCategories, created])
             setAddValue('')
         } finally { setAddLoading(false) }
+    }
+
+    const startEdit = (sc: SubCategory) => {
+        setEditingId(sc.id)
+        setEditingValue(sc.name) // オブジェクトではなく sc.name (string) を渡す
     }
 
     const handleEditSave = async () => {
