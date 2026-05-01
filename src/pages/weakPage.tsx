@@ -1,15 +1,17 @@
 import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from "../types/workspace";
-import type {FailureType, Problem, ProblemInput, Proficiency, SubCategory} from "../types/workspace";
+import type {FailureType, ProblemInput, Proficiency, SubCategory} from "../types/workspace";
 import { useSettingsStore } from '../lib/store/settings';
 import {ProblemCard} from "../components/weak/ProblemCard";
 import {addProblem, deleteProblem, fetchProblems, updateProblem} from "../lib/api/problem";
 import {useCallback, useEffect, useMemo, useState} from "react";
+import {useNavigate} from "react-router-dom";
 import {FilterPill} from "../components/weak/FilterPill";
 import {AddProblemModal} from "../components/weak/AddProblemModal";
 import {fetchSubCategories} from "../lib/api/subcategory";
 import {c, font} from "../styles/notion";
 
 export default function WeakPage() {
+    const navigate = useNavigate()
     const subjects = useSettingsStore((s) => s.subjects)
     const [problems, setProblems] = useState<Problem[]>([])
     const [subCategories, setSubCategories] = useState<SubCategory[]>([])
@@ -32,7 +34,8 @@ export default function WeakPage() {
         const p = await addProblem(input)
         setProblems((prev) => [p, ...prev])
         setShowAddForm(false)
-    }, [])
+        navigate(`/weak/${p.id}`)
+    }, [navigate])
 
     const handleUpdate = useCallback(async (id: number, input: ProblemInput) => {
         const updated = await updateProblem(id, input)

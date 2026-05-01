@@ -29,3 +29,23 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
     return res
 }
+
+// Content-Type を自動設定させる FormData 用アップロード（multipart/form-data）
+export async function apiUpload(endpoint: string, formData: FormData) {
+    const token = useAuthStore.getState().token
+    const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`
+
+    const headers: Record<string, string> = { 'Accept': 'application/json' }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const res = await fetch(url, { method: 'POST', headers, body: formData })
+
+    if (res.status === 401) {
+        useAuthStore.getState().logout()
+        if (!window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login'
+        }
+    }
+
+    return res
+}

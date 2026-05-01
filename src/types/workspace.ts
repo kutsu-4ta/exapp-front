@@ -102,19 +102,30 @@ export type Proficiency = (typeof PROFICIENCY_VALUES)[number]
 export const FAILURE_TYPE_VALUES = ['定義ミス', '解法ミス', '計算ミス'] as const
 export type FailureType = (typeof FAILURE_TYPE_VALUES)[number]
 
-export type Problem = {
-  id: number
-  subject: string
-  material: string
-  subCategoryId: number | null
-  questionRef: string
+// export type Problem = {
+//   id: number
+//   subject: string
+//   material: string
+//   subCategoryId: number | null
+//   questionRef: string
+//   note: string | null
+//   proficiency: Proficiency
+//   failureTypes: FailureType[]
+//   isGoodQuestion: boolean
+//   solvedAt: string // YYYY-MM-DD
+//   createdAt: string
+//   updatedAt: string
+// }
+
+export type AnalysisResponse = {
+  subject_name: string
+  sub_category_name: string
+  question_ref: string | null
   note: string | null
-  proficiency: Proficiency
-  failureTypes: FailureType[]
-  isGoodQuestion: boolean
-  solvedAt: string // YYYY-MM-DD
-  createdAt: string
-  updatedAt: string
+  proficiency: string
+  failure_types: string[]
+  is_good_question: boolean
+  solved_at: string
 }
 
 export type ChartDataPoint = {

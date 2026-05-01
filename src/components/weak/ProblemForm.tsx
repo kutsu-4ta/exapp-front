@@ -12,9 +12,11 @@ type Props = {
   subCategories?: SubCategory[]
   onSubmit: (input: ProblemInput) => Promise<void>
   onCancel: () => void
+  /** アクション行の左端に差し込む要素（カメラボタン等） */
+  leftAction?: React.ReactNode
 }
 
-export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel }: Props) {
+export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, leftAction }: Props) {
   const isEdit = initial !== undefined
   const subjects = useSettingsStore((s) => s.subjects)
   const materials = useSettingsStore((s) => s.materials)
@@ -232,6 +234,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel }:
 
         {/* Actions */}
         <div style={actions}>
+          {leftAction && <div style={{ marginRight: 'auto' }}>{leftAction}</div>}
           <button type="button" onClick={onCancel} style={ghostBtn}>
             キャンセル
           </button>
