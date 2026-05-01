@@ -62,3 +62,10 @@ export const cardSubStyle: React.CSSProperties = {
   color: c.textHint,
   marginTop: '6px',
 }
+
+export const backBtn: React.CSSProperties = {
+  background: 'none', border: 'none', cursor: 'pointer',
+  fontSize: '13px', color: 'rgba(55, 53, 47, 0.45)', fontWeight: 600,
+  padding: '4px 8px', marginLeft: '-8px', marginBottom: '24px',
+  display: 'flex', alignItems: 'center', borderRadius: '4px',
+}

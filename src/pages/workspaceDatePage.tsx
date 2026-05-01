@@ -16,6 +16,7 @@ import {useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {fetchSubCategories} from "../lib/api/subcategory";
 import type {DailyLog, SubCategory} from "../types/workspace";
 import {Suspense, useCallback, useEffect, useState} from "react";
+import {backBtn} from "@/styles/notion.ts";
 
 export default function WorkspaceDatePage() {
   return (
@@ -134,6 +135,12 @@ function WorkspaceDateContent() {
   return (
       <div style={pageWrapper}>
         <div style={content}>
+          <button style={backBtn} onClick={() => navigate(-1)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight: '6px'}}>
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back
+          </button>
           <DayHeader
               log={log}
               onComplete={handleComplete}

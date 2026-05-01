@@ -12,6 +12,7 @@ import WorkspaceDatePage from "./pages/workspaceDatePage";
 import ExamPage from "./pages/examPage";
 import WeakPage from "./pages/weakPage";
 import ProfilePage from "./pages/profilePage";
+import SubjectPage from "./pages/subjectPage";
 import LoginPage from "./pages/loginPage";
 import PrivacyPage from "./pages/privacyPage";
 import TermsPage from "./pages/termsPage";
@@ -76,6 +77,7 @@ function App() {
                     <Route path="/exam" element={<ExamPage />} />
                     <Route path="/weak" element={<WeakPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/subjects/:name" element={<SubjectPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
                 </Route>

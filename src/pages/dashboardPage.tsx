@@ -141,6 +141,20 @@ export default function DashboardPage() {
             <div style={content}>
                 <StopWatchWidget />
 
+                <Link to={`/workspace/${todayString()}`} style={mainActionCard}>
+                    <div style={mainActionBody}>
+                        <div style={ctaLabel}>GO TO TODAY'S WORKSPACE</div>
+                        <div style={ctaValue}>{todayString().replace(/-/g, '/')}</div>
+                    </div>
+                    <div style={mainActionIcon}>
+                        <span>演習を開始する</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </div>
+                </Link>
+
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
                 <div style={statsGrid}>
@@ -206,6 +220,18 @@ export default function DashboardPage() {
     )
 }
 
+const mainActionCard: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '24px', backgroundColor: '#fff', border: `1px solid ${c.blueBorder}`,
+    borderRadius: '12px', textDecoration: 'none', color: c.blue,
+    marginBottom: '24px', boxShadow: '0 2px 4px rgba(35,131,226,0.05)',
+    transition: 'transform 0.1s ease',
+}
+const mainActionBody: React.CSSProperties = { flex: 1 }
+const mainActionIcon: React.CSSProperties = {
+    display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px',
+    fontSize: '11px', fontWeight: 600, opacity: 0.8
+}
 const pageWrapper: React.CSSProperties = {
     backgroundColor: c.bg, minHeight: '100vh', color: c.text,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif',
