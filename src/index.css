@@ -1,33 +1,60 @@
+@import "tailwindcss";
+
+/* ── Design Tokens ─────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Notion-palette solid colors — usable as bg-n-*, text-n-*, border-n-* */
+  --color-n-text:   #37352f;
+  --color-n-blue:   #2383e2;
+  --color-n-red:    #eb5757;
+  --color-n-amber:  #f59e0b;
+  --color-n-green:  #3a7a2a;
+  --color-n-brown:  #5c3a1e;
+  --color-n-bg:     #ffffff;
+  --color-n-bgpage: #f7f6f3;
+
+  /* Typography scale */
+  --font-size-2xs: 10px;
+  --font-size-xs:  11px;
+  --font-size-sm:  13px;
+  --font-size-base: 14px;
+  --font-size-md:  16px;
+}
+
+/* Semi-transparent tokens — reference with [var(--nt-*)] in Tailwind arbitrary values */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --nt-text-sub:    rgba(55, 53, 47, 0.45);
+  --nt-text-hint:   rgba(55, 53, 47, 0.35);
+  --nt-text-faint:  rgba(55, 53, 47, 0.25);
+  --nt-border:      rgba(55, 53, 47, 0.09);
+  --nt-border-xs:   rgba(55, 53, 47, 0.04);
+  --nt-surface:     rgba(55, 53, 47, 0.02);
+  --nt-hover:       rgba(55, 53, 47, 0.03);
+  --nt-pressed:     rgba(55, 53, 47, 0.06);
+  --nt-blue-bg:     rgba(35, 131, 226, 0.06);
+  --nt-blue-border: rgba(35, 131, 226, 0.15);
+  --nt-red-bg:      rgba(235, 87, 87, 0.05);
+  --nt-red-border:  rgba(235, 87, 87, 0.15);
+}
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+/* ── Base Reset ─────────────────────────────────────────────────────────────── */
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background-color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+  color: #37352f;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 #root {
@@ -35,62 +62,12 @@
   min-height: 100svh;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+p { margin: 0; }
+
+/* ── Shared Animations ──────────────────────────────────────────────────────── */
 
 @keyframes pulse {
   0%   { opacity: 1; }
   50%  { opacity: 0.4; }
   100% { opacity: 1; }
-}
-
-body {
-  margin: 0;
-  overflow-x: hidden;
-  background-color: #fff;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }

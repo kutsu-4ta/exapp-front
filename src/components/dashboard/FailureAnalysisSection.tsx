@@ -1,6 +1,5 @@
-import {c, font, sectionLabelStyle, triangleStyle} from "../../styles/notion";
-import {useMemo, useState} from "react";
-import {BarChartIcon, PieChartIcon} from "@/lib/icon/ChartIcons.tsx";
+import { useMemo, useState } from 'react'
+import { BarChartIcon, PieChartIcon } from '@/lib/icon/ChartIcons.tsx'
 
 type FailureEntry = { type: string; count: number }
 type Props = { failureData: FailureEntry[] }
@@ -9,7 +8,7 @@ const COLORS = ['#2383e2', '#eb5757', '#f2ab26', '#19a576', '#8a7b6e', '#5c3a1e'
 
 export function FailureAnalysisSection({ failureData }: Props) {
     const [viewMode, setViewMode] = useState<'bar' | 'pie'>('bar')
-    const totalCount = useMemo(() => failureData.reduce((sum, d) => sum + d.count, 0), [failureData])
+    const totalCount = useMemo(() => failureData.reduce((s, d) => s + d.count, 0), [failureData])
 
     const pieGradient = useMemo(() => {
         let current = 0
@@ -21,54 +20,68 @@ export function FailureAnalysisSection({ failureData }: Props) {
         return `conic-gradient(${stops.join(', ')})`
     }, [failureData, totalCount])
 
+    const maxCount = Math.max(...failureData.map(d => d.count), 1)
+
     return (
-        <section style={section}>
-            <div style={sectionHeader}>
-                <div style={sectionLabelStyle}><span style={triangleStyle}>▼</span> FAILURE ANALYSIS</div>
-                <div style={toggleGroup}>
-                    <ToggleBtn active={viewMode === 'bar'} onClick={() => setViewMode('bar')}>
-                        <BarChartIcon color={viewMode === 'bar' ? '#37352f' : 'rgba(55, 53, 47, 0.4)'} />
+        <section className="mb-12">
+            <div className="flex justify-between items-center mb-3">
+                <SectionLabel>FAILURE ANALYSIS</SectionLabel>
+                <div className="flex gap-0.5 p-0.5 rounded">
+                    <ToggleBtn active={viewMode === 'bar'} onClick={() => setViewMode('bar')} label="棒グラフ">
+                        <BarChartIcon color={viewMode === 'bar' ? '#37352f' : 'rgba(55,53,47,0.3)'} />
                     </ToggleBtn>
-                    <ToggleBtn active={viewMode === 'pie'} onClick={() => setViewMode('pie')}>
-                        <PieChartIcon color={viewMode === 'pie' ? '#37352f' : 'rgba(55, 53, 47, 0.4)'} />
+                    <ToggleBtn active={viewMode === 'pie'} onClick={() => setViewMode('pie')} label="円グラフ">
+                        <PieChartIcon color={viewMode === 'pie' ? '#37352f' : 'rgba(55,53,47,0.3)'} />
                     </ToggleBtn>
                 </div>
             </div>
 
             {viewMode === 'bar' ? (
-                <div style={list}>
+                <div className="flex flex-col divide-y divide-[var(--nt-border-xs)]">
                     {failureData.map(({ type, count }) => (
-                        <div key={type} style={barRow}>
-                            <div style={barHeader}>
-                                <span style={barLabel}>{type}</span>
-                                <span style={barCount}>{count} cases</span>
+                        <div key={type} className="py-3">
+                            <div className="flex justify-between items-baseline mb-2">
+                                <span className="text-[14px] text-n-text font-medium">{type}</span>
+                                <span className="text-[13px] text-[var(--nt-text-sub)]">{count} cases</span>
                             </div>
-                            <div style={barBg}>
-                                <div style={{
-                                    ...barFill,
-                                    width: `${(count / (Math.max(...failureData.map(d => d.count)) || 1)) * 100}%`,
-                                    backgroundColor: count > 10 ? c.red : c.text,
-                                }} />
+                            <div className="h-1.5 bg-[var(--nt-surface)] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full rounded-full transition-[width] duration-500"
+                                    style={{
+                                        width: `${(count / maxCount) * 100}%`,
+                                        backgroundColor: count > 10 ? '#eb5757' : '#37352f',
+                                    }}
+                                />
                             </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div style={pieView}>
-                    <div style={pieFrame}>
-                        <div style={{ ...pieCircle, background: pieGradient }} />
-                        <div style={pieHole}>
-                            <div style={pieCenterNum}>{totalCount}</div>
-                            <div style={pieCenterSub}>Total Cases</div>
+                <div className="flex flex-col items-center gap-8 py-6">
+                    <div className="relative w-44 h-44 shrink-0">
+                        <div className="w-full h-full rounded-full" style={{ background: pieGradient }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <div
+                                className="flex flex-col items-center justify-center rounded-full bg-white"
+                                style={{ width: '120px', height: '120px' }}
+                            >
+                                <span className="text-[28px] font-extrabold text-n-text leading-none">{totalCount}</span>
+                                <span className="text-[10px] text-[var(--nt-text-sub)] font-semibold uppercase tracking-wide mt-1">
+                                    Total Cases
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div style={legend}>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 w-full">
                         {failureData.map(({ type, count }, i) => (
-                            <div key={type} style={legendItem}>
-                                <div style={{ ...dot, backgroundColor: COLORS[i % COLORS.length] }} />
+                            <div key={type} className="flex items-start gap-2">
+                                <div
+                                    className="w-2 h-2 rounded-[2px] mt-1 shrink-0"
+                                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                                />
                                 <div>
-                                    <div style={legendLabel}>{type}</div>
-                                    <div style={legendRatio}>
+                                    <div className="text-[12px] font-medium text-n-text">{type}</div>
+                                    <div className="text-[11px] text-[var(--nt-text-sub)]">
                                         {totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0}%
                                     </div>
                                 </div>
@@ -81,43 +94,31 @@ export function FailureAnalysisSection({ failureData }: Props) {
     )
 }
 
-function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
-        <button onClick={onClick} style={{
-            ...toggleBtn,
-            color: active ? c.text : c.textFaint,
-            backgroundColor: active ? 'rgba(55, 53, 47, 0.08)' : 'transparent',
-        }}>{children}</button>
+        <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--nt-text-hint)] tracking-[0.05em] uppercase">
+            <span className="text-[8px]">▼</span>
+            {children}
+        </div>
     )
 }
 
-const section: React.CSSProperties = { marginBottom: '48px' }
-const sectionHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
-const toggleGroup: React.CSSProperties = { display: 'flex', gap: '2px', padding: '2px', borderRadius: '4px' }
-const toggleBtn: React.CSSProperties = {
-    width: '28px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '14px', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: 0, lineHeight: 1,
+function ToggleBtn({
+    active, onClick, label, children,
+}: {
+    active: boolean; onClick: () => void; label: string; children: React.ReactNode
+}) {
+    return (
+        <button
+            onClick={onClick}
+            aria-label={label}
+            aria-pressed={active}
+            className={[
+                'w-7 h-6 flex items-center justify-center rounded border-none cursor-pointer p-0 transition-colors',
+                active ? 'bg-[rgba(55,53,47,0.08)]' : 'bg-transparent',
+            ].join(' ')}
+        >
+            {children}
+        </button>
+    )
 }
-const list: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '2px' }
-const barRow: React.CSSProperties = { padding: '12px 0' }
-const barHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }
-const barLabel: React.CSSProperties = { fontSize: font.base }
-const barCount: React.CSSProperties = { fontSize: '13px', color: c.textSub }
-const barBg: React.CSSProperties = { height: '6px', backgroundColor: c.surface, borderRadius: '3px', overflow: 'hidden' }
-const barFill: React.CSSProperties = { height: '100%', borderRadius: '3px', transition: 'width 0.6s ease' }
-
-const pieView: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px', padding: '24px 0' }
-const pieFrame: React.CSSProperties = { position: 'relative', width: '180px', height: '180px' }
-const pieCircle: React.CSSProperties = { width: '100%', height: '100%', borderRadius: '50%' }
-const pieHole: React.CSSProperties = {
-    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    width: '120px', height: '120px', backgroundColor: c.bg, borderRadius: '50%',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-}
-const pieCenterNum: React.CSSProperties = { fontSize: '28px', fontWeight: 800, color: c.text }
-const pieCenterSub: React.CSSProperties = { fontSize: font.xs, color: c.textSub, fontWeight: 600, textTransform: 'uppercase' }
-const legend: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', width: '100%' }
-const legendItem: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: '8px' }
-const dot: React.CSSProperties = { width: '8px', height: '8px', borderRadius: '2px', marginTop: '4px' }
-const legendLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: c.text }
-const legendRatio: React.CSSProperties = { fontSize: font.sm, color: c.textSub }

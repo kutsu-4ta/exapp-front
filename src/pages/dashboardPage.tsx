@@ -10,7 +10,6 @@ import {
     fetchMonthlySettings,
     updateMonthlySettings
 } from "../lib/api/workspace";
-import {c} from "../styles/notion";
 import {SubjectStatus} from "../components/dashboard/SubjectStatus";
 import {DashboardChart} from "../components/dashboard/DashboardChart";
 import {FailureAnalysisSection} from "../components/dashboard/FailureAnalysisSection";
@@ -163,15 +162,23 @@ export default function DashboardPage() {
     , [subjectTouched])
 
     return (
-        <div style={pageWrapper}>
-            <div style={content}>
+        <div className="bg-white min-h-screen text-n-text">
+            <div className="max-w-[800px] mx-auto px-5 pt-10 pb-[120px]">
 
-                <Link to={`/workspace/${todayString()}`} style={mainActionCard}>
-                    <div style={mainActionBody}>
-                        <div style={ctaLabel}>GO TO TODAY'S WORKSPACE</div>
-                        <div style={ctaValue}>{todayString().replace(/-/g, '/')}</div>
+                {/* CTA: 今日のワークスペース */}
+                <Link
+                    to={`/workspace/${todayString()}`}
+                    className="flex items-center justify-between px-6 py-5 mb-6 bg-white rounded-xl text-n-blue no-underline border border-[var(--nt-blue-border)] shadow-[0_2px_4px_rgba(35,131,226,0.05)] transition-transform active:scale-[0.99]"
+                >
+                    <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-semibold mb-0.5 tracking-wide">
+                            GO TO TODAY'S WORKSPACE
+                        </div>
+                        <div className="text-[18px] font-bold">
+                            {todayString().replace(/-/g, '/')}
+                        </div>
                     </div>
-                    <div style={mainActionIcon}>
+                    <div className="flex flex-col items-end gap-1 text-[11px] font-semibold opacity-80 ml-4 shrink-0">
                         <span>演習を開始する</span>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -182,10 +189,13 @@ export default function DashboardPage() {
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
-                <AIAgentWidget onGetAdvice={fetchAIAdvice}/>
+                {/* AI Advisor */}
+                <div className="mb-6">
+                    <AIAgentWidget onGetAdvice={fetchAIAdvice}/>
+                </div>
 
-                {/* 統計とAIエージェントの行 */}
-                <div style={statRowContainer}>
+                {/* 統計カード */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
                     <StatCard
                         label="All Total"
                         value={formatHours(stats?.allTotalMinutes ?? 0)}
@@ -197,32 +207,44 @@ export default function DashboardPage() {
                         sub={`${stats?.thisMonthDays ?? 0}d Active`}
                     />
                     <StatCard
-                        label="CurrentStreak"
+                        label="Streak"
                         value={`${stats?.currentStreak ?? 0}d`}
-                        sub={`${stats?.thisWeekTotalMinutes ?? 0}h`}
+                        sub={`週 ${formatHours(stats?.thisWeekTotalMinutes ?? 0)}`}
                     />
                 </div>
 
                 {/* バーンダウンチャート */}
-                <section style={section}>
-                    <div style={chartCard}>
+                <section className="mb-12">
+                    <div className="p-3 border border-[rgba(55,53,47,0.06)] rounded-lg">
                         {/* Month navigation */}
-                        <div style={chartNav}>
-                            {/* 中央のナビゲーション */}
-                            <div style={navMainGroup}>
-                                <button onClick={() => navigateMonth(-1)} style={navBtn} aria-label="前月">
+                        <div className="flex items-center justify-center relative pb-3 pt-1">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => navigateMonth(-1)}
+                                    className="flex items-center justify-center w-7 h-7 rounded border border-[rgba(55,53,47,0.12)] bg-white text-[rgba(55,53,47,0.6)] cursor-pointer"
+                                    aria-label="前月"
+                                >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="15 18 9 12 15 6"/>
                                     </svg>
                                 </button>
-                                <span style={monthLabel}>
-                {chartYear}/{String(chartMonth).padStart(2, '0')}
-                                    {isCurrentMonth && <span style={currentBadge}>今月</span>}
-            </span>
+                                <span className="text-[13px] font-bold text-[rgba(55,53,47,0.6)] min-w-[90px] text-center flex items-center justify-center gap-1.5">
+                                    {chartYear}/{String(chartMonth).padStart(2, '0')}
+                                    {isCurrentMonth && (
+                                        <span className="text-[10px] font-semibold text-n-blue bg-[var(--nt-blue-bg)] px-1.5 py-[1px] rounded-sm">
+                                            今月
+                                        </span>
+                                    )}
+                                </span>
                                 <button
                                     onClick={() => navigateMonth(1)}
-                                    style={isCurrentMonth ? navBtnDisabled : navBtn}
                                     disabled={isCurrentMonth}
+                                    className={[
+                                        'flex items-center justify-center w-7 h-7 rounded border bg-white',
+                                        isCurrentMonth
+                                            ? 'border-[rgba(55,53,47,0.06)] text-[rgba(55,53,47,0.2)] cursor-default'
+                                            : 'border-[rgba(55,53,47,0.12)] text-[rgba(55,53,47,0.6)] cursor-pointer',
+                                    ].join(' ')}
                                     aria-label="翌月"
                                 >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -231,50 +253,58 @@ export default function DashboardPage() {
                                 </button>
                             </div>
 
-                            {/* 右端の設定ボタン */}
+                            {/* 目標設定ボタン */}
                             <button
                                 onClick={handleOpenGoalEditor}
-                                style={gearBtnAbsolute}
+                                className="absolute right-1 top-1 flex items-center justify-center w-7 h-7 rounded text-[rgba(55,53,47,0.25)] hover:text-[rgba(55,53,47,0.5)] hover:bg-[var(--nt-pressed)] transition-colors border-none bg-transparent cursor-pointer"
                                 aria-label="目標を編集"
                                 title={`目標: ${chartTargetMin}h ~ ${chartTargetMax}h`}
                             >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                                 </svg>
                             </button>
                         </div>
 
-                        {/* インラインエディタ（グラフカード内に出現） */}
+                        {/* 目標インラインエディタ */}
                         {isEditingChartGoal && (
-                            <div style={goalEditorBoxInline}>
-                                <div style={goalEditorInputRow}>
-                                    <span style={goalEditorLabelMini}>GOAL:</span>
-                                    <input
-                                        type="number"
-                                        value={editMin}
-                                        onChange={(e) => setEditMin(Number(e.target.value))}
-                                        style={goalInput}
-                                        min={0}
-                                    />
-                                    <span style={goalEditorSep}>-</span>
-                                    <input
-                                        type="number"
-                                        value={editMax}
-                                        onChange={(e) => setEditMax(Number(e.target.value))}
-                                        style={goalInput}
-                                        min={0}
-                                    />
-                                    <span style={goalEditorSep}>h</span>
-                                    <button onClick={handleSaveChartGoal} disabled={goalSaving} style={goalSaveBtn}>
-                                        {goalSaving ? '...' : 'Save'}
-                                    </button>
-                                    <button onClick={() => setIsEditingChartGoal(false)} style={goalCancelBtn}>Cancel</button>
-                                </div>
+                            <div className="flex justify-center items-center gap-1.5 px-2 py-2 mb-3 bg-[var(--nt-surface)] border border-[rgba(55,53,47,0.06)] rounded-md">
+                                <span className="text-[10px] font-bold text-[rgba(55,53,47,0.3)] mr-1">GOAL:</span>
+                                <input
+                                    type="number"
+                                    value={editMin}
+                                    onChange={(e) => setEditMin(Number(e.target.value))}
+                                    className="w-11 text-[13px] font-semibold text-n-text border border-[rgba(55,53,47,0.12)] rounded text-center py-0.5 outline-none bg-white"
+                                    min={0}
+                                />
+                                <span className="text-[13px] text-[rgba(55,53,47,0.45)]">-</span>
+                                <input
+                                    type="number"
+                                    value={editMax}
+                                    onChange={(e) => setEditMax(Number(e.target.value))}
+                                    className="w-11 text-[13px] font-semibold text-n-text border border-[rgba(55,53,47,0.12)] rounded text-center py-0.5 outline-none bg-white"
+                                    min={0}
+                                />
+                                <span className="text-[13px] text-[rgba(55,53,47,0.45)]">h</span>
+                                <button
+                                    onClick={handleSaveChartGoal}
+                                    disabled={goalSaving}
+                                    className="ml-2 text-[11px] font-semibold px-2 py-1 rounded bg-n-blue text-white border-none cursor-pointer disabled:opacity-50"
+                                >
+                                    {goalSaving ? '...' : 'Save'}
+                                </button>
+                                <button
+                                    onClick={() => setIsEditingChartGoal(false)}
+                                    className="text-[11px] text-[rgba(55,53,47,0.4)] border-none bg-transparent cursor-pointer px-2 py-1"
+                                >
+                                    Cancel
+                                </button>
                             </div>
                         )}
 
                         {chartLoading
-                            ? <div style={chartPlaceholder}>読み込み中...</div>
+                            ? <div className="flex items-center justify-center text-[13px] text-[rgba(55,53,47,0.35)]" style={{ height: 'clamp(200px, 35vw, 280px)' }}>読み込み中...</div>
                             : <DashboardChart data={transformedChartData} targetMin={chartTargetMin} targetMax={chartTargetMax} />
                         }
                     </div>
@@ -287,133 +317,3 @@ export default function DashboardPage() {
         </div>
     )
 }
-const chartNav: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    padding: '4px 0 12px',
-}
-
-const navMainGroup: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-}
-
-const gearBtnAbsolute: React.CSSProperties = {
-    position: 'absolute',
-    right: '4px',
-    top: '4px',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'rgba(55,53,47,0.25)',
-    padding: '6px',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    transition: 'background 0.2s, color 0.2s',
-}
-
-const goalEditorBoxInline: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    padding: '8px',
-    marginBottom: '12px',
-    background: 'rgba(55,53,47,0.02)',
-    border: '1px solid rgba(55,53,47,0.06)',
-    borderRadius: '6px',
-}
-
-const goalEditorLabelMini: React.CSSProperties = {
-    fontSize: '10px',
-    fontWeight: 700,
-    color: 'rgba(55,53,47,0.3)',
-    marginRight: '4px',
-}
-
-const goalInput: React.CSSProperties = {
-    width: '44px',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: '#37352f',
-    border: '1px solid rgba(55,53,47,0.12)',
-    borderRadius: '4px',
-    padding: '2px 4px',
-    background: '#fff',
-    outline: 'none',
-    textAlign: 'center',
-}
-
-const goalSaveBtn: React.CSSProperties = {
-    fontSize: '11px',
-    fontWeight: 600,
-    padding: '3px 8px',
-    borderRadius: '4px',
-    border: 'none',
-    backgroundColor: '#2383e2', // Notion Blue
-    color: '#fff',
-    cursor: 'pointer',
-    marginLeft: '8px',
-}
-
-const goalCancelBtn: React.CSSProperties = {
-    fontSize: '11px',
-    color: 'rgba(55,53,47,0.4)',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '4px 8px',
-}
-const mainActionCard: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '24px', backgroundColor: '#fff', border: `1px solid ${c.blueBorder}`,
-    borderRadius: '12px', textDecoration: 'none', color: c.blue,
-    marginBottom: '24px', boxShadow: '0 2px 4px rgba(35,131,226,0.05)',
-    transition: 'transform 0.1s ease',
-}
-const mainActionBody: React.CSSProperties = { flex: 1 }
-const mainActionIcon: React.CSSProperties = {
-    display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px',
-    fontSize: '11px', fontWeight: 600, opacity: 0.8
-}
-const pageWrapper: React.CSSProperties = {
-    backgroundColor: c.bg, minHeight: '100vh', color: c.text,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif',
-}
-const content: React.CSSProperties = { maxWidth: '800px', margin: '0 auto', padding: '40px 20px 120px' }
-const section: React.CSSProperties = { marginBottom: '48px' }
-const goalEditorInputRow: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: '6px',
-}
-const goalEditorSep: React.CSSProperties = {
-    fontSize: '13px', color: 'rgba(55,53,47,0.45)',
-}
-const chartCard: React.CSSProperties = { padding: '12px', border: `1px solid rgba(55, 53, 47, 0.06)`, borderRadius: '8px' }
-const navBtn: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    width: '28px', height: '28px', borderRadius: '4px',
-    border: '1px solid rgba(55,53,47,0.12)', backgroundColor: '#fff',
-    color: 'rgba(55,53,47,0.6)', cursor: 'pointer',
-}
-const navBtnDisabled: React.CSSProperties = { ...navBtn, color: 'rgba(55,53,47,0.2)', cursor: 'default', borderColor: 'rgba(55,53,47,0.06)' }
-const monthLabel: React.CSSProperties = {
-    fontSize: '13px', fontWeight: 700, color: 'rgba(55,53,47,0.6)',
-    minWidth: '90px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-}
-const currentBadge: React.CSSProperties = {
-    fontSize: '10px', fontWeight: 600, color: '#2383e2',
-    backgroundColor: 'rgba(35,131,226,0.08)', padding: '1px 5px', borderRadius: '3px',
-}
-const chartPlaceholder: React.CSSProperties = { height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: 'rgba(55,53,47,0.35)' }
-
-const ctaLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, marginBottom: '2px' }
-const ctaValue: React.CSSProperties = { fontSize: '18px', fontWeight: 700 }
-const statRowContainer: React.CSSProperties = {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'stretch',
-    marginBottom: '24px',
-    flexWrap: 'wrap'
-};
