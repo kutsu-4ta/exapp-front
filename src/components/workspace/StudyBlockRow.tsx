@@ -33,6 +33,7 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -70,7 +71,11 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
       await onDelete(null);
       return;
     }
-    if (!confirm('このブロックを削除しますか？')) return;
+    setDeleteConfirming(true);
+  }
+
+  async function handleDeleteConfirmed() {
+    setDeleteConfirming(false);
     setDeleting(true);
     try {
       await onDelete(savedIdRef.current);
@@ -162,13 +167,17 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
               style={notionMemoInp}
           />
 
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            opacity: 1,
-            transition: 'opacity 0.2s'
-          }}>
-            <button onClick={handleDelete} disabled={deleting} style={notionDeleteBtn}>削除</button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {deleteConfirming ? (
+              <>
+                <button onClick={handleDeleteConfirmed} disabled={deleting} style={notionDeleteConfirmBtn}>
+                  {deleting ? '...' : '削除'}
+                </button>
+                <button onClick={() => setDeleteConfirming(false)} style={notionDeleteCancelBtn}>×</button>
+              </>
+            ) : (
+              <button onClick={handleDelete} disabled={deleting} style={notionDeleteBtn}>削除</button>
+            )}
             <button
                 onClick={handleManualSave}
                 disabled={!isValid || saving}
@@ -226,7 +235,7 @@ const inputGroup: React.CSSProperties = {
 
 const notionNumInp: React.CSSProperties = {
   width: '38px',
-  fontSize: '14px',
+  fontSize: '16px',
   fontWeight: 600,
   color: '#37352f',
   border: 'none',
@@ -243,7 +252,7 @@ const unitText: React.CSSProperties = {
 
 const notionMainInp: React.CSSProperties = {
   flex: 1,
-  fontSize: '15px',
+  fontSize: '16px',
   fontWeight: 600,
   color: '#37352f',
   border: 'none',
@@ -253,7 +262,7 @@ const notionMainInp: React.CSSProperties = {
 
 const notionSubInp: React.CSSProperties = {
   width: '100%',
-  fontSize: '13px',
+  fontSize: '16px',
   color: 'rgba(55, 53, 47, 0.65)',
   border: 'none',
   background: 'transparent',
@@ -262,7 +271,7 @@ const notionSubInp: React.CSSProperties = {
 
 const notionMemoInp: React.CSSProperties = {
   flex: 1,
-  fontSize: '13px',
+  fontSize: '16px',
   color: 'rgba(55, 53, 47, 0.5)',
   border: 'none',
   background: 'transparent',
@@ -294,6 +303,27 @@ const notionDeleteBtn: React.CSSProperties = {
   border: 'none',
   cursor: 'pointer',
   padding: '4px 8px',
+};
+
+const notionDeleteConfirmBtn: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 600,
+  color: '#fff',
+  background: '#eb5757',
+  border: 'none',
+  borderRadius: '3px',
+  cursor: 'pointer',
+  padding: '4px 8px',
+};
+
+const notionDeleteCancelBtn: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(55, 53, 47, 0.45)',
+  background: 'none',
+  border: '1px solid rgba(55, 53, 47, 0.16)',
+  borderRadius: '3px',
+  cursor: 'pointer',
+  padding: '3px 7px',
 };
 
 // --- Readonly Styles ---

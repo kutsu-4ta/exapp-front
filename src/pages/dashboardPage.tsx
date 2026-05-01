@@ -207,16 +207,6 @@ export default function DashboardPage() {
                 <SubjectStatus subjectTouched={subjectTouched} />
                 <FailureAnalysisSection failureData={failureData} />
 
-                <Link to={`/workspace/${todayString()}`} style={ctaCard}>
-                    <div>
-                        <div style={ctaLabel}>Go to Today's Page</div>
-                        <div style={ctaValue}>{todayString().replace(/-/g, '/')}</div>
-                    </div>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                        <polyline points="12 5 19 12 12 19"/>
-                    </svg>
-                </Link>
             </div>
         </div>
     )

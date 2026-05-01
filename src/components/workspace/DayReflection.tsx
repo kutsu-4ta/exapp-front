@@ -63,7 +63,7 @@ export function DayReflection({ value, readonly, onSave }: Props) {
           borderRadius: '8px',
           backgroundColor: readonly ? '#f8f7f5' : '#ffffff',
           color: '#1a1108',
-          fontSize: '0.9375rem',
+          fontSize: '1rem',
           fontFamily: 'inherit',
           letterSpacing: '0.01em',
           lineHeight: 1.7,
