@@ -1,28 +1,19 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../lib/store/auth'
 import { useTimer } from '../context/TimerContext'
-import { logout as apiLogout } from '../lib/api/authenticate'
 
 export function TopBar() {
     const location = useLocation()
     const pathname = location.pathname
-    const navigate = useNavigate()
     const { time, isActive } = useTimer()
 
     const token = useAuthStore((state) => state.token)
     const user = useAuthStore((state) => state.user)
-    const clearAuth = useAuthStore((state) => state.logout)
 
     const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/terms' || pathname === '/privacy'
 
     if (!token || isAuthPage) {
         return null
-    }
-
-    const handleLogout = async () => {
-        await apiLogout().catch(() => {})
-        clearAuth()
-        navigate('/login')
     }
 
     const formatShortTime = (ms: number) => {

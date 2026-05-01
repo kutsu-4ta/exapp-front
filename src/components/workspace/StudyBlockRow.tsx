@@ -46,7 +46,7 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
     const values: SaveInput = {
       minutes: parseInt(minutes, 10),
       subject: subject.trim(),
-      material: material.trim() || null,
+      material: material.trim() || '',
       subCategoryId: subCategories.find(
           (sc) => sc.subject === subject && sc.name === subCategoryName.trim()
       )?.id ?? null,
