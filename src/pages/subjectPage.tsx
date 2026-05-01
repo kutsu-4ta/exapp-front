@@ -21,7 +21,7 @@ export default function SubjectPage() {
 
     useEffect(() => {
         if (subjects.length > 0 && !subjects.includes(subjectName)) {
-            navigate('/profile', { replace: true })
+            navigate('/', { replace: true })
         }
     }, [subjects, subjectName])
 
@@ -121,7 +121,7 @@ export default function SubjectPage() {
             await deleteSubject(subjectName)
             setSubjects(subjects.filter((s) => s !== subjectName))
             setSubCategories(subCategories.filter((sc) => sc.subject !== subjectName))
-            navigate('/profile', { replace: true })
+            navigate('/', { replace: true })
         } finally { setDeleteLoading(false) }
     }
 
