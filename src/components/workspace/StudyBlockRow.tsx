@@ -1,300 +1,353 @@
-import type {StudySession, StudySessionInput, SubCategory} from "../../types/workspace";
+import type { StudySession, StudySessionInput, SubCategory } from "../../types/workspace";
 import { useSettingsStore } from '../../lib/store/settings';
-import {useCallback, useEffect, useId, useRef, useState} from "react";
+import { useId, useRef, useState } from "react";
 
 type SaveInput = Omit<StudySessionInput, 'dailyLogDate' | 'timeSlot'>
 
 type Props = {
   session?: StudySession
-  initialMinutes?: number // ストップウォッチからの値を受け取る
+  initialMinutes?: number
   subCategories?: SubCategory[]
   onSave: (currentId: number | null, input: SaveInput) => Promise<number>
   onDelete: (currentId: number | null) => Promise<void>
   readonly?: boolean
 }
 
-// --- Styles (Notion-style) ---
-const textInp: React.CSSProperties = {
-  border: 'none',
-  borderBottom: '1px solid #edeae6',
-  background: 'transparent',
-  color: '#1a1108',
-  fontSize: '0.9375rem',
-  fontFamily: 'inherit',
-  outline: 'none',
-  padding: '0.125rem 0',
-  minWidth: 0,
-  width: '100%',
-  boxSizing: 'border-box',
-}
-
-const numInp: React.CSSProperties = {
-  border: '1px solid #edeae6',
-  borderRadius: '5px',
-  background: '#faf8f6',
-  color: '#1a1108',
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
-  outline: 'none',
-  padding: '0.3rem 0.5rem',
-  width: '4rem',
-  textAlign: 'right',
-  boxSizing: 'border-box',
-}
-
-const rowLabel: React.CSSProperties = {
-  fontSize: '0.75rem',
-  color: '#b5a99a',
-  whiteSpace: 'nowrap',
-  minWidth: '2.25rem',
-  letterSpacing: '0.02em',
-  userSelect: 'none',
-}
-
 export function StudyBlockRow({ session, initialMinutes, subCategories = [], onSave, onDelete, readonly }: Props) {
-  const uid = useId()
-  const subjects = useSettingsStore((s) => s.subjects)
-  const materials = useSettingsStore((s) => s.materials)
+  const uid = useId();
+  const subjects = useSettingsStore((s) => s.subjects);
+  const materials = useSettingsStore((s) => s.materials);
 
-  const savedIdRef = useRef<number | null>(session?.id ?? null)
-  const onSaveRef = useRef(onSave)
-  const pendingRef = useRef<SaveInput | null>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedIdRef = useRef<number | null>(session?.id ?? null);
 
-  // ステートを「時刻」から「分」に変更
-  const [minutes, setMinutes] = useState<string>(
-      String(session?.minutes ?? initialMinutes ?? '')
-  )
-  const [subject, setSubject] = useState(session?.subject ?? '')
-  const [material, setMaterial] = useState(session?.material ?? '')
+  const [minutes, setMinutes] = useState<string>(String(session?.minutes ?? initialMinutes ?? ''));
+  const [subject, setSubject] = useState(session?.subject ?? '');
+  const [material, setMaterial] = useState(session?.material ?? '');
   const [subCategoryName, setSubCategoryName] = useState<string>(
-    session?.subCategoryId
-      ? subCategories.find((sc) => sc.id === session.subCategoryId)?.name ?? ''
-      : ''
-  )
-  const [memo, setMemo] = useState(session?.memo ?? '')
+      session?.subCategoryId
+          ? subCategories.find((sc) => sc.id === session.subCategoryId)?.name ?? ''
+          : ''
+  );
+  const [memo, setMemo] = useState(session?.memo ?? '');
 
-  const [saving, setSaving] = useState(false)
-  const [justSaved, setJustSaved] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
-  useEffect(() => {
-    onSaveRef.current = onSave
-  }, [onSave])
+  const isValid = parseInt(minutes, 10) > 0 && subject.trim().length > 0;
 
-  const doSave = useCallback(async (values: SaveInput) => {
-    pendingRef.current = null
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const newId = await onSaveRef.current(savedIdRef.current, values)
-      savedIdRef.current = newId
-      setJustSaved(true)
-      setTimeout(() => setJustSaved(false), 2000)
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : '保存失敗')
-    } finally {
-      setSaving(false)
-    }
-  }, [])
+  const handleManualSave = async () => {
+    if (!isValid) return;
+    setSaving(true);
+    setSaveError(null);
 
-  const scheduleSave = useCallback(
-      (values: SaveInput) => {
-        if (!values.subject.trim() || values.minutes <= 0) return
-        pendingRef.current = values
-        if (timerRef.current) clearTimeout(timerRef.current)
-        timerRef.current = setTimeout(() => doSave(values), 800)
-      },
-      [doSave],
-  )
-
-  const flushSave = useCallback(() => {
-    if (pendingRef.current) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
-      doSave(pendingRef.current)
-    }
-  }, [doSave])
-
-  // 値の変更を検知して自動保存
-  useEffect(() => {
-    const minsNum = parseInt(minutes, 10)
-    if (isNaN(minsNum) || (!session && !subject.trim())) return
-
-    scheduleSave({
-      minutes: minsNum,
-      subject,
-      material,
+    const values: SaveInput = {
+      minutes: parseInt(minutes, 10),
+      subject: subject.trim(),
+      material: material.trim() || null,
       subCategoryId: subCategories.find(
-        (sc) => sc.subject === subject && sc.name === subCategoryName.trim()
+          (sc) => sc.subject === subject && sc.name === subCategoryName.trim()
       )?.id ?? null,
       memo: memo.trim() || null
-    })
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [minutes, subject, material, subCategoryName, memo, scheduleSave, session, subCategories])
+    };
 
-  const filteredSubCategories = subCategories.filter((sc) => sc.subject === subject)
-
-  useEffect(() => {
-    const handleHide = () => {
-      if (document.visibilityState === 'hidden') flushSave()
+    try {
+      const newId = await onSave(savedIdRef.current, values);
+      savedIdRef.current = newId;
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : '保存失敗');
+    } finally {
+      setSaving(false);
     }
-    document.addEventListener('visibilitychange', handleHide)
-    return () => {
-      document.removeEventListener('visibilitychange', handleHide)
-      flushSave()
-    }
-  }, [flushSave])
+  };
 
   async function handleDelete() {
     if (savedIdRef.current === null) {
-      await onDelete(null)
-      return
+      await onDelete(null);
+      return;
     }
-    if (!confirm('このブロックを削除しますか？')) return
-    setDeleting(true)
+    if (!confirm('このブロックを削除しますか？')) return;
+    setDeleting(true);
     try {
-      await onDelete(savedIdRef.current)
+      await onDelete(savedIdRef.current);
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
   }
 
-  // ── Readonly ────────────────────────────────────────────────────────────
   if (readonly) {
     return (
-        <div
-            style={{
-              padding: '0.875rem 1rem',
-              background: '#ffffff',
-              border: '1px solid #edeae6',
-              borderRadius: '8px',
-            }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
-          <span style={{ fontSize: '0.8125rem', color: '#8a7b6e', fontWeight: 600 }}>
-            {minutes} 分
-          </span>
+        <div style={readonlyRow}>
+          <div style={timeBadge}>{minutes} min</div>
+          <div style={contentLayout}>
+            <span style={subjectText}>{subject}</span>
+            {subCategoryName && <span style={tagStyle}>{subCategoryName}</span>}
+            {material && <span style={materialText}>{material}</span>}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600, color: '#1a1108', fontSize: '0.9375rem' }}>{subject}</span>
-            {subCategoryName && <span style={{ fontSize: '0.8125rem', color: '#5c4a38' }}>{subCategoryName}</span>}
-            {material && <span style={{ fontSize: '0.8125rem', color: '#8a7b6e' }}>{material}</span>}
-          </div>
-          {memo && (
-              <p style={{ fontSize: '0.875rem', color: '#5c4a38', marginTop: '0.375rem', lineHeight: 1.5 }}>
-                {memo}
-              </p>
-          )}
+          {memo && <p style={memoText}>{memo}</p>}
         </div>
-    )
+    );
   }
 
-  // ── Editable ────────────────────────────────────────────────────────────
   return (
       <div
           style={{
-            background: '#ffffff',
-            border: '1px solid #edeae6',
-            borderRadius: '8px',
-            padding: '0.75rem 1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
+            ...editableRow,
+            borderColor: isHovered ? 'rgba(55, 53, 47, 0.16)' : 'rgba(55, 53, 47, 0.08)',
           }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={rowLabel}>時間</span>
-          <input
-              type="number"
-              inputMode="numeric"
-              value={minutes}
-              onChange={(e) => setMinutes(e.target.value)}
-              style={numInp}
-              placeholder="0"
-          />
-          <span style={{ fontSize: '0.8125rem', color: '#b5a99a' }}>分</span>
-
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-            {saving && <span style={{ fontSize: '0.625rem', color: '#c9c0b8' }}>●</span>}
-            {!saving && justSaved && <span style={{ fontSize: '0.625rem', color: '#4c7a3a' }}>✓</span>}
-            <button
-                onClick={handleDelete}
-                disabled={deleting}
-                style={{
-                  fontSize: '1rem',
-                  lineHeight: 1,
-                  color: '#c9c0b8',
-                  background: 'none',
-                  border: 'none',
-                  cursor: deleting ? 'not-allowed' : 'pointer',
-                  padding: '0.125rem 0.25rem',
-                }}
-            >
-              ×
-            </button>
+        {/* Upper Row: Time and Basic Info */}
+        <div style={flexRow}>
+          <div style={inputGroup}>
+            <input
+                type="number"
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+                style={notionNumInp}
+                placeholder="0"
+            />
+            <span style={unitText}>min</span>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          <span style={rowLabel}>実績</span>
           <input
               list={`${uid}-subj`}
               value={subject}
               onChange={(e) => { setSubject(e.target.value); setSubCategoryName('') }}
-              placeholder="科目"
-              style={{ ...textInp, flex: 2 }}
+              placeholder="科目を選択または入力..."
+              style={notionMainInp}
           />
-          <datalist id={`${uid}-subj`}>
-            {subjects.map((s) => (
-                <option key={s} value={s} />
-            ))}
-          </datalist>
-          <input
-              list={`${uid}-subcat`}
-              value={subCategoryName}
-              onChange={(e) => setSubCategoryName(e.target.value)}
-              placeholder="小分類"
-              style={{ ...textInp, flex: 1 }}
-          />
-          <datalist id={`${uid}-subcat`}>
-            {filteredSubCategories.map((sc) => (
-                <option key={sc.id} value={sc.name} />
-            ))}
-          </datalist>
-          <input
-              list={`${uid}-mat`}
-              value={material}
-              onChange={(e) => setMaterial(e.target.value)}
-              placeholder="教材"
-              style={{ ...textInp, flex: 1 }}
-          />
-          <datalist id={`${uid}-mat`}>
-            {materials.map((m) => (
-                <option key={m} value={m} />
-            ))}
-          </datalist>
+          <datalist id={`${uid}-subj`}>{subjects.map((s) => (<option key={s} value={s} />))}</datalist>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          <span style={rowLabel}>備考</span>
+        {/* Middle Row: SubCategory and Material */}
+        <div style={flexRowSecondary}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={tinyLabel}>SUB</span>
+            <input
+                list={`${uid}-subcat`}
+                value={subCategoryName}
+                onChange={(e) => setSubCategoryName(e.target.value)}
+                placeholder="小分類"
+                style={notionSubInp}
+            />
+            <datalist id={`${uid}-subcat`}>{subCategories.filter(sc => sc.subject === subject).map((sc) => (<option key={sc.id} value={sc.name} />))}</datalist>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={tinyLabel}>MAT</span>
+            <input
+                list={`${uid}-mat`}
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                placeholder="教材"
+                style={notionSubInp}
+            />
+            <datalist id={`${uid}-mat`}>{materials.map((m) => (<option key={m} value={m} />))}</datalist>
+          </div>
+        </div>
+
+        {/* Lower Row: Memo and Actions */}
+        <div style={{ ...flexRow, marginTop: '4px' }}>
           <input
               type="text"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              placeholder="完 / 苦手問題のみ など"
-              style={textInp}
+              placeholder="備考を追加..."
+              style={notionMemoInp}
           />
+
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            opacity: isHovered || saving || justSaved ? 1 : 0,
+            transition: 'opacity 0.2s'
+          }}>
+            <button onClick={handleDelete} disabled={deleting} style={notionDeleteBtn}>削除</button>
+            <button
+                onClick={handleManualSave}
+                // バリデーション未完了、または保存実行中は非活性
+                disabled={!isValid || saving}
+                style={{
+                  ...notionSaveBtn,
+                  backgroundColor: justSaved ? '#ebf5e9' : '#fff',
+                  color: justSaved ? '#377d22' : '#37352f',
+                  // 非活性時のスタイル調整
+                  opacity: (!isValid || saving) && !justSaved ? 0.4 : 1,
+                  cursor: !isValid || saving ? 'not-allowed' : 'pointer',
+                }}
+            >
+              {saving ? '保存中...' : justSaved ? '完了' : '保存'}
+            </button>
+          </div>
         </div>
 
-        {saveError && (
-            <p style={{ fontSize: '0.75rem', color: '#c0392b', marginTop: '0.125rem' }}>{saveError}</p>
-        )}
+        {saveError && <p style={errorStyle}>{saveError}</p>}
       </div>
-  )
+  );
 }
+
+// --- Notion Style Constants ---
+
+const editableRow: React.CSSProperties = {
+  background: '#ffffff',
+  border: '1px solid rgba(55, 53, 47, 0.08)',
+  borderRadius: '4px',
+  padding: '12px 14px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+  transition: 'border-color 0.2s ease',
+  position: 'relative'
+};
+
+const flexRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+};
+
+const flexRowSecondary: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '20px',
+  paddingLeft: '4px'
+};
+
+const inputGroup: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'baseline',
+  gap: '4px',
+  minWidth: '70px'
+};
+
+const notionNumInp: React.CSSProperties = {
+  width: '38px',
+  fontSize: '14px',
+  fontWeight: 600,
+  color: '#37352f',
+  border: 'none',
+  background: 'transparent',
+  outline: 'none',
+  textAlign: 'right'
+};
+
+const unitText: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(55, 53, 47, 0.4)',
+  fontWeight: 400
+};
+
+const notionMainInp: React.CSSProperties = {
+  flex: 1,
+  fontSize: '15px',
+  fontWeight: 600,
+  color: '#37352f',
+  border: 'none',
+  background: 'transparent',
+  outline: 'none',
+};
+
+const notionSubInp: React.CSSProperties = {
+  width: '100%',
+  fontSize: '13px',
+  color: 'rgba(55, 53, 47, 0.65)',
+  border: 'none',
+  background: 'transparent',
+  outline: 'none',
+};
+
+const notionMemoInp: React.CSSProperties = {
+  flex: 1,
+  fontSize: '13px',
+  color: 'rgba(55, 53, 47, 0.5)',
+  border: 'none',
+  background: 'transparent',
+  outline: 'none',
+};
+
+const tinyLabel: React.CSSProperties = {
+  fontSize: '9px',
+  fontWeight: 700,
+  color: 'rgba(55, 53, 47, 0.25)',
+  letterSpacing: '0.05em'
+};
+
+const notionSaveBtn: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 500,
+  padding: '4px 10px',
+  borderRadius: '3px',
+  border: '1px solid rgba(55, 53, 47, 0.16)',
+  cursor: 'pointer',
+  background: '#fff',
+  transition: 'background 0.2s',
+};
+
+const notionDeleteBtn: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(55, 53, 47, 0.4)',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '4px 8px',
+};
+
+// --- Readonly Styles ---
+const readonlyRow: React.CSSProperties = {
+  padding: '12px 14px',
+  background: 'rgba(55, 53, 47, 0.02)',
+  borderRadius: '4px',
+  border: '1px solid transparent'
+};
+
+const timeBadge: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 700,
+  color: 'rgba(55, 53, 47, 0.45)',
+  marginBottom: '4px'
+};
+
+const contentLayout: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  flexWrap: 'wrap'
+};
+
+const subjectText: React.CSSProperties = {
+  fontSize: '14px',
+  fontWeight: 600,
+  color: '#37352f'
+};
+
+const tagStyle: React.CSSProperties = {
+  fontSize: '12px',
+  padding: '1px 6px',
+  background: 'rgba(55, 53, 47, 0.08)',
+  borderRadius: '3px',
+  color: '#37352f'
+};
+
+const materialText: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(55, 53, 47, 0.5)'
+};
+
+const memoText: React.CSSProperties = {
+  fontSize: '13px',
+  color: 'rgba(55, 53, 47, 0.65)',
+  marginTop: '6px',
+  lineHeight: '1.5'
+};
+
+const errorStyle: React.CSSProperties = {
+  fontSize: '12px',
+  color: '#d4402d',
+  marginTop: '4px'
+};

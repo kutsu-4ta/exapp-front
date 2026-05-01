@@ -6,7 +6,8 @@ import {
   deleteStudySession,
   fetchDailyLog,
   uncompleteDailyLog,
-  updateReflection, updateStudySession
+  updateReflection,
+  updateStudySession
 } from "../lib/api/workspace";
 import {DayHeader} from "../components/workspace/DayHeader";
 import {DayReflection} from "../components/workspace/DayReflection";
@@ -41,6 +42,7 @@ function WorkspaceDateContent() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 初期データ取得
   useEffect(() => {
     if (!date) return
         ;(async () => {
@@ -59,18 +61,31 @@ function WorkspaceDateContent() {
     })()
   }, [date])
 
+  // デイリーログの完了処理
   const handleComplete = useCallback(async () => {
     if (!date) return
     setActionLoading(true)
-    try { setLog(await completeDailyLog(date)) } finally { setActionLoading(false) }
+    try {
+      const updatedLog = await completeDailyLog(date)
+      setLog(updatedLog)
+    } finally {
+      setActionLoading(false)
+    }
   }, [date])
 
+  // デイリーログの未完了戻し
   const handleUncomplete = useCallback(async () => {
     if (!date) return
     setActionLoading(true)
-    try { setLog(await uncompleteDailyLog(date)) } finally { setActionLoading(false) }
+    try {
+      const updatedLog = await uncompleteDailyLog(date)
+      setLog(updatedLog)
+    } finally {
+      setActionLoading(false)
+    }
   }, [date])
 
+  // デイリーログの削除
   const handleDelete = useCallback(async () => {
     if (!date) return
     if (!window.confirm(`${date} のデイリーログを削除しますか？\nすべての学習記録も削除されます。`)) return
@@ -84,6 +99,34 @@ function WorkspaceDateContent() {
       setDeleteLoading(false)
     }
   }, [date, navigate])
+
+  // セッションの追加（全取得せず、レスポンスを既存stateにマージ）
+  const handleAddSession = useCallback(async (input: any) => {
+    const newSession = await addStudySession(input)
+    setLog(prev => prev ? {
+      ...prev,
+      studySessions: [...prev.studySessions, newSession]
+    } : null)
+    return newSession
+  }, [])
+
+  // セッションの更新（対象のIDのみ差し替え）
+  const handleUpdateSession = useCallback(async (id: number, input: any) => {
+    const updated = await updateStudySession(id, input)
+    setLog(prev => prev ? {
+      ...prev,
+      studySessions: prev.studySessions.map(s => s.id === id ? updated : s)
+    } : null)
+  }, [])
+
+  // セッションの削除（対象のIDをフィルタリング）
+  const handleDeleteSession = useCallback(async (id: number) => {
+    await deleteStudySession(id)
+    setLog(prev => prev ? {
+      ...prev,
+      studySessions: prev.studySessions.filter(s => s.id !== id)
+    } : null)
+  }, [])
 
   if (loading) return <div style={content}><p style={infoText}>Loading...</p></div>
   if (error || !log) return <div style={content}><p style={errorText}>{error}</p></div>
@@ -106,19 +149,9 @@ function WorkspaceDateContent() {
                 readonly={log.isCompleted}
                 initialMinutes={initialMinutes}
                 subCategories={subCategories}
-                onAdd={async (i) => {
-                  const s = await addStudySession(i)
-                  if (date) setLog(await fetchDailyLog(date))
-                  return s
-                }}
-                onUpdate={async (id, i) => {
-                  await updateStudySession(id, i)
-                  if (date) setLog(await fetchDailyLog(date))
-                }}
-                onDelete={async (id) => {
-                  await deleteStudySession(id)
-                  if (date) setLog(await fetchDailyLog(date))
-                }}
+                onAdd={handleAddSession}
+                onUpdate={handleUpdateSession}
+                onDelete={handleDeleteSession}
             />
           </div>
 
@@ -127,11 +160,13 @@ function WorkspaceDateContent() {
             <DayReflection
                 value={log.reflection}
                 readonly={log.isCompleted}
-                onSave={async (t) => { if (date) setLog(await updateReflection(date, t)) }}
+                onSave={async (t) => {
+                  const updatedLog = await updateReflection(log.date, t)
+                  setLog(updatedLog)
+                }}
             />
           </div>
 
-          {/* Delete button at bottom */}
           <div style={deleteArea}>
             <button style={deleteBtn} onClick={handleDelete} disabled={deleteLoading}>
               {deleteLoading ? '削除中...' : 'このデイリーを削除'}
@@ -142,6 +177,7 @@ function WorkspaceDateContent() {
   )
 }
 
+// スタイル定義
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
 const content: React.CSSProperties = { width: '100%', maxWidth: '720px', margin: '0 auto', padding: '40px 20px 100px' }
 const section: React.CSSProperties = { marginBottom: '40px' }

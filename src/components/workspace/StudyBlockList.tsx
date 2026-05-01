@@ -77,18 +77,9 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, subCa
           const isLast = i === SLOTS.length - 1
 
           return (
-              <div
-                  key={slot}
-                  style={{ borderBottom: isLast ? 'none' : '1px solid rgba(55, 53, 47, 0.08)' }}
-              >
-                <button
-                    onClick={() => toggleSlot(slot)}
-                    style={slotHeader}
-                >
-              <span style={{
-                ...arrow,
-                transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-              }}>▼</span>
+              <div key={slot} style={{ borderBottom: isLast ? 'none' : '1px solid rgba(55, 53, 47, 0.08)' }}>
+                <button onClick={() => toggleSlot(slot)} style={slotHeader}>
+                  <span style={{ ...arrow, transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
                   <span style={slotLabelText}>{label}</span>
                   {slotSessions.length > 0 && <span style={badge}>{slotSessions.length}</span>}
                 </button>
@@ -101,6 +92,7 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, subCa
                               session={s}
                               subCategories={subCategories}
                               onSave={async (_, input) => {
+                                // 既存データの更新
                                 await onUpdate(s.id, { timeSlot: s.timeSlot, ...input })
                                 return s.id
                               }}
@@ -109,32 +101,31 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, subCa
                           />
                       ))}
 
-                      {!readonly &&
-                          slotNewRows.map((row) => (
-                              <StudyBlockRow
-                                  key={row.id}
-                                  // ここで初期値をRowコンポーネントに渡す
-                                  initialMinutes={row.defaultMinutes}
-                                  subCategories={subCategories}
-                                  onSave={async (currentId, input) => {
-                                    if (currentId === null) {
-                                      const newSession = await onAdd({
-                                        dailyLogDate: date,
-                                        timeSlot: slot,
-                                        ...input,
-                                      })
-                                      setNewRows((prev) => prev.filter((r) => r.id !== row.id))
-                                      return newSession.id
-                                    }
-                                    await onUpdate(currentId, { timeSlot: slot, ...input })
-                                    return currentId
-                                  }}
-                                  onDelete={async () => {
-                                    setNewRows((prev) => prev.filter((r) => r.id !== row.id))
-                                  }}
-                              />
-                          ))}
-
+                      {!readonly && slotNewRows.map((row) => (
+                          <StudyBlockRow
+                              key={row.id}
+                              initialMinutes={row.defaultMinutes}
+                              subCategories={subCategories}
+                              onSave={async (currentId, input) => {
+                                if (currentId === null) {
+                                  // 新規作成
+                                  const newSession = await onAdd({
+                                    dailyLogDate: date,
+                                    timeSlot: slot,
+                                    ...input,
+                                  })
+                                  setNewRows((prev) => prev.filter((r) => r.id !== row.id))
+                                  return newSession.id
+                                }
+                                // IDがある場合は更新
+                                await onUpdate(currentId, { timeSlot: slot, ...input })
+                                return currentId
+                              }}
+                              onDelete={async () => {
+                                setNewRows((prev) => prev.filter((r) => r.id !== row.id))
+                              }}
+                          />
+                      ))}
                       {!readonly && (
                           <button onClick={() => addRow(slot)} style={addButton}>
                             <span>+</span> 追加
