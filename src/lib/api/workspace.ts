@@ -24,6 +24,15 @@ export async function fetchDailyLogs(year?: number, month?: number): Promise<Dai
   return fetchMonthlyLogs(year ?? now.getFullYear(), month ?? now.getMonth() + 1)
 }
 
+// GET /api/daily-logs/recent?limit&before
+export async function fetchRecentDailyLogs(limit = 30, before?: string): Promise<DailyLogSummary[]> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (before) params.set('before', before)
+  const res = await apiFetch(`/api/daily-logs/recent?${params}`)
+  if (!res.ok) throw new Error('ログ一覧の取得に失敗しました')
+  return res.json()
+}
+
 // GET /api/daily-logs/:date
 export async function fetchDailyLog(date: string): Promise<DailyLog | null> {
   const res = await apiFetch(`/api/daily-logs/${date}`)
