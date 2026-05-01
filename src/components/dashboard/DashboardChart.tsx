@@ -109,29 +109,38 @@ export function DashboardChart({ data, targetMin, targetMax }: Props) {
 const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload as ChartDataPoint;
+
     return (
         <div style={{
-            background: '#0f172a', // より深い色合い（参考コードに準拠）
-            borderRadius: 8,
-            padding: '8px 12px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-            border: '1px solid #1e293b',
+            background: '#ffffff',
+            borderRadius: '6px',
+            padding: '10px 14px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+            border: '1px solid #e2e8f0',
+            fontSize: '12px'
         }}>
-            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
+            {/* 日付：落ち着いたニュートラルグレー */}
+            <div style={{ color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
                 {d.date.replace(/-/g, '/')}
             </div>
+
+            {/* 実績：少し主張を抑えた青 */}
             {d.actual !== undefined && (
-                <div style={{ color: '#22d3ee', fontFamily: 'monospace', fontWeight: 800, fontSize: 13 }}>
-                    実績累計: {d.actual}h
+                <div style={{ color: '#0369a1', fontWeight: 700 }}>
+                    実績累計: <span style={{ fontFamily: 'monospace' }}>{d.actual}h</span>
                 </div>
             )}
+
+            {/* 予測：実績より一段階明るい青 */}
             {d.actual === undefined && d.forecast !== undefined && (
-                <div style={{ color: '#67e8f9', fontFamily: 'monospace', fontWeight: 700, fontSize: 13 }}>
-                    予測累計: {d.forecast}h
+                <div style={{ color: '#0ea5e9', fontWeight: 600 }}>
+                    予測累計: <span style={{ fontFamily: 'monospace' }}>{d.forecast}h</span>
                 </div>
             )}
-            <div style={{ color: '#475569', fontSize: 10, marginTop: 4 }}>
-                目標範囲: {d.range[0]}〜{d.range[1]}h
+
+            {/* 目標範囲：補足情報として淡いグレー */}
+            <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px' }}>
+                目標範囲: {d.range[0]} 〜 {d.range[1]}h
             </div>
         </div>
     );
