@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
     ResponsiveContainer, LineChart, CartesianGrid,
     XAxis, YAxis, Tooltip, ReferenceLine, Line,
 } from 'recharts'
-import { fetchDailyLogs } from '../lib/api/workspace'
+import { createDailyLog, fetchDailyLogs } from '../lib/api/workspace'
 import type { DailyLogSummary } from '../types/workspace'
 
 type ViewMode = 'list' | 'chart'
@@ -29,11 +29,11 @@ function IconTrend({ active }: { active: boolean }) {
 }
 
 export default function DailyLogsPage() {
+    const navigate = useNavigate()
     const [logs, setLogs] = useState<DailyLogSummary[]>([])
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<ViewMode>('list')
 
-    // 共通の基準月 (YYYY-MM)
     const [baseMonth, setBaseMonth] = useState(() => {
         const d = new Date()
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -43,6 +43,7 @@ export default function DailyLogsPage() {
         (async () => {
             try {
                 const data = await fetchDailyLogs()
+                // 日付の降順（新しい順）で初期ソート
                 setLogs(data.sort((a, b) => b.date.localeCompare(a.date)))
             } catch (err) {
                 console.error(err)
@@ -52,14 +53,21 @@ export default function DailyLogsPage() {
         })()
     }, [])
 
-    // グラフ用: baseMonth から3ヶ月前を開始月とする
+    const handleDateSelect = async (date: string) => {
+        if (!date) return
+        const exists = logs.find(log => log.date === date)
+        if (!exists) {
+            try { await createDailyLog(date) } catch (err) { console.error(err) }
+        }
+        navigate(`/workspace/${date}`)
+    }
+
     const chartStartMonth = useMemo(() => {
         const [y, m] = baseMonth.split('-').map(Number)
         const d = new Date(y, m - 3, 1)
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     }, [baseMonth])
 
-    // 【グラフ用フィルタ】
     const filteredChartData = useMemo(() => {
         return [...logs]
             .filter(log => {
@@ -73,15 +81,8 @@ export default function DailyLogsPage() {
             }))
     }, [logs, chartStartMonth, baseMonth])
 
-    // 【リスト用フィルタ】
-    const filteredListData = useMemo(() => {
-        return logs.filter(log => log.date.startsWith(baseMonth))
-    }, [logs, baseMonth])
-
-    // 存在する年月の一覧
     const availableMonths = useMemo(() => {
         const months = logs.map(log => log.date.slice(0, 7))
-        // 今月が含まれていない場合は追加（記録がまだない月も選択できるように）
         const current = new Date().toISOString().slice(0, 7)
         return Array.from(new Set([...months, current])).sort((a, b) => b.localeCompare(a))
     }, [logs])
@@ -113,50 +114,68 @@ export default function DailyLogsPage() {
                             <p style={description}>日々の積み上げと内省の記録</p>
                         </div>
 
-                        <select
-                            value={baseMonth}
-                            onChange={(e) => setBaseMonth(e.target.value)}
-                            style={monthSelect}
-                        >
-                            {availableMonths.map(m => (
-                                <option key={m} value={m}>{m.replace('-', '年')}月</option>
-                            ))}
-                        </select>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {viewMode === 'chart' ? (
+                                <select
+                                    value={baseMonth}
+                                    onChange={(e) => setBaseMonth(e.target.value)}
+                                    style={monthSelect}
+                                >
+                                    {availableMonths.map(m => (
+                                        <option key={m} value={m}>{m.replace('-', '年')}月</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                /* リスト画面の時だけカレンダーを表示 */
+                                <div style={toolbar}>
+                                    <label style={calendarLabel}>
+                                        <span style={{ fontSize: '18px', cursor: 'pointer' }}>📅</span>
+                                        <input
+                                            type="date"
+                                            style={hiddenDateInput}
+                                            onChange={(e) => handleDateSelect(e.target.value)}
+                                        />
+                                    </label>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </header>
 
                 {viewMode === 'list' ? (
-                    <div style={listContainer}>
-                        <div style={listHeader}>
-                            <div style={{ flex: 2 }}>日付</div>
-                            <div style={{ flex: 1, textAlign: 'right' }}>時間</div>
-                            <div style={{ flex: 1, textAlign: 'center' }}>状態</div>
-                        </div>
+                    <div style={scrollContainer}>
+                        <div style={listContainer}>
+                            <div style={listHeader}>
+                                <div style={{ flex: 2 }}>日付</div>
+                                <div style={{ flex: 1, textAlign: 'right' }}>時間</div>
+                                <div style={{ flex: 1, textAlign: 'center' }}>状態</div>
+                            </div>
 
-                        {filteredListData.length > 0 ? filteredListData.map((log) => {
-                            const hours = Math.floor(log.totalMinutes / 60)
-                            const mins = log.totalMinutes % 60
-                            return (
-                                <Link key={log.date} to={`/workspace/${log.date}`} style={logItem}>
-                                    <div style={itemDate}>
-                                        <span style={dateTxt}>{log.date}</span>
-                                        <span style={reflectionSnippet}>
-                                            {log.sessionCount ? `${log.sessionCount}セッション` : '記録なし'}
-                                        </span>
-                                    </div>
-                                    <div style={itemTime}>{hours}h {mins}m</div>
-                                    <div style={itemStatus}>
-                                        {log.isCompleted ? (
-                                            <span style={statusDone}>Done</span>
-                                        ) : (
-                                            <span style={statusDoing}>Open</span>
-                                        )}
-                                    </div>
-                                </Link>
-                            )
-                        }) : (
-                            <div style={emptyMessage}>この月の記録はありません</div>
-                        )}
+                            {logs.length > 0 ? logs.map((log) => {
+                                const hours = Math.floor(log.totalMinutes / 60)
+                                const mins = log.totalMinutes % 60
+                                return (
+                                    <Link key={log.date} to={`/workspace/${log.date}`} style={logItem}>
+                                        <div style={itemDate}>
+                                            <span style={dateTxt}>{log.date}</span>
+                                            <span style={reflectionSnippet}>
+                                                {log.sessionCount ? `${log.sessionCount}セッション` : '記録なし'}
+                                            </span>
+                                        </div>
+                                        <div style={itemTime}>{hours}h {mins}m</div>
+                                        <div style={itemStatus}>
+                                            {log.isCompleted ? (
+                                                <span style={statusDone}>Done</span>
+                                            ) : (
+                                                <span style={statusDoing}>Open</span>
+                                            )}
+                                        </div>
+                                    </Link>
+                                )
+                            }) : (
+                                <div style={emptyMessage}>記録はありません</div>
+                            )}
+                        </div>
                     </div>
                 ) : (
                     <div style={chartContainer}>
@@ -193,12 +212,24 @@ export default function DailyLogsPage() {
     )
 }
 
-// --- Styles (変更なし・一部最適化) ---
+// --- Styles ---
 const titleRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
 const monthSelect: React.CSSProperties = {
-    padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(55, 53, 47, 0.16)',
+    padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(55, 53, 47, 0.16)',
     fontSize: '14px', fontWeight: 600, color: '#37352f', backgroundColor: '#fff', cursor: 'pointer', outline: 'none'
 }
+const toolbar: React.CSSProperties = { display: 'flex', alignItems: 'center' }
+const calendarLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', padding: '6px', borderRadius: '4px', cursor: 'pointer' }
+const hiddenDateInput: React.CSSProperties = { position: 'absolute', opacity: 0, width: '24px', cursor: 'pointer' }
+
+const scrollContainer: React.CSSProperties = {
+    height: 'calc(100vh - 250px)', // 余白を調整してスクロール領域を広く確保
+    overflowY: 'auto',
+    border: '1px solid rgba(55, 53, 47, 0.06)',
+    borderRadius: '8px',
+    padding: '0 8px'
+}
+
 const emptyMessage: React.CSSProperties = { padding: '40px', textAlign: 'center', color: 'rgba(55, 53, 47, 0.4)', fontSize: '14px' }
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
 const tabBar: React.CSSProperties = { display: 'flex', padding: '0 16px', borderBottom: '1px solid rgba(55, 53, 47, 0.09)', gap: '16px' }
@@ -213,7 +244,7 @@ const header: React.CSSProperties = { marginBottom: '32px' }
 const title: React.CSSProperties = { fontSize: '32px', fontWeight: 700, marginBottom: '6px' }
 const description: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.6)', fontSize: '15px' }
 const listContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
-const listHeader: React.CSSProperties = { display: 'flex', padding: '10px 8px', fontSize: '12px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.35)', borderBottom: '1px solid rgba(55, 53, 47, 0.09)' }
+const listHeader: React.CSSProperties = { display: 'flex', padding: '10px 8px', fontSize: '12px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.35)', borderBottom: '1px solid rgba(55, 53, 47, 0.09)', position: 'sticky', top: 0, backgroundColor: '#fff', zIndex: 1 }
 const logItem: React.CSSProperties = { display: 'flex', alignItems: 'center', padding: '16px 8px', textDecoration: 'none', color: 'inherit', borderBottom: '1px solid rgba(55, 53, 47, 0.06)' }
 const itemDate: React.CSSProperties = { flex: 2, display: 'flex', flexDirection: 'column', gap: '4px' }
 const dateTxt: React.CSSProperties = { fontWeight: 600, fontSize: '15px' }
