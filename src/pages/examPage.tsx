@@ -38,7 +38,16 @@ export default function ExamPage() {
       // 既存のin_progressセッションがあれば再開
       const sessions = await fetchExamSessions('in_progress')
       if (sessions.length > 0) {
-        const session = await fetchExamSession(sessions[0].id)
+        const sessionId = sessions[0].id
+        const draftKey = `exam_draft_${sessionId}`
+        const hasDraft = localStorage.getItem(draftKey) !== null
+        if (hasDraft) {
+          const wantNew = window.confirm(
+            '前回の下書きが保存されています。\n\n「OK」で下書きを削除して新しく回答を作成します。\n「キャンセル」で下書きを引き継いで再開します。'
+          )
+          if (wantNew) localStorage.removeItem(draftKey)
+        }
+        const session = await fetchExamSession(sessionId)
         setActiveSession(session)
         return
       }

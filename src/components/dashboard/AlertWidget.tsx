@@ -13,7 +13,11 @@ export function AlertWidget({ warningSubjects }: Props) {
         <div style={container}>
             <div style={header} onClick={() => setIsCollapsed(!isCollapsed)}>
                 <div style={titleGroup}>
-                    <span style={icon}>⚠️</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eb5757" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
                     <span style={title}>{warningSubjects.length}科目の学習が滞っています</span>
                 </div>
                 <span style={toggle}>{isCollapsed ? '表示' : '隠す'}</span>
@@ -45,7 +49,6 @@ const header: React.CSSProperties = {
     padding: '10px 16px', cursor: 'pointer',
 }
 const titleGroup: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
-const icon: React.CSSProperties = { fontSize: '14px' }
 const title: React.CSSProperties = { fontSize: '13px', fontWeight: 600, color: c.red }
 const toggle: React.CSSProperties = {
     fontSize: font.sm, fontWeight: 600, color: 'rgba(235, 87, 87, 0.5)',

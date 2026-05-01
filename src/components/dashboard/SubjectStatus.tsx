@@ -15,7 +15,10 @@ export function SubjectStatus({ subjectTouched }: Props) {
                     return (
                         <div key={subject} style={row}>
                             <div style={nameGroup}>
-                                <span style={subjectIcon}>📔</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(55,53,47,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            </svg>
                                 <span style={subjectText}>{subject}</span>
                             </div>
                             <span style={{ ...tag, color, backgroundColor: bg }}>{text}</span>
@@ -43,6 +46,5 @@ const row: React.CSSProperties = {
     padding: '8px 4px', borderBottom: `1px solid ${c.borderXs}`,
 }
 const nameGroup: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
-const subjectIcon: React.CSSProperties = { fontSize: '16px' }
 const subjectText: React.CSSProperties = { fontSize: font.base, fontWeight: 500 }
 const tag: React.CSSProperties = { padding: '2px 8px', borderRadius: '3px', fontSize: '12px', fontWeight: 500 }
