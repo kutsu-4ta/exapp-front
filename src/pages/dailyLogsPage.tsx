@@ -34,6 +34,9 @@ export default function DailyLogsPage() {
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<ViewMode>('list')
 
+    // 選択中の日付を保持するState
+    const [selectedDate, setSelectedDate] = useState('')
+
     const [baseMonth, setBaseMonth] = useState(() => {
         const d = new Date()
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -52,20 +55,20 @@ export default function DailyLogsPage() {
         })()
     }, [])
 
-    const handleDateSelect = async (date: string) => {
-        // スマホの不完全な入力（年だけ選んだ状態など）をガード
-        if (!date || date.length < 10) return
+    // ボタン押下時の実行処理
+    const handleConfirmDate = async () => {
+        if (!selectedDate || selectedDate.length < 10) return
 
-        const exists = logs.find(log => log.date === date)
+        const exists = logs.find(log => log.date === selectedDate)
         if (!exists) {
             try {
-                await createDailyLog(date)
+                await createDailyLog(selectedDate)
             } catch (err) {
                 console.error(err)
                 return
             }
         }
-        navigate(`/workspace/${date}`)
+        navigate(`/workspace/${selectedDate}`)
     }
 
     const chartStartMonth = useMemo(() => {
@@ -133,13 +136,27 @@ export default function DailyLogsPage() {
                                 </select>
                             ) : (
                                 <div style={toolbar}>
-                                    <div style={calendarWrapper}>
-                                        <span style={calendarIcon}>📅</span>
-                                        <input
-                                            type="date"
-                                            style={nativeDateInput}
-                                            onChange={(e) => handleDateSelect(e.target.value)}
-                                        />
+                                    <div style={calendarArea}>
+                                        <div style={calendarInputWrapper}>
+                                            <span style={calendarIcon}>📅</span>
+                                            <input
+                                                type="date"
+                                                value={selectedDate}
+                                                style={nativeDateInput}
+                                                onChange={(e) => setSelectedDate(e.target.value)}
+                                            />
+                                            {selectedDate && <span style={dateDisplay}>{selectedDate}</span>}
+                                        </div>
+                                        <button
+                                            onClick={handleConfirmDate}
+                                            disabled={!selectedDate}
+                                            style={{
+                                                ...confirmButton,
+                                                ...(selectedDate ? confirmButtonActive : confirmButtonDisabled)
+                                            }}
+                                        >
+                                            開く
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -225,10 +242,17 @@ const monthSelect: React.CSSProperties = {
 }
 const toolbar: React.CSSProperties = { display: 'flex', alignItems: 'center' }
 
-// スマホ実機対応のスタイル
-const calendarWrapper: React.CSSProperties = { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', cursor: 'pointer' }
-const calendarIcon: React.CSSProperties = { fontSize: '20px', pointerEvents: 'none', zIndex: 1 }
-const nativeDateInput: React.CSSProperties = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2, appearance: 'none', WebkitAppearance: 'none' }
+// カレンダー選択エリア
+const calendarArea: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px' }
+const calendarInputWrapper: React.CSSProperties = { position: 'relative', display: 'flex', alignItems: 'center', padding: '4px 8px', border: '1px solid rgba(55, 53, 47, 0.16)', borderRadius: '6px', backgroundColor: '#fff', minWidth: '40px', height: '32px' }
+const calendarIcon: React.CSSProperties = { fontSize: '18px', pointerEvents: 'none' }
+const nativeDateInput: React.CSSProperties = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }
+const dateDisplay: React.CSSProperties = { marginLeft: '8px', fontSize: '13px', fontWeight: 600, color: '#37352f' }
+
+// 確定ボタン
+const confirmButton: React.CSSProperties = { padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }
+const confirmButtonActive: React.CSSProperties = { backgroundColor: '#2383e2', color: '#fff' }
+const confirmButtonDisabled: React.CSSProperties = { backgroundColor: 'rgba(55, 53, 47, 0.08)', color: 'rgba(55, 53, 47, 0.3)', cursor: 'not-allowed' }
 
 const scrollContainer: React.CSSProperties = {
     height: 'calc(100vh - 250px)',
