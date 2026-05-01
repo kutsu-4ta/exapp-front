@@ -4,6 +4,7 @@ import type { ExamSession, QuestionDraft, ExamQuestionInput, Rank } from '../../
 import { QuestionRow } from './QuestionRow'
 import { ExamStopWatchWidget } from './ExamStopWatchWidget'
 import { useExamTimer } from '../../hooks/useExamTimer'
+import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 
 type ExamDraft = {
   sessionId: number
@@ -272,7 +273,7 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
             <div style={statsBadge}>
               <div style={statItem}><span style={dotO}>○</span> {stats.correctCount}</div>
               <div style={statItem}><span style={dotX}>×</span> {stats.incorrectCount}</div>
-              <div style={statItem}>💭 {stats.doubtfulCount}</div>
+              <div style={statItem}><DoubtIcon/> {stats.doubtfulCount}</div>
             </div>
           )}
         </div>

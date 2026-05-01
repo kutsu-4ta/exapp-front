@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchSubjectStats } from '../../lib/api/exam'
 import type { ExamSubjectStats, Rank } from '../../types/exam'
+import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 
 interface SubjectDetailViewProps {
   subject: string
@@ -62,7 +63,7 @@ export default function SubjectDetailView({ subject, onBack }: SubjectDetailView
                     {m.completedAt.slice(5, 10).replace('-', '/')} - {m.examYear} {m.displayId}
                   </span>
                   <span style={{ ...rankTag, ...rankColors[m.rank] }}>{m.rank}</span>
-                  {m.isDoubtful && <span>💭</span>}
+                  {m.isDoubtful && <span><DoubtIcon/></span>}
                 </div>
                 <div style={noteText}>{m.note}</div>
               </div>

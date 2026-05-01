@@ -108,19 +108,6 @@ export function TopBar() {
                 >
                     {user?.name?.charAt(0).toUpperCase() ?? '?'}
                 </Link>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        color: 'rgba(55, 53, 47, 0.4)',
-                        padding: '4px 6px',
-                    }}
-                >
-                    logout
-                </button>
             </div>
         </header>
     )

@@ -1,5 +1,6 @@
 import {c, font, sectionLabelStyle, triangleStyle} from "../../styles/notion";
 import {useMemo, useState} from "react";
+import {BarChartIcon, PieChartIcon} from "@/lib/icon/ChartIcons.tsx";
 
 type FailureEntry = { type: string; count: number }
 type Props = { failureData: FailureEntry[] }
@@ -25,8 +26,12 @@ export function FailureAnalysisSection({ failureData }: Props) {
             <div style={sectionHeader}>
                 <div style={sectionLabelStyle}><span style={triangleStyle}>▼</span> FAILURE ANALYSIS</div>
                 <div style={toggleGroup}>
-                    <ToggleBtn active={viewMode === 'bar'} onClick={() => setViewMode('bar')}>📊</ToggleBtn>
-                    <ToggleBtn active={viewMode === 'pie'} onClick={() => setViewMode('pie')}>🍩</ToggleBtn>
+                    <ToggleBtn active={viewMode === 'bar'} onClick={() => setViewMode('bar')}>
+                        <BarChartIcon color={viewMode === 'bar' ? '#37352f' : 'rgba(55, 53, 47, 0.4)'} />
+                    </ToggleBtn>
+                    <ToggleBtn active={viewMode === 'pie'} onClick={() => setViewMode('pie')}>
+                        <PieChartIcon color={viewMode === 'pie' ? '#37352f' : 'rgba(55, 53, 47, 0.4)'} />
+                    </ToggleBtn>
                 </div>
             </div>
 

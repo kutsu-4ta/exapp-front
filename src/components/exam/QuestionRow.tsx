@@ -1,5 +1,6 @@
 import { ANSWER_OPTIONS, RANKS } from '../../types/exam'
 import type { QuestionDraft, Rank } from '../../types/exam'
+import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 
 function formatMs(ms: number | undefined): string {
   if (ms === undefined) return '--:--'
@@ -129,9 +130,23 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
                 </div>
                 <button
                     onClick={() => onUpdate({isDoubtful: !q.isDoubtful})}
-                    style={{...doubtBtn, opacity: q.isDoubtful ? 1 : 0.15, marginLeft: 'auto'}}
+                    style={{
+                        ...doubtBtn,
+                        opacity: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        marginLeft: 'auto'
+                    }}
                 >
-                    💭
+                    <DoubtIcon
+                        size={18}
+                        color={q.isDoubtful ? '#f2994a' : 'rgba(55, 53, 47, 0.2)'}
+                    />
                 </button>
             </div>
 
@@ -165,7 +180,7 @@ function ScoringControls({
 }) {
     return (
         <div style={scoringControlGroupVertical}>
-            {/* 1行目：自分の答え、正解・不正解ボタン、💭 */}
+            {/* 1行目：自分の答え、正解・不正解ボタン */}
             <div style={scoringRow}>
                 <div style={myAnswerDisplay}>{q.myAnswer || '-'}</div>
 
@@ -185,10 +200,24 @@ function ScoringControls({
                 </div>
 
                 <button
-                    onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })}
-                    style={{ ...doubtBtn, opacity: q.isDoubtful ? 1 : 0.15, marginLeft: '4px' }}
+                    onClick={() => onUpdate({isDoubtful: !q.isDoubtful})}
+                    style={{
+                        ...doubtBtn,
+                        opacity: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        marginLeft: 'auto'
+                    }}
                 >
-                    💭
+                    <DoubtIcon
+                        size={18}
+                        color={q.isDoubtful ? '#f2994a' : 'rgba(55, 53, 47, 0.2)'}
+                    />
                 </button>
             </div>
 
