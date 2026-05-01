@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, LineChart, CartesianGrid,
   XAxis, YAxis, Tooltip, ReferenceLine, Line,
 } from 'recharts'
-import { SUBJECTS } from '../../types/workspace'
+import { useSettingsStore } from '../../lib/store/settings'
 import type { ExamSessionSummary } from '../../types/exam'
 import { fetchExamSessions } from '../../lib/api/exam'
 import SubjectDetailView from './SubjectDetailView'
@@ -16,8 +16,11 @@ type SubjectCardData = {
   status: '未受験' | '要強化' | '注意' | '安定'
 }
 
-function computeSubjectCards(sessions: ExamSessionSummary[]): SubjectCardData[] {
-  return SUBJECTS.map(subject => {
+function computeSubjectCards(sessions: ExamSessionSummary[], subjects: string[]): SubjectCardData[] {
+  const subjectList = subjects.length > 0
+    ? subjects
+    : [...new Set(sessions.map(s => s.subject))]
+  return subjectList.map(subject => {
     const list = sessions.filter(s => s.subject === subject)
     if (list.length === 0) return { subject, sessionCount: 0, avgTotalScore: 0, avgPureScore: 0, status: '未受験' }
     const avgTotal = list.reduce((s, x) => s + x.totalScore, 0) / list.length
@@ -35,6 +38,7 @@ const statusStyle: Record<SubjectCardData['status'], React.CSSProperties> = {
 }
 
 export default function AnalysisView() {
+  const subjects = useSettingsStore((s) => s.subjects)
   const [sessions, setSessions] = useState<ExamSessionSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [filterSubject, setFilterSubject] = useState('すべて')
@@ -62,7 +66,7 @@ export default function AnalysisView() {
       }))
   }, [sessions, filterSubject])
 
-  const subjectCards = useMemo(() => computeSubjectCards(sessions), [sessions])
+  const subjectCards = useMemo(() => computeSubjectCards(sessions, subjects), [sessions, subjects])
 
   if (selectedSubject) {
     return (
@@ -86,7 +90,7 @@ export default function AnalysisView() {
           onChange={(e) => setFilterSubject(e.target.value)}
         >
           <option value="すべて">すべての科目</option>
-          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+          {subjects.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
-import { SUBJECTS } from '../../types/workspace'
+import { useSettingsStore } from '../../lib/store/settings'
 import type { ExamSession, QuestionDraft, ExamQuestionInput, Rank } from '../../types/exam'
 import { QuestionRow } from './QuestionRow'
 import { ExamStopWatchWidget } from './ExamStopWatchWidget'
@@ -120,6 +120,7 @@ interface ExamInputViewProps {
 
 export default function ExamInputView({ session, onComplete, onCancel }: ExamInputViewProps) {
   const savedDraft = useMemo(() => loadDraft(session.id), [session.id])
+  const subjects = useSettingsStore((s) => s.subjects)
 
   const [subject, setSubject] = useState(savedDraft?.subject ?? session.subject)
   const [examYear, setExamYear] = useState(savedDraft?.examYear ?? session.examYear)
@@ -311,7 +312,7 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
                 placeholder="科目名..."
               />
               <datalist id="subject-options">
-                {SUBJECTS.map(s => <option key={s} value={s} />)}
+                {subjects.map(s => <option key={s} value={s} />)}
               </datalist>
             </div>
             <input

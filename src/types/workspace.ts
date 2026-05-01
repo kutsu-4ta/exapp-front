@@ -1,20 +1,5 @@
 export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 
-
-// TODO: バックエンドから取得したものをフェッチで状態に持たせてそれを使用するので削除予定
-export const SUBJECTS = [
-  '経済学・経済政策',
-  '財務・会計',
-  '企業経営理論',
-  '運営管理',
-  '経営法務',
-  '経営情報システム',
-  '中小企業経営・政策',
-] as const
-
-// TODO: バックエンドから取得したものをフェッチで状態に持たせてそれを使用するので削除予定
-export const MATERIALS = ['テキスト', '問題集', 'スピード問題集', '過去問', 'その他'] as const
-
 export type SubCategory = {
   id: number
   subject: string

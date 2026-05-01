@@ -1,4 +1,5 @@
-import {daysAgo, FAILURE_TYPE_VALUES, formatHours, SUBJECTS, todayString} from "../types/workspace";
+import {daysAgo, FAILURE_TYPE_VALUES, formatHours, todayString} from "../types/workspace";
+import { useSettingsStore } from '../lib/store/settings';
 import type {ChartDataPoint, DashboardStats, Problem} from "../types/workspace";
 import {MonthlyGoalCard} from "../components/dashboard/MonthlyGoalCard";
 import {fetchProblems} from "../lib/api/problem";
@@ -15,6 +16,7 @@ import {Link} from "react-router-dom";
 
 
 export default function DashboardPage() {
+    const subjects = useSettingsStore((s) => s.subjects)
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [problems, setProblems] = useState<Problem[]>([])
     const [targetMin, setTargetMin] = useState(140)
@@ -75,7 +77,7 @@ export default function DashboardPage() {
     , [problems])
 
     const subjectTouched = useMemo(() => (
-        stats?.lastTouchedBySubject ?? SUBJECTS.map((s) => ({ subject: s, lastDate: null }))
+        stats?.lastTouchedBySubject ?? subjects.map((s) => ({ subject: s, lastDate: null }))
     ).slice().sort((a, b) => {
         if (!a.lastDate && !b.lastDate) return 0
         if (!a.lastDate) return 1

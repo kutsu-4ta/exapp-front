@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 import { TimerProvider } from "./context/TimerContext";
+import { useSettingsStore } from './lib/store/settings';
 
 // Pages のインポート
 import DashboardPage from "./pages/dashboardPage";
@@ -17,6 +19,14 @@ import {TopBar} from "@/shell/TopBar";
 
 // ナビゲーションバーを表示する共通レイアウト
 function AppLayout() {
+    const loadSubjects = useSettingsStore((s) => s.loadSubjects)
+    const loadMaterials = useSettingsStore((s) => s.loadMaterials)
+
+    useEffect(() => {
+        loadSubjects()
+        loadMaterials()
+    }, [])
+
     return (
         <TimerProvider>
             <TopBar />
