@@ -21,16 +21,85 @@ const LOADING_MESSAGES = [
 ]
 
 // ── 画像変換ヘルパー ──────────────────────────────────────────────────────────
+
+// 許可する入力MIMEタイプ。ブラウザのCanvas APIがデコードできる安全な形式のみ。
+// HEIC/HEIF は iOS Safari がネイティブデコードできるため image/* に含まれる。
+const ALLOWED_INPUT_TYPES = new Set([
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+    'image/heic', 'image/heif', 'image/bmp', 'image/tiff',
+])
+
+// MIMEタイプを検査してから Canvas 経由で JPEG に再描画し、安全な File を返す。
+// browser-image-compression はリサイズ + 圧縮のみに使い、
+// 最終的な「JPEG として Canvas に焼き直す」ステップで形式を保証する。
 async function convertAndCompress(file: File): Promise<File> {
-    const compressed = await imageCompression(file, {
+    // ① MIMEタイプ検査（拡張子偽装への対策として Content の先頭バイトも確認）
+    const detectedType = await detectMimeType(file)
+    if (!ALLOWED_INPUT_TYPES.has(detectedType)) {
+        throw new Error(`非対応の形式です（${detectedType || file.type || '不明'}）。JPEG・PNG・HEICの画像を選択してください。`)
+    }
+
+    // ② browser-image-compression でリサイズ・圧縮（HEIC→JPEG 変換も兼ねる）
+    const resized = await imageCompression(file, {
         maxSizeMB: 2,
         maxWidthOrHeight: 1920,
         useWebWorker: false, // iOS Safari での HEIC 変換を安定させる
         fileType: 'image/jpeg',
         initialQuality: 0.85,
     })
+
+    // ③ Canvas に描画して JPEG Blob として再出力（形式を確実に保証）
+    const safeBlob = await redrawAsJpeg(resized)
     const safeName = file.name.replace(/\.[^.]+$/, '.jpg')
-    return new File([compressed], safeName, { type: 'image/jpeg' })
+    return new File([safeBlob], safeName, { type: 'image/jpeg' })
+}
+
+// ファイル先頭の magic bytes から実際の MIME タイプを推定する。
+async function detectMimeType(file: File): Promise<string> {
+    const buf = await file.slice(0, 12).arrayBuffer()
+    const bytes = new Uint8Array(buf)
+    // JPEG: FF D8 FF
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
+    // PNG: 89 50 4E 47
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png'
+    // GIF: 47 49 46
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return 'image/gif'
+    // WebP: 52 49 46 46 ?? ?? ?? ?? 57 45 42 50
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp'
+    // BMP: 42 4D
+    if (bytes[0] === 0x42 && bytes[1] === 0x4d) return 'image/bmp'
+    // HEIC/HEIF: ftyp ボックス（オフセット4-7 に "ftyp"）
+    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+        return 'image/heic'
+    }
+    // magic bytes で判定できない場合はブラウザ申告のMIMEをフォールバックとして使用
+    return file.type
+}
+
+// ImageBitmap → Canvas → JPEG Blob に変換する。
+// これにより元ファイルのピクセルデータのみが残り、埋め込みスクリプト等は除去される。
+function redrawAsJpeg(file: Blob): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file)
+        const img = new Image()
+        img.onload = () => {
+            URL.revokeObjectURL(url)
+            const canvas = document.createElement('canvas')
+            canvas.width = img.naturalWidth
+            canvas.height = img.naturalHeight
+            const ctx = canvas.getContext('2d')
+            if (!ctx) { reject(new Error('Canvas が使用できません')); return }
+            ctx.drawImage(img, 0, 0)
+            canvas.toBlob(
+                (blob) => blob ? resolve(blob) : reject(new Error('JPEG への変換に失敗しました')),
+                'image/jpeg',
+                0.92,
+            )
+        }
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像の読み込みに失敗しました')) }
+        img.src = url
+    })
 }
 
 export function AddProblemModal({ onSubmit, onClose, subCategories = [] }: Props) {
