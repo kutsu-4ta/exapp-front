@@ -59,6 +59,12 @@ export async function completeDailyLog(date: string): Promise<DailyLog> {
   return res.json()
 }
 
+// DELETE /api/daily-logs/:date
+export async function deleteDailyLog(date: string): Promise<void> {
+  const res = await apiFetch(`/api/daily-logs/${date}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('ログの削除に失敗しました')
+}
+
 // POST /api/daily-logs/:date/uncomplete
 export async function uncompleteDailyLog(date: string): Promise<DailyLog> {
   const res = await apiFetch(`/api/daily-logs/${date}/uncomplete`, { method: 'POST' })

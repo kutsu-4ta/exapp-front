@@ -562,6 +562,17 @@ paths:
         in: path
         required: true
         schema: { type: string, format: date }
+    delete:
+      summary: デイリーログを削除
+      description: 指定日のデイリーログとそれに紐づく学習セッションをすべて削除する。
+      tags: [Daily Logs]
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 未認証
+        '404':
+          description: 見つからない
     get:
       summary: 特定日のログを取得
       tags: [Daily Logs]

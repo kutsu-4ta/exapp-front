@@ -4,16 +4,40 @@ import {
     ResponsiveContainer, LineChart, CartesianGrid,
     XAxis, YAxis, Tooltip, ReferenceLine, Line,
 } from 'recharts'
-import { createDailyLog, fetchDailyLogs } from '../lib/api/workspace'
+import { fetchDailyLogs } from '../lib/api/workspace'
 import type { DailyLogSummary } from '../types/workspace'
 
 type ViewMode = 'list' | 'chart'
 
+// --- Icons ---
+function IconList({ active }: { active: boolean }) {
+    const c = active ? '#37352f' : 'rgba(55,53,47,0.45)'
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+    )
+}
+
+function IconTrend({ active }: { active: boolean }) {
+    const c = active ? '#37352f' : 'rgba(55,53,47,0.45)'
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+        </svg>
+    )
+}
+
 export default function DailyLogsPage() {
-    const navigate = useNavigate()
     const [logs, setLogs] = useState<DailyLogSummary[]>([])
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<ViewMode>('list')
+
+    // 共通の基準月 (YYYY-MM)
+    const [baseMonth, setBaseMonth] = useState(() => {
+        const d = new Date()
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    })
 
     useEffect(() => {
         (async () => {
@@ -28,75 +52,78 @@ export default function DailyLogsPage() {
         })()
     }, [])
 
-    const handleDateSelect = async (date: string) => {
-        if (!date) return
-        const exists = logs.find(log => log.date === date)
-        if (exists) {
-            navigate(`/workspace/${date}`)
-        } else {
-            try {
-                await createDailyLog(date)
-            } catch (err) {
-                console.error('Failed to create log:', err)
-            } finally {
-                navigate(`/workspace/${date}`)
-            }
-        }
-    }
+    // グラフ用: baseMonth から3ヶ月前を開始月とする
+    const chartStartMonth = useMemo(() => {
+        const [y, m] = baseMonth.split('-').map(Number)
+        const d = new Date(y, m - 3, 1)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    }, [baseMonth])
 
-    const chartData = useMemo(() => {
+    // 【グラフ用フィルタ】
+    const filteredChartData = useMemo(() => {
         return [...logs]
+            .filter(log => {
+                const m = log.date.slice(0, 7)
+                return m >= chartStartMonth && m <= baseMonth
+            })
             .sort((a, b) => a.date.localeCompare(b.date))
             .map(log => ({
                 date: log.date.slice(5),
                 minutes: log.totalMinutes,
             }))
+    }, [logs, chartStartMonth, baseMonth])
+
+    // 【リスト用フィルタ】
+    const filteredListData = useMemo(() => {
+        return logs.filter(log => log.date.startsWith(baseMonth))
+    }, [logs, baseMonth])
+
+    // 存在する年月の一覧
+    const availableMonths = useMemo(() => {
+        const months = logs.map(log => log.date.slice(0, 7))
+        // 今月が含まれていない場合は追加（記録がまだない月も選択できるように）
+        const current = new Date().toISOString().slice(0, 7)
+        return Array.from(new Set([...months, current])).sort((a, b) => b.localeCompare(a))
     }, [logs])
 
     if (loading) return <div style={loaderStyle}>Loading...</div>
 
     return (
         <div style={pageWrapper}>
-            <nav style={navBar}>
-                <div style={breadcrumb}>
-                    <span style={navIcon}>📝</span>
-                    <Link to="/workspace/daily-logs" style={navLink}>Workspace</Link>
-                    <span style={sep}>/</span>
-                    <span style={activeNav}>Daily Logs</span>
-                </div>
-            </nav>
-
             <div style={tabBar}>
                 <button
                     onClick={() => setViewMode('list')}
                     style={{...tabItem, ...(viewMode === 'list' ? activeTab : {})}}
                 >
-                    <span style={tabIcon}>☰</span> リスト
+                    <IconList active={viewMode === 'list'} /> リスト
                 </button>
                 <button
                     onClick={() => setViewMode('chart')}
                     style={{...tabItem, ...(viewMode === 'chart' ? activeTab : {})}}
                 >
-                    <span style={tabIcon}>📈</span> 推移
+                    <IconTrend active={viewMode === 'chart'} /> 推移
                 </button>
             </div>
 
             <div style={content}>
                 <header style={header}>
-                    <h1 style={title}>Daily Logs</h1>
-                    <p style={description}>日々の積み上げと内省の記録</p>
-                </header>
+                    <div style={titleRow}>
+                        <div>
+                            <h1 style={title}>Daily Logs</h1>
+                            <p style={description}>日々の積み上げと内省の記録</p>
+                        </div>
 
-                <div style={toolbar}>
-                    <label style={calendarLabel}>
-                        <span style={{ fontSize: '18px' }}>📅</span>
-                        <input
-                            type="date"
-                            style={hiddenDateInput}
-                            onChange={(e) => handleDateSelect(e.target.value)}
-                        />
-                    </label>
-                </div>
+                        <select
+                            value={baseMonth}
+                            onChange={(e) => setBaseMonth(e.target.value)}
+                            style={monthSelect}
+                        >
+                            {availableMonths.map(m => (
+                                <option key={m} value={m}>{m.replace('-', '年')}月</option>
+                            ))}
+                        </select>
+                    </div>
+                </header>
 
                 {viewMode === 'list' ? (
                     <div style={listContainer}>
@@ -106,7 +133,7 @@ export default function DailyLogsPage() {
                             <div style={{ flex: 1, textAlign: 'center' }}>状態</div>
                         </div>
 
-                        {logs.map((log) => {
+                        {filteredListData.length > 0 ? filteredListData.map((log) => {
                             const hours = Math.floor(log.totalMinutes / 60)
                             const mins = log.totalMinutes % 60
                             return (
@@ -127,15 +154,21 @@ export default function DailyLogsPage() {
                                     </div>
                                 </Link>
                             )
-                        })}
+                        }) : (
+                            <div style={emptyMessage}>この月の記録はありません</div>
+                        )}
                     </div>
                 ) : (
                     <div style={chartContainer}>
                         <div style={chartCard}>
-                            <h3 style={chartLabel}>学習時間推移 (min)</h3>
+                            <div style={chartNavRow}>
+                                <span style={chartRangeLabel}>
+                                    {chartStartMonth.replace('-', '/')} 〜 {baseMonth.replace('-', '/')} の推移
+                                </span>
+                            </div>
                             <div style={{ width: '100%', height: 300 }}>
                                 <ResponsiveContainer>
-                                    <LineChart data={chartData}>
+                                    <LineChart data={filteredChartData}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                         <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
                                         <YAxis fontSize={10} tickLine={false} axisLine={false} />
@@ -160,42 +193,25 @@ export default function DailyLogsPage() {
     )
 }
 
+// --- Styles (変更なし・一部最適化) ---
+const titleRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+const monthSelect: React.CSSProperties = {
+    padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(55, 53, 47, 0.16)',
+    fontSize: '14px', fontWeight: 600, color: '#37352f', backgroundColor: '#fff', cursor: 'pointer', outline: 'none'
+}
+const emptyMessage: React.CSSProperties = { padding: '40px', textAlign: 'center', color: 'rgba(55, 53, 47, 0.4)', fontSize: '14px' }
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
-const navBar: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px' }
-const breadcrumb: React.CSSProperties = { display: 'flex', alignItems: 'center', fontSize: '13px', color: 'rgba(55, 53, 47, 0.45)' }
-const navIcon: React.CSSProperties = { marginRight: '6px' }
-const navLink: React.CSSProperties = { color: 'inherit', textDecoration: 'none' }
-const sep: React.CSSProperties = { margin: '0 6px', color: 'rgba(55, 53, 47, 0.16)' }
-const activeNav: React.CSSProperties = { fontWeight: 500, color: '#37352f' }
-
 const tabBar: React.CSSProperties = { display: 'flex', padding: '0 16px', borderBottom: '1px solid rgba(55, 53, 47, 0.09)', gap: '16px' }
 const tabItem: React.CSSProperties = {
-    background: 'none', border: 'none', padding: '8px 4px', fontSize: '14px',
+    background: 'none', border: 'none', padding: '12px 4px', fontSize: '14px',
     color: 'rgba(55, 53, 47, 0.45)', cursor: 'pointer', borderBottom: '2px solid transparent',
-    display: 'flex', alignItems: 'center', gap: '6px'
+    display: 'flex', alignItems: 'center', gap: '6px',
 }
 const activeTab: React.CSSProperties = { color: '#37352f', borderBottom: '2px solid #37352f' }
-const tabIcon: React.CSSProperties = { fontSize: '16px' }
-
-const content: React.CSSProperties = { width: '100%', maxWidth: '720px', margin: '0 auto', padding: '60px 20px' }
-const header: React.CSSProperties = { marginBottom: '40px' }
-const title: React.CSSProperties = { fontSize: '40px', fontWeight: 700, marginBottom: '8px' }
-const description: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.6)', fontSize: '16px' }
-
-const toolbar: React.CSSProperties = { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }
-const calendarLabel: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    width: '44px', height: '44px', backgroundColor: '#fff',
-    border: '1px solid rgba(55, 53, 47, 0.16)', borderRadius: '4px',
-    cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
-}
-const hiddenDateInput: React.CSSProperties = {
-    position: 'absolute', top: 0, left: 0,
-    width: '100%', height: '100%',
-    opacity: 0, cursor: 'pointer',
-    zIndex: 1, fontSize: '16px',
-}
-
+const content: React.CSSProperties = { width: '100%', maxWidth: '720px', margin: '0 auto', padding: '40px 20px' }
+const header: React.CSSProperties = { marginBottom: '32px' }
+const title: React.CSSProperties = { fontSize: '32px', fontWeight: 700, marginBottom: '6px' }
+const description: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.6)', fontSize: '15px' }
 const listContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const listHeader: React.CSSProperties = { display: 'flex', padding: '10px 8px', fontSize: '12px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.35)', borderBottom: '1px solid rgba(55, 53, 47, 0.09)' }
 const logItem: React.CSSProperties = { display: 'flex', alignItems: 'center', padding: '16px 8px', textDecoration: 'none', color: 'inherit', borderBottom: '1px solid rgba(55, 53, 47, 0.06)' }
@@ -206,9 +222,9 @@ const itemTime: React.CSSProperties = { flex: 1, textAlign: 'right', fontSize: '
 const itemStatus: React.CSSProperties = { flex: 1, textAlign: 'center' }
 const statusDone: React.CSSProperties = { backgroundColor: '#e6f6eb', color: '#19a576', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }
 const statusDoing: React.CSSProperties = { backgroundColor: '#fff5e0', color: '#f2ab26', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }
-
 const chartContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '24px' }
 const chartCard: React.CSSProperties = { padding: '24px', borderRadius: '12px', border: '1px solid rgba(55, 53, 47, 0.09)', backgroundColor: '#fcfcfc' }
-const chartLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: 'rgba(55, 53, 47, 0.45)', marginBottom: '16px' }
+const chartNavRow: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '20px' }
+const chartRangeLabel: React.CSSProperties = { fontSize: '13px', fontWeight: 700, color: 'rgba(55,53,47,0.55)' }
 const tooltipStyle = { borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }
 const loaderStyle: React.CSSProperties = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'rgba(55, 53, 47, 0.45)' }
