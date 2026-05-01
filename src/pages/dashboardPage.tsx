@@ -254,10 +254,5 @@ const currentBadge: React.CSSProperties = {
 }
 const chartPlaceholder: React.CSSProperties = { height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: 'rgba(55,53,47,0.35)' }
 
-const ctaCard: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '20px 24px', backgroundColor: c.blueBg, border: `1px solid ${c.blueBorder}`,
-    borderRadius: '12px', textDecoration: 'none', color: c.blue, marginTop: '20px',
-}
 const ctaLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, marginBottom: '2px' }
 const ctaValue: React.CSSProperties = { fontSize: '18px', fontWeight: 700 }
