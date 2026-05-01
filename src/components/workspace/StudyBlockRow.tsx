@@ -1,5 +1,5 @@
-import {MATERIALS, SUBJECTS} from "../../types/workspace";
 import type {StudySession, StudySessionInput, SubCategory} from "../../types/workspace";
+import { useSettingsStore } from '../../lib/store/settings';
 import {useCallback, useEffect, useId, useRef, useState} from "react";
 
 type SaveInput = Omit<StudySessionInput, 'dailyLogDate' | 'timeSlot'>
@@ -53,6 +53,8 @@ const rowLabel: React.CSSProperties = {
 
 export function StudyBlockRow({ session, initialMinutes, subCategories = [], onSave, onDelete, readonly }: Props) {
   const uid = useId()
+  const subjects = useSettingsStore((s) => s.subjects)
+  const materials = useSettingsStore((s) => s.materials)
 
   const savedIdRef = useRef<number | null>(session?.id ?? null)
   const onSaveRef = useRef(onSave)
@@ -249,7 +251,7 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
               style={{ ...textInp, flex: 2 }}
           />
           <datalist id={`${uid}-subj`}>
-            {SUBJECTS.map((s) => (
+            {subjects.map((s) => (
                 <option key={s} value={s} />
             ))}
           </datalist>
@@ -273,7 +275,7 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
               style={{ ...textInp, flex: 1 }}
           />
           <datalist id={`${uid}-mat`}>
-            {MATERIALS.map((m) => (
+            {materials.map((m) => (
                 <option key={m} value={m} />
             ))}
           </datalist>

@@ -1,11 +1,10 @@
 import {
   FAILURE_TYPE_VALUES,
-  MATERIALS,
   PROFICIENCY_VALUES,
-  SUBJECTS,
   todayString
 } from "../../types/workspace";
 import type {FailureType, ProblemInput, Proficiency, SubCategory} from "../../types/workspace";
+import { useSettingsStore } from '../../lib/store/settings';
 import {useState} from "react";
 
 type Props = {
@@ -17,6 +16,8 @@ type Props = {
 
 export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel }: Props) {
   const isEdit = initial !== undefined
+  const subjects = useSettingsStore((s) => s.subjects)
+  const materials = useSettingsStore((s) => s.materials)
 
   const [subject, setSubject] = useState(initial?.subject ?? '')
   const [material, setMaterial] = useState(initial?.material ?? '')
@@ -94,7 +95,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel }:
                 style={inp}
             />
             <datalist id="pf-subjects">
-              {SUBJECTS.map((s) => <option key={s} value={s} />)}
+              {subjects.map((s) => <option key={s} value={s} />)}
             </datalist>
           </div>
           <div style={field}>
@@ -125,7 +126,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel }:
                 style={inp}
             />
             <datalist id="pf-materials">
-              {MATERIALS.map((m) => <option key={m} value={m} />)}
+              {materials.map((m) => <option key={m} value={m} />)}
             </datalist>
           </div>
         </div>

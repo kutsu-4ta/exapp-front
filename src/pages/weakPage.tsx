@@ -1,5 +1,6 @@
-import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES, SUBJECTS} from "../types/workspace";
+import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from "../types/workspace";
 import type {FailureType, Problem, ProblemInput, Proficiency, SubCategory} from "../types/workspace";
+import { useSettingsStore } from '../lib/store/settings';
 import {ProblemCard} from "../components/weak/ProblemCard";
 import {addProblem, deleteProblem, fetchProblems, updateProblem} from "../lib/api/problem";
 import {useCallback, useEffect, useMemo, useState} from "react";
@@ -9,6 +10,7 @@ import {fetchSubCategories} from "../lib/api/subcategory";
 import {c, font} from "../styles/notion";
 
 export default function WeakPage() {
+    const subjects = useSettingsStore((s) => s.subjects)
     const [problems, setProblems] = useState<Problem[]>([])
     const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [loading, setLoading] = useState(true)
@@ -48,11 +50,14 @@ export default function WeakPage() {
             .filter((p) => filterSubject === 'all' || p.subject === filterSubject)
             .filter((p) => filterProficiency === 'all' || p.proficiency === filterProficiency)
             .filter((p) => filterFailureType === 'all' || p.failureTypes.includes(filterFailureType as FailureType))
-        return SUBJECTS.map((s) => ({
+        const subjectList = subjects.length > 0
+            ? subjects
+            : [...new Set(filtered.map((p) => p.subject))]
+        return subjectList.map((s) => ({
             subject: s,
             items: filtered.filter((p) => p.subject === s),
         })).filter((g) => g.items.length > 0)
-    }, [problems, filterSubject, filterProficiency, filterFailureType])
+    }, [problems, filterSubject, filterProficiency, filterFailureType, subjects])
 
     return (
         <div style={container}>
@@ -72,7 +77,7 @@ export default function WeakPage() {
                 </div>
                 <div style={subjectScroll}>
                     <FilterPill active={filterSubject === 'all'} onClick={() => setFilterSubject('all')}>All</FilterPill>
-                    {SUBJECTS.map((s) => (
+                    {subjects.map((s) => (
                         <FilterPill key={s} active={filterSubject === s} onClick={() => setFilterSubject(s)}>{s}</FilterPill>
                     ))}
                 </div>

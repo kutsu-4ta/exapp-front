@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { SUBJECTS } from '../types/workspace'
+import { useSettingsStore } from '../lib/store/settings'
 import type { ExamSession } from '../types/exam'
 import type { ExamQuestionInput } from '../types/exam'
 import { createExamSession, completeExamSession, fetchExamSessions, fetchExamSession } from '../lib/api/exam'
@@ -7,6 +7,7 @@ import AnalysisView from '../components/exam/AnalysisView'
 import ExamInputView from '../components/exam/ExamInputView'
 
 export default function ExamPage() {
+  const subjects = useSettingsStore((s) => s.subjects)
   const [activeSession, setActiveSession] = useState<ExamSession | null>(null)
   const [starting, setStarting] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -41,7 +42,7 @@ export default function ExamPage() {
         setActiveSession(session)
         return
       }
-      const session = await createExamSession({ subject: SUBJECTS[0], examYear: 'R07' })
+      const session = await createExamSession({ subject: subjects[0] ?? '', examYear: 'R07' })
       setActiveSession(session)
     } catch {
       setError('試験セッションの作成に失敗しました')
