@@ -9,6 +9,7 @@ import type {
   StudySession,
   StudySessionInput
 } from "../../types/workspace";
+import type {AdviceMode} from "@/types/aiAgent.ts";
 
 
 // GET /api/daily-logs?year=&month=
@@ -148,4 +149,22 @@ export async function updateMonthlySettings(
   })
   if (!res.ok) throw new Error('月間設定の保存に失敗しました')
   return res.json()
+}
+
+/**
+ * ── AiAgent ────────────────────────────────────────────────────────
+ */
+
+export async function fetchAIAdvice( mode: AdviceMode): Promise<string> {
+  const res = await apiFetch(`/api/ai/advice`, {
+    method: 'POST',
+    body: JSON.stringify({ mode }),
+  });
+
+  if (!res.ok) {
+    throw new Error('AIアドバイスの取得に失敗しました');
+  }
+
+  const data = await res.json();
+  return data.advice; // APIレスポンスのフィールド名に合わせて調整
 }

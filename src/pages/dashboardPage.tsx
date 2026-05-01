@@ -3,7 +3,13 @@ import { useSettingsStore } from '../lib/store/settings';
 import type {ChartDataPoint, DashboardStats, DailyLogSummary, Problem} from "../types/workspace";
 import {fetchProblems} from "../lib/api/problem";
 import {useEffect, useMemo, useState} from "react";
-import {fetchDashboardStats, fetchMonthlyLogs, fetchMonthlySettings, updateMonthlySettings} from "../lib/api/workspace";
+import {
+    fetchAIAdvice,
+    fetchDashboardStats,
+    fetchMonthlyLogs,
+    fetchMonthlySettings,
+    updateMonthlySettings
+} from "../lib/api/workspace";
 import {c} from "../styles/notion";
 import {SubjectStatus} from "../components/dashboard/SubjectStatus";
 import {DashboardChart} from "../components/dashboard/DashboardChart";
@@ -11,6 +17,7 @@ import {FailureAnalysisSection} from "../components/dashboard/FailureAnalysisSec
 import {AlertWidget} from "../components/dashboard/AlertWidget";
 import {StatCard} from "../components/dashboard/StatCard";
 import {Link} from "react-router-dom";
+import {AIAgentWidget} from "@/components/aiAgent/aiAgentWidget.tsx";
 
 function buildChartData(
     year: number,
@@ -175,12 +182,16 @@ export default function DashboardPage() {
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
-                <div style={statRow}>
+                {/* 統計とAIエージェントの行 */}
+                <div style={statRowContainer}>
                     <StatCard
                         label="Monthly Total (Actual)"
                         value={formatHours(stats?.thisMonthMinutes ?? 0)}
                         sub={`${stats?.thisMonthDays ?? 0} days active`}
                     />
+                    <div style={aiWidgetWrapper}>
+                        <AIAgentWidget onGetAdvice={fetchAIAdvice}/>
+                    </div>
                 </div>
 
                 {/* バーンダウンチャート */}
@@ -391,3 +402,28 @@ const chartPlaceholder: React.CSSProperties = { height: '260px', display: 'flex'
 
 const ctaLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, marginBottom: '2px' }
 const ctaValue: React.CSSProperties = { fontSize: '18px', fontWeight: 700 }
+const statRowContainer: React.CSSProperties = {
+    display: 'flex',
+    gap: '12px', // 密度を高めるために狭める
+    alignItems: 'stretch', // 高さを揃えて、並んだ時のデコボコを解消
+    marginBottom: '24px',
+    flexWrap: 'wrap'
+};
+
+const aiWidgetWrapper: React.CSSProperties = {
+    flex: '1 1 280px', // 最小幅を確保しつつ、空きスペースを埋める
+    background: '#fff',
+    padding: '8px 12px', // 上下のパディングを少し削り、横とのバランスを調整
+    borderRadius: '8px',
+    border: '1px solid rgba(55, 53, 47, 0.08)',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center' // 中身を垂直中央に
+};
+
+// StatCardをラップして制御する場合
+const statCardWrapper: React.CSSProperties = {
+    flex: '1 1 140px', // 統計カードは少し小さめのベース幅に
+    minWidth: '140px'
+};
