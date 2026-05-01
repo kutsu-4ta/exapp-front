@@ -34,8 +34,8 @@ function buildChartData(
             day: dayNum, date: dateStr,
             actual: isFuture ? undefined : Number((cumulative / 60).toFixed(1)),
             range: [
-                Number(((targetMin / daysInMonth) * dayNum / 60).toFixed(1)),
-                Number(((targetMax / daysInMonth) * dayNum / 60).toFixed(1)),
+                Number(((targetMin / daysInMonth) * dayNum).toFixed(1)),
+                Number(((targetMax / daysInMonth) * dayNum).toFixed(1)),
             ] as [number, number],
         }
     })
