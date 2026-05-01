@@ -1,21 +1,20 @@
-import {todayString} from "../../types/workspace";
-import {useTimer} from "../../context/TimerContext";
-import {Link} from "react-router-dom";
-
+import { Link } from 'react-router-dom'
+import { todayString } from '../../types/workspace'
+import { useStopwatchSync } from '../../hooks/useStopwatchSync'
 
 export function StopWatchWidget() {
-    const { time, isActive, toggle, reset } = useTimer()
+    const { time, isActive, syncing, syncError, handleToggle, reset } = useStopwatchSync()
     const minutes = Math.ceil(time / 60000)
     const logUrl = `/workspace/${todayString()}?minutes=${minutes}`
 
     const formatTime = () => {
         const hours = Math.floor(time / 3600000)
-        const minutes = Math.floor((time % 3600000) / 60000)
-        const seconds = Math.floor((time % 60000) / 1000)
+        const mins = Math.floor((time % 3600000) / 60000)
+        const secs = Math.floor((time % 60000) / 1000)
         const ms = Math.floor((time % 1000) / 10)
         const h = hours > 0 ? `${hours}:` : ''
-        const m = minutes < 10 && hours > 0 ? `0${minutes}` : minutes
-        const s = seconds < 10 ? `0${seconds}` : seconds
+        const m = mins < 10 && hours > 0 ? `0${mins}` : mins
+        const s = secs < 10 ? `0${secs}` : secs
         const msStr = ms < 10 ? `0${ms}` : ms
         return { main: `${h}${m}:${s}`, sub: `.${msStr}` }
     }
@@ -46,28 +45,25 @@ export function StopWatchWidget() {
                             <span style={subTime}>.00</span>
                         </div>
                     )}
+                    {syncError && <span style={errorHint}>{syncError}</span>}
                 </div>
 
                 <div style={controls}>
                     {time > 0 && !isActive && (
-                        <button onClick={reset} style={iconBtn} title="リセット">
+                        <button onClick={reset} style={iconBtn} title="リセット" disabled={syncing}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                                 <path d="M3 3v5h5" />
                             </svg>
                         </button>
                     )}
-                    <button onClick={toggle} style={toggleBtn(isActive)}>
-                        {isActive ? (
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <rect x="6" y="4" width="4" height="16" />
-                                <rect x="14" y="4" width="4" height="16" />
-                            </svg>
-                        ) : (
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        )}
+                    <button
+                        onClick={handleToggle}
+                        style={toggleBtn(isActive, syncing)}
+                        disabled={syncing}
+                        aria-label={isActive ? '停止' : '開始'}
+                    >
+                        {syncing ? <SyncSpinner /> : isActive ? <PauseIcon /> : <PlayIcon />}
                     </button>
                 </div>
             </div>
@@ -75,7 +71,38 @@ export function StopWatchWidget() {
     )
 }
 
-// --- Styles ---
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+function PlayIcon() {
+    return (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+        </svg>
+    )
+}
+
+function PauseIcon() {
+    return (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+        </svg>
+    )
+}
+
+export function SyncSpinner() {
+    return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+            style={{ animation: 'sw-spin 0.7s linear infinite' }}
+        >
+            <style>{`@keyframes sw-spin { to { transform: rotate(360deg) } }`}</style>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+    )
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const container: React.CSSProperties = {
     padding: '0 16px',
@@ -138,24 +165,33 @@ const saveHint: React.CSSProperties = {
     marginTop: '-2px',
 }
 
+const errorHint: React.CSSProperties = {
+    fontSize: '11px',
+    color: '#eb5757',
+    marginTop: '2px',
+}
+
 const controls: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
 }
 
-const toggleBtn = (active: boolean): React.CSSProperties => ({
+const toggleBtn = (active: boolean, syncing: boolean): React.CSSProperties => ({
     width: '52px',
     height: '52px',
     borderRadius: '26px',
     border: 'none',
-    backgroundColor: active ? 'rgba(55, 53, 47, 0.05)' : '#37352f',
-    color: active ? '#37352f' : '#fff',
+    backgroundColor: syncing
+        ? 'rgba(55, 53, 47, 0.04)'
+        : active ? 'rgba(55, 53, 47, 0.05)' : '#37352f',
+    color: active || syncing ? 'rgba(55, 53, 47, 0.4)' : '#fff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer',
+    cursor: syncing ? 'default' : 'pointer',
     transition: 'all 0.2s ease',
+    opacity: syncing ? 0.7 : 1,
 })
 
 const iconBtn: React.CSSProperties = {

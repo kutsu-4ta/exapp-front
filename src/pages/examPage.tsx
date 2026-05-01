@@ -5,15 +5,22 @@ import type { ExamQuestionInput } from '../types/exam'
 import { createExamSession, completeExamSession, fetchExamSessions, fetchExamSession } from '../lib/api/exam'
 import AnalysisView from '../components/exam/AnalysisView'
 import ExamInputView from '../components/exam/ExamInputView'
+import { useTimer } from '../context/TimerContext'
+import { stopStopwatch } from '../lib/api/stopwatch'
 
 export default function ExamPage() {
   const subjects = useSettingsStore((s) => s.subjects)
+  const { isActive: timerRunning, toggle: toggleTimer } = useTimer()
   const [activeSession, setActiveSession] = useState<ExamSession | null>(null)
   const [starting, setStarting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ダイアログ制御用のステート
+  // ストップウォッチ実行中モーダル
+  const [showStopwatchModal, setShowStopwatchModal] = useState(false)
+  const [stoppingTimer, setStoppingTimer] = useState(false)
+
+  // 中断データ再開モーダル
   const [showResumeModal, setShowResumeModal] = useState(false)
   const [pendingSessionId, setPendingSessionId] = useState<number | null>(null)
 
@@ -34,7 +41,8 @@ export default function ExamPage() {
     checkInProgress()
   }, [])
 
-  const handleStartExam = async () => {
+  // 試験開始の本体処理（タイマーチェック後に呼ばれる）
+  const proceedToExam = async () => {
     setStarting(true)
     setError(null)
     try {
@@ -43,21 +51,15 @@ export default function ExamPage() {
         const sessionId = sessions[0].id
         const draftKey = `exam_draft_${sessionId}`
         const hasDraft = localStorage.getItem(draftKey) !== null
-
         if (hasDraft) {
-          // 下書きがある場合は自作ダイアログを表示
           setPendingSessionId(sessionId)
           setShowResumeModal(true)
           return
         }
-
-        // 下書きがなければそのまま再開
         const session = await fetchExamSession(sessionId)
         setActiveSession(session)
         return
       }
-
-      // 新規セッション作成
       const session = await createExamSession({ subject: subjects[0] ?? '', examYear: 'R07' })
       setActiveSession(session)
     } catch {
@@ -65,6 +67,36 @@ export default function ExamPage() {
     } finally {
       setStarting(false)
     }
+  }
+
+  // ボタン押下：タイマーが動いていればモーダルを挟む
+  const handleStartExam = () => {
+    if (timerRunning) {
+      setShowStopwatchModal(true)
+    } else {
+      proceedToExam()
+    }
+  }
+
+  // 「停止して進む」：API で止めてからローカルも停止し遷移
+  const handleStopTimerAndProceed = async () => {
+    setStoppingTimer(true)
+    try {
+      await stopStopwatch()
+    } catch {
+      // API 失敗でもローカルは止める（最低限の一貫性を保つ）
+    } finally {
+      toggleTimer()     // isActive: true → false
+      setStoppingTimer(false)
+    }
+    setShowStopwatchModal(false)
+    proceedToExam()
+  }
+
+  // 「そのまま進む」：タイマーは動かしたまま遷移
+  const handleProceedWithTimer = () => {
+    setShowStopwatchModal(false)
+    proceedToExam()
   }
 
   // --- ダイアログ用ハンドラ ---
@@ -113,7 +145,28 @@ export default function ExamPage() {
 
   return (
       <div style={container}>
-        {/* 自作ダイアログ */}
+        {/* ストップウォッチ実行中ダイアログ */}
+        {showStopwatchModal && (
+            <div style={modalOverlay}>
+              <div style={modalCard}>
+                <h3 style={modalTitle}>ストップウォッチが動作中です</h3>
+                <p style={modalText}>タイマーが計測中です。停止してから試験を始めますか？</p>
+                <div style={modalActionArea}>
+                  <button style={resumeBtn} onClick={handleStopTimerAndProceed} disabled={stoppingTimer}>
+                    {stoppingTimer ? '停止中...' : '停止して進む'}
+                  </button>
+                  <button style={restartBtn} onClick={handleProceedWithTimer} disabled={stoppingTimer}>
+                    そのまま進む
+                  </button>
+                  <button style={cancelBtn} onClick={() => setShowStopwatchModal(false)} disabled={stoppingTimer}>
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {/* 中断データ再開ダイアログ */}
         {showResumeModal && (
             <div style={modalOverlay}>
               <div style={modalCard}>
@@ -130,7 +183,7 @@ export default function ExamPage() {
 
         <div style={analysisHeader}>
           <h2 style={title}>学習実績</h2>
-          <button style={startBtn} onClick={handleStartExam} disabled={starting}>
+          <button style={startBtn} onClick={handleStartExam} disabled={starting || stoppingTimer}>
             {starting ? '確認中...' : '＋ 解答を入力する'}
           </button>
         </div>

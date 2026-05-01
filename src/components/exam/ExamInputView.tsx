@@ -3,7 +3,7 @@ import { useSettingsStore } from '../../lib/store/settings'
 import type { ExamSession, QuestionDraft, ExamQuestionInput, Rank } from '../../types/exam'
 import { QuestionRow } from './QuestionRow'
 import { ExamStopWatchWidget } from './ExamStopWatchWidget'
-import { useExamTimer } from '../../hooks/useExamTimer'
+import { useTimer } from '../../context/TimerContext'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 
 type ExamDraft = {
@@ -133,10 +133,10 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
     initQuestions(session, savedDraft),
   )
 
-  const timer = useExamTimer()
-  // 最新のタイマー値をコールバック内で参照するためのref
-  const timerTimeRef = useRef(timer.time)
-  useEffect(() => { timerTimeRef.current = timer.time }, [timer.time])
+  // グローバルタイマーから経過時間を取得し、各問題の解答時刻記録に使用する
+  const { time: timerTime } = useTimer()
+  const timerTimeRef = useRef(timerTime)
+  useEffect(() => { timerTimeRef.current = timerTime }, [timerTime])
 
   // 下書き自動保存
   useEffect(() => {
@@ -280,7 +280,7 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
 
         {!isScoring && (
           <div style={timerWrapper}>
-            <ExamStopWatchWidget timer={timer} />
+            <ExamStopWatchWidget />
           </div>
         )}
 
