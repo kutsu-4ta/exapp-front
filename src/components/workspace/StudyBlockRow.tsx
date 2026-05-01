@@ -165,19 +165,17 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
           <div style={{
             display: 'flex',
             gap: '8px',
-            opacity: isHovered || saving || justSaved ? 1 : 0,
+            opacity: 1,
             transition: 'opacity 0.2s'
           }}>
             <button onClick={handleDelete} disabled={deleting} style={notionDeleteBtn}>削除</button>
             <button
                 onClick={handleManualSave}
-                // バリデーション未完了、または保存実行中は非活性
                 disabled={!isValid || saving}
                 style={{
                   ...notionSaveBtn,
                   backgroundColor: justSaved ? '#ebf5e9' : '#fff',
                   color: justSaved ? '#377d22' : '#37352f',
-                  // 非活性時のスタイル調整
                   opacity: (!isValid || saving) && !justSaved ? 0.4 : 1,
                   cursor: !isValid || saving ? 'not-allowed' : 'pointer',
                 }}
