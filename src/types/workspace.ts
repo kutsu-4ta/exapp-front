@@ -1,5 +1,10 @@
 export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 
+export type AlertSettings = {
+  thresholdDays: number
+  includeUntouched: boolean
+}
+
 export type SubCategory = {
   id: number
   subject: string

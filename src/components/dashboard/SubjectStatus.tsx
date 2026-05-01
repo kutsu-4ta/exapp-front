@@ -1,50 +1,102 @@
 import {daysAgo} from "../../types/workspace";
 import {c, font, sectionLabelStyle, triangleStyle} from "../../styles/notion";
 
+type SubjectResponse = { subject: string; lastdate: string | null };
 
-type SubjectEntry = { subject: string; lastDate: string | null }
-type Props = { subjectTouched: SubjectEntry[] }
+type SubjectEntry = { subject: string; lastDate: string | null };
 
+type Props = {
+    subjectTouched: SubjectResponse[]
+};
+
+/**
+ * 学習状況（Subject Status）セクション
+ * 実績データから「いつ学習したか」を可視化し、次の演習への意識を高める
+ */
 export function SubjectStatus({ subjectTouched }: Props) {
     return (
         <section style={section}>
-            <div style={sectionLabelStyle}><span style={triangleStyle}>▼</span> SUBJECT STATUS</div>
+            <div style={sectionLabelStyle}>
+                <span style={triangleStyle}>▼</span> SUBJECT STATUS
+            </div>
             <div style={list}>
-                {subjectTouched.map(({ subject, lastDate }) => {
-                    const { text, color, bg } = lastTouchedLabel(lastDate)
+                {subjectTouched.map((item) => {
+                    // 1. データの正規化（小文字キーをキャメルケースにマッピング）
+                    const entry: SubjectEntry = {
+                        subject: item.subject,
+                        lastDate: item.lastdate,
+                    };
+
+                    const label = getStatusLabel(entry.lastDate);
+
                     return (
-                        <div key={subject} style={row}>
+                        <div key={entry.subject} style={row}>
                             <div style={nameGroup}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(55,53,47,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                            </svg>
-                                <span style={subjectText}>{subject}</span>
+                                <BookIcon />
+                                <span style={subjectText}>{entry.subject}</span>
                             </div>
-                            <span style={{ ...tag, color, backgroundColor: bg }}>{text}</span>
+                            <span
+                                style={{
+                                    ...tagBase,
+                                    color: label.color,
+                                    backgroundColor: label.bg,
+                                }}
+                            >
+                {label.text}
+              </span>
                         </div>
-                    )
+                    );
                 })}
             </div>
         </section>
-    )
+    );
 }
 
-function lastTouchedLabel(lastDate: string | null): { text: string; color: string; bg: string } {
-    if (!lastDate) return { text: '未学習', color: '#8a7b6e', bg: 'rgba(55, 53, 47, 0.08)' }
-    const n = daysAgo(lastDate)
-    if (n === 0) return { text: '今日',   color: '#3a7a2a', bg: 'rgba(58, 122, 42, 0.1)' }
-    if (n === 1) return { text: '昨日',   color: '#5c3a1e', bg: 'rgba(92, 58, 30, 0.1)' }
-    if (n <= 6)  return { text: `${n}日前`, color: '#c8860a', bg: 'rgba(200, 134, 10, 0.1)' }
-    return             { text: `${n}日前`, color: c.red,    bg: 'rgba(235, 87, 87, 0.1)' }
+/**
+ * 最終学習日からの経過日数に応じたラベル情報を取得
+ */
+function getStatusLabel(lastDate: string | null) {
+    if (!lastDate) {
+        return { text: "未学習", color: "#8a7b6e", bg: "rgba(55, 53, 47, 0.08)" };
+    }
+
+    const n = daysAgo(lastDate);
+
+    if (n === 0) return { text: "今日", color: "#3a7a2a", bg: "rgba(58, 122, 42, 0.1)" };
+    if (n === 1) return { text: "昨日", color: "#5c3a1e", bg: "rgba(92, 58, 30, 0.1)" };
+    if (n <= 6)  return { text: `${n}日前`, color: "#c8860a", bg: "rgba(200, 134, 10, 0.1)" };
+
+    // 1週間以上経過（忘却曲線に基づき、早めの復習が必要な状態）
+    return { text: `${n}日前`, color: c.red, bg: "rgba(235, 87, 87, 0.1)" };
 }
 
-const section: React.CSSProperties = { marginBottom: '48px' }
-const list: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '2px' }
+/**
+ * アイコン等の小さな部品をコンポーネント化してメインロジックをスッキリさせる
+ */
+const BookIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(55,53,47,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+);
+
+// --- Styles ---
+
+const section: React.CSSProperties = { marginBottom: "48px" };
+const list: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "2px" };
 const row: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '8px 4px', borderBottom: `1px solid ${c.borderXs}`,
-}
-const nameGroup: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px' }
-const subjectText: React.CSSProperties = { fontSize: font.base, fontWeight: 500 }
-const tag: React.CSSProperties = { padding: '2px 8px', borderRadius: '3px', fontSize: '12px', fontWeight: 500 }
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "8px 4px",
+    borderBottom: `1px solid ${c.borderXs}`,
+};
+const nameGroup: React.CSSProperties = { display: "flex", alignItems: "center", gap: "10px" };
+const subjectText: React.CSSProperties = { fontSize: font.base, fontWeight: 500 };
+const tagBase: React.CSSProperties = {
+    padding: "2px 8px",
+    borderRadius: "3px",
+    fontSize: "12px",
+    fontWeight: 500,
+    whiteSpace: "nowrap",
+};
