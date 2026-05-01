@@ -46,6 +46,8 @@ export function DashboardChart({ data, targetMin, targetMax }: Props) {
                         fill="#10b981"
                         fillOpacity={0.06}
                         isAnimationActive={false}
+                        connectNulls={true}
+                        baseValue="dataMin"
                     />
 
                     {/* 下限・上限の最終ライン */}

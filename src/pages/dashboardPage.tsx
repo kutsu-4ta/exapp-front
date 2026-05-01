@@ -1,11 +1,10 @@
 import {daysAgo, FAILURE_TYPE_VALUES, formatHours, todayString} from "../types/workspace";
 import { useSettingsStore } from '../lib/store/settings';
 import type {ChartDataPoint, DashboardStats, DailyLogSummary, Problem} from "../types/workspace";
-import {MonthlyGoalCard} from "../components/dashboard/MonthlyGoalCard";
 import {fetchProblems} from "../lib/api/problem";
 import {useEffect, useMemo, useState} from "react";
 import {fetchDashboardStats, fetchMonthlyLogs, fetchMonthlySettings, updateMonthlySettings} from "../lib/api/workspace";
-import {c, sectionLabelStyle, triangleStyle} from "../styles/notion";
+import {c} from "../styles/notion";
 import {SubjectStatus} from "../components/dashboard/SubjectStatus";
 import {DashboardChart} from "../components/dashboard/DashboardChart";
 import {FailureAnalysisSection} from "../components/dashboard/FailureAnalysisSection";
@@ -59,11 +58,8 @@ export default function DashboardPage() {
 
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [problems, setProblems] = useState<Problem[]>([])
-    const [targetMin, setTargetMin] = useState(140)
-    const [targetMax, setTargetMax] = useState(180)
-    const [isEditingGoal, setIsEditingGoal] = useState(false)
 
-    // Chart month navigation (independent from stat cards)
+    // Chart month navigation
     const [chartYear, setChartYear] = useState(now.getFullYear())
     const [chartMonth, setChartMonth] = useState(now.getMonth() + 1)
     const [chartLogs, setChartLogs] = useState<DailyLogSummary[]>([])
@@ -71,16 +67,20 @@ export default function DashboardPage() {
     const [chartTargetMax, setChartTargetMax] = useState(180)
     const [chartLoading, setChartLoading] = useState(false)
 
+    // Inline goal editor for chart month
+    const [isEditingChartGoal, setIsEditingChartGoal] = useState(false)
+    const [editMin, setEditMin] = useState(140)
+    const [editMax, setEditMax] = useState(180)
+    const [goalSaving, setGoalSaving] = useState(false)
+
     useEffect(() => {
         fetchDashboardStats().then(setStats).catch(console.error)
         fetchProblems().then(setProblems).catch(console.error)
-        fetchMonthlySettings(now.getFullYear(), now.getMonth() + 1)
-            .then((s) => { setTargetMin(s.targetMin); setTargetMax(s.targetMax) })
-            .catch(console.error)
     }, [])
 
     useEffect(() => {
         setChartLoading(true)
+        setIsEditingChartGoal(false)
         Promise.all([
             fetchMonthlyLogs(chartYear, chartMonth),
             fetchMonthlySettings(chartYear, chartMonth),
@@ -89,15 +89,31 @@ export default function DashboardPage() {
                 setChartLogs(logs)
                 setChartTargetMin(settings.targetMin)
                 setChartTargetMax(settings.targetMax)
+                setEditMin(settings.targetMin)
+                setEditMax(settings.targetMax)
             })
             .catch(console.error)
             .finally(() => setChartLoading(false))
     }, [chartYear, chartMonth])
 
-    const handleGoalDone = async () => {
-        setIsEditingGoal(false)
-        await updateMonthlySettings(now.getFullYear(), now.getMonth() + 1, { targetMin, targetMax })
-            .catch(console.error)
+    const handleOpenGoalEditor = () => {
+        setEditMin(chartTargetMin)
+        setEditMax(chartTargetMax)
+        setIsEditingChartGoal(true)
+    }
+
+    const handleSaveChartGoal = async () => {
+        setGoalSaving(true)
+        try {
+            await updateMonthlySettings(chartYear, chartMonth, { targetMin: editMin, targetMax: editMax })
+            setChartTargetMin(editMin)
+            setChartTargetMax(editMax)
+            setIsEditingChartGoal(false)
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setGoalSaving(false)
+        }
     }
 
     const navigateMonth = (delta: number) => {
@@ -159,44 +175,84 @@ export default function DashboardPage() {
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
-                <div style={statsGrid}>
+                <div style={statRow}>
                     <StatCard
                         label="Monthly Total (Actual)"
                         value={formatHours(stats?.thisMonthMinutes ?? 0)}
                         sub={`${stats?.thisMonthDays ?? 0} days active`}
                     />
-                    <MonthlyGoalCard
-                        targetMin={targetMin} targetMax={targetMax} isEditing={isEditingGoal}
-                        onTargetMinChange={setTargetMin} onTargetMaxChange={setTargetMax}
-                        onEditStart={() => setIsEditingGoal(true)} onEditDone={handleGoalDone}
-                    />
                 </div>
 
+                {/* バーンダウンチャート */}
                 <section style={section}>
-                    <div style={sectionLabelStyle}><span style={triangleStyle}>▼</span> STUDY PROGRESS (CUMULATIVE)</div>
                     <div style={chartCard}>
                         {/* Month navigation */}
                         <div style={chartNav}>
-                            <button onClick={() => navigateMonth(-1)} style={navBtn} aria-label="前月">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="15 18 9 12 15 6"/>
-                                </svg>
-                            </button>
-                            <span style={monthLabel}>
-                                {chartYear}/{String(chartMonth).padStart(2, '0')}
-                                {isCurrentMonth && <span style={currentBadge}>今月</span>}
-                            </span>
+                            {/* 中央のナビゲーション */}
+                            <div style={navMainGroup}>
+                                <button onClick={() => navigateMonth(-1)} style={navBtn} aria-label="前月">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="15 18 9 12 15 6"/>
+                                    </svg>
+                                </button>
+                                <span style={monthLabel}>
+                {chartYear}/{String(chartMonth).padStart(2, '0')}
+                                    {isCurrentMonth && <span style={currentBadge}>今月</span>}
+            </span>
+                                <button
+                                    onClick={() => navigateMonth(1)}
+                                    style={isCurrentMonth ? navBtnDisabled : navBtn}
+                                    disabled={isCurrentMonth}
+                                    aria-label="翌月"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* 右端の設定ボタン */}
                             <button
-                                onClick={() => navigateMonth(1)}
-                                style={isCurrentMonth ? navBtnDisabled : navBtn}
-                                disabled={isCurrentMonth}
-                                aria-label="翌月"
+                                onClick={handleOpenGoalEditor}
+                                style={gearBtnAbsolute}
+                                aria-label="目標を編集"
+                                title={`目標: ${chartTargetMin}h ~ ${chartTargetMax}h`}
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="9 18 15 12 9 6"/>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                                 </svg>
                             </button>
                         </div>
+
+                        {/* インラインエディタ（グラフカード内に出現） */}
+                        {isEditingChartGoal && (
+                            <div style={goalEditorBoxInline}>
+                                <div style={goalEditorInputRow}>
+                                    <span style={goalEditorLabelMini}>GOAL:</span>
+                                    <input
+                                        type="number"
+                                        value={editMin}
+                                        onChange={(e) => setEditMin(Number(e.target.value))}
+                                        style={goalInput}
+                                        min={0}
+                                    />
+                                    <span style={goalEditorSep}>-</span>
+                                    <input
+                                        type="number"
+                                        value={editMax}
+                                        onChange={(e) => setEditMax(Number(e.target.value))}
+                                        style={goalInput}
+                                        min={0}
+                                    />
+                                    <span style={goalEditorSep}>h</span>
+                                    <button onClick={handleSaveChartGoal} disabled={goalSaving} style={goalSaveBtn}>
+                                        {goalSaving ? '...' : 'Save'}
+                                    </button>
+                                    <button onClick={() => setIsEditingChartGoal(false)} style={goalCancelBtn}>Cancel</button>
+                                </div>
+                            </div>
+                        )}
+
                         {chartLoading
                             ? <div style={chartPlaceholder}>読み込み中...</div>
                             : <DashboardChart data={transformedChartData} targetMin={chartTargetMin} targetMax={chartTargetMax} />
@@ -211,7 +267,85 @@ export default function DashboardPage() {
         </div>
     )
 }
+const chartNav: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    padding: '4px 0 12px',
+}
 
+const navMainGroup: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+}
+
+const gearBtnAbsolute: React.CSSProperties = {
+    position: 'absolute',
+    right: '4px',
+    top: '4px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: 'rgba(55,53,47,0.25)',
+    padding: '6px',
+    borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'background 0.2s, color 0.2s',
+}
+
+const goalEditorBoxInline: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: '8px',
+    marginBottom: '12px',
+    background: 'rgba(55,53,47,0.02)',
+    border: '1px solid rgba(55,53,47,0.06)',
+    borderRadius: '6px',
+}
+
+const goalEditorLabelMini: React.CSSProperties = {
+    fontSize: '10px',
+    fontWeight: 700,
+    color: 'rgba(55,53,47,0.3)',
+    marginRight: '4px',
+}
+
+const goalInput: React.CSSProperties = {
+    width: '44px',
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#37352f',
+    border: '1px solid rgba(55,53,47,0.12)',
+    borderRadius: '4px',
+    padding: '2px 4px',
+    background: '#fff',
+    outline: 'none',
+    textAlign: 'center',
+}
+
+const goalSaveBtn: React.CSSProperties = {
+    fontSize: '11px',
+    fontWeight: 600,
+    padding: '3px 8px',
+    borderRadius: '4px',
+    border: 'none',
+    backgroundColor: '#2383e2', // Notion Blue
+    color: '#fff',
+    cursor: 'pointer',
+    marginLeft: '8px',
+}
+
+const goalCancelBtn: React.CSSProperties = {
+    fontSize: '11px',
+    color: 'rgba(55,53,47,0.4)',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '4px 8px',
+}
 const mainActionCard: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '24px', backgroundColor: '#fff', border: `1px solid ${c.blueBorder}`,
@@ -229,14 +363,15 @@ const pageWrapper: React.CSSProperties = {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif',
 }
 const content: React.CSSProperties = { maxWidth: '800px', margin: '0 auto', padding: '40px 20px 120px' }
-const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '40px' }
+const statRow: React.CSSProperties = { marginBottom: '40px' }
 const section: React.CSSProperties = { marginBottom: '48px' }
-const chartCard: React.CSSProperties = { padding: '12px', border: `1px solid rgba(55, 53, 47, 0.06)`, borderRadius: '8px' }
-
-const chartNav: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    gap: '12px', paddingBottom: '8px',
+const goalEditorInputRow: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '6px',
 }
+const goalEditorSep: React.CSSProperties = {
+    fontSize: '13px', color: 'rgba(55,53,47,0.45)',
+}
+const chartCard: React.CSSProperties = { padding: '12px', border: `1px solid rgba(55, 53, 47, 0.06)`, borderRadius: '8px' }
 const navBtn: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     width: '28px', height: '28px', borderRadius: '4px',
