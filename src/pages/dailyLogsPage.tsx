@@ -34,8 +34,9 @@ export default function DailyLogsPage() {
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<ViewMode>('list')
 
-    // 選択中の日付を保持するState
-    const [selectedDate, setSelectedDate] = useState('')
+    // モーダル管理用のState
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
 
     const [baseMonth, setBaseMonth] = useState(() => {
         const d = new Date()
@@ -55,10 +56,9 @@ export default function DailyLogsPage() {
         })()
     }, [])
 
-    // ボタン押下時の実行処理
-    const handleConfirmDate = async () => {
-        if (!selectedDate || selectedDate.length < 10) return
-
+    // 最終決定時の処理
+    const handleConfirm = async () => {
+        if (!selectedDate) return
         const exists = logs.find(log => log.date === selectedDate)
         if (!exists) {
             try {
@@ -68,6 +68,7 @@ export default function DailyLogsPage() {
                 return
             }
         }
+        setIsModalOpen(false)
         navigate(`/workspace/${selectedDate}`)
     }
 
@@ -136,28 +137,12 @@ export default function DailyLogsPage() {
                                 </select>
                             ) : (
                                 <div style={toolbar}>
-                                    <div style={calendarArea}>
-                                        <div style={calendarInputWrapper}>
-                                            <span style={calendarIcon}>📅</span>
-                                            <input
-                                                type="date"
-                                                value={selectedDate}
-                                                style={nativeDateInput}
-                                                onChange={(e) => setSelectedDate(e.target.value)}
-                                            />
-                                            {selectedDate && <span style={dateDisplay}>{selectedDate}</span>}
-                                        </div>
-                                        <button
-                                            onClick={handleConfirmDate}
-                                            disabled={!selectedDate}
-                                            style={{
-                                                ...confirmButton,
-                                                ...(selectedDate ? confirmButtonActive : confirmButtonDisabled)
-                                            }}
-                                        >
-                                            開く
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => setIsModalOpen(true)}
+                                        style={openModalBtn}
+                                    >
+                                        📅
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -230,6 +215,35 @@ export default function DailyLogsPage() {
                     </div>
                 )}
             </div>
+
+            {/* --- 日付選択モーダル --- */}
+            {isModalOpen && (
+                <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>
+                    <div style={modalContent} onClick={(e) => e.stopPropagation()}>
+                        <h3 style={modalTitle}>日付を選択</h3>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            style={modalDateInput}
+                        />
+                        <div style={modalActions}>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                style={cancelBtn}
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                onClick={handleConfirm}
+                                style={confirmBtn}
+                            >
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
@@ -241,27 +255,36 @@ const monthSelect: React.CSSProperties = {
     fontSize: '14px', fontWeight: 600, color: '#37352f', backgroundColor: '#fff', cursor: 'pointer', outline: 'none'
 }
 const toolbar: React.CSSProperties = { display: 'flex', alignItems: 'center' }
+const openModalBtn: React.CSSProperties = { background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '4px' }
 
-// カレンダー選択エリア
-const calendarArea: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px' }
-const calendarInputWrapper: React.CSSProperties = { position: 'relative', display: 'flex', alignItems: 'center', padding: '4px 8px', border: '1px solid rgba(55, 53, 47, 0.16)', borderRadius: '6px', backgroundColor: '#fff', minWidth: '40px', height: '32px' }
-const calendarIcon: React.CSSProperties = { fontSize: '18px', pointerEvents: 'none' }
-const nativeDateInput: React.CSSProperties = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }
-const dateDisplay: React.CSSProperties = { marginLeft: '8px', fontSize: '13px', fontWeight: 600, color: '#37352f' }
-
-// 確定ボタン
-const confirmButton: React.CSSProperties = { padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }
-const confirmButtonActive: React.CSSProperties = { backgroundColor: '#2383e2', color: '#fff' }
-const confirmButtonDisabled: React.CSSProperties = { backgroundColor: 'rgba(55, 53, 47, 0.08)', color: 'rgba(55, 53, 47, 0.3)', cursor: 'not-allowed' }
-
-const scrollContainer: React.CSSProperties = {
-    height: 'calc(100vh - 250px)',
-    overflowY: 'auto',
-    border: '1px solid rgba(55, 53, 47, 0.06)',
-    borderRadius: '8px',
-    padding: '0 8px'
+// モーダルのスタイル
+const modalOverlay: React.CSSProperties = {
+    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+}
+const modalContent: React.CSSProperties = {
+    backgroundColor: '#fff', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '320px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.15)', textAlign: 'center'
+}
+const modalTitle: React.CSSProperties = { fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#37352f' }
+const modalDateInput: React.CSSProperties = {
+    width: '100%', padding: '10px', fontSize: '16px', borderRadius: '8px',
+    border: '1px solid rgba(55, 53, 47, 0.16)', marginBottom: '24px', outline: 'none'
+}
+const modalActions: React.CSSProperties = { display: 'flex', gap: '12px' }
+const cancelBtn: React.CSSProperties = {
+    flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid rgba(55, 53, 47, 0.16)',
+    backgroundColor: '#fff', fontSize: '14px', fontWeight: 600, color: 'rgba(55,53,47,0.6)', cursor: 'pointer'
+}
+const confirmBtn: React.CSSProperties = {
+    flex: 1, padding: '10px', borderRadius: '6px', border: 'none',
+    backgroundColor: '#2383e2', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer'
 }
 
+const scrollContainer: React.CSSProperties = {
+    height: 'calc(100vh - 250px)', overflowY: 'auto', border: '1px solid rgba(55, 53, 47, 0.06)',
+    borderRadius: '8px', padding: '0 8px'
+}
 const emptyMessage: React.CSSProperties = { padding: '40px', textAlign: 'center', color: 'rgba(55, 53, 47, 0.4)', fontSize: '14px' }
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
 const tabBar: React.CSSProperties = { display: 'flex', padding: '0 16px', borderBottom: '1px solid rgba(55, 53, 47, 0.09)', gap: '16px' }
