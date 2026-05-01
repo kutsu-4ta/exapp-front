@@ -4,7 +4,7 @@ import {
     ResponsiveContainer, LineChart, CartesianGrid,
     XAxis, YAxis, Tooltip, ReferenceLine, Line,
 } from 'recharts'
-import { createDailyLog, fetchDailyLogs, fetchRecentDailyLogs } from '../lib/api/workspace'
+import { fetchDailyLogs, fetchRecentDailyLogs } from '../lib/api/workspace'
 import type { DailyLogSummary } from '../types/workspace'
 
 type ViewMode = 'list' | 'chart'
@@ -132,17 +132,8 @@ export default function DailyLogsPage() {
         setBaseMonth(next)
     }
 
-    const handleConfirm = async () => {
+    const handleConfirm = () => {
         if (!selectedDate) return
-        const exists = listLogs.find((log) => log.date === selectedDate)
-        if (!exists) {
-            try {
-                await createDailyLog(selectedDate)
-            } catch (err) {
-                console.error(err)
-                return
-            }
-        }
         setIsModalOpen(false)
         navigate(`/workspace/${selectedDate}`)
     }
