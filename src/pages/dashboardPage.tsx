@@ -122,14 +122,18 @@ export default function DashboardPage() {
         }))
     , [problems])
 
-    const subjectTouched = useMemo(() => (
-        stats?.lastTouchedBySubject ?? subjects.map((s) => ({ subject: s, lastDate: null }))
-    ).slice().sort((a, b) => {
-        if (!a.lastDate && !b.lastDate) return 0
-        if (!a.lastDate) return 1
-        if (!b.lastDate) return -1
-        return a.lastDate < b.lastDate ? 1 : -1
-    }), [stats, subjects])
+    const subjectTouched = useMemo(() => {
+        const raw = stats?.lastTouchedBySubject
+            ?? subjects.map((s) => ({ subject: s, lastdate: null }))
+        return raw
+            .map((item) => ({ subject: item.subject, lastDate: item.lastdate }))
+            .sort((a, b) => {
+                if (!a.lastDate && !b.lastDate) return 0
+                if (!a.lastDate) return 1
+                if (!b.lastDate) return -1
+                return a.lastDate < b.lastDate ? 1 : -1
+            })
+    }, [stats, subjects])
 
     const warningSubjects = useMemo(() =>
         subjectTouched.filter(({ lastDate }) => !lastDate || daysAgo(lastDate) >= 7)
