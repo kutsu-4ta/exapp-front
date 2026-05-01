@@ -6,7 +6,7 @@ import { logout as apiLogout } from '../lib/api/authenticate'
 import { renameMaterial, deleteMaterial } from '../lib/api/materials'
 import { updateAlertSettings } from '../lib/api/alertSettings'
 import { backBtn, c, font } from '../styles/notion'
-import {fetchUserProfile, updateUserProfile} from "@/types/workspace.ts";
+import { fetchUserProfile, updateUserProfile } from '@/lib/api/profile'
 
 export default function ProfilePage() {
     const navigate = useNavigate()
@@ -21,18 +21,24 @@ export default function ProfilePage() {
     const setAlertSettings = useSettingsStore((s) => s.setAlertSettings)
     const loadAlertSettings = useSettingsStore((s) => s.loadAlertSettings)
 
-    // ── User Profile settings ────────────────────────────────────────────────
-    const [nickname, setNickname] = useState(user?.nickname || '')
-    const [occupation, setOccupation] = useState(user?.occupation || '')
-    const [goal, setGoal] = useState(user?.goal || '')
-    const [weakAreas, setWeakAreas] = useState(user?.weakAreas || '')
-    const [strongAreas, setStrongAreas] = useState(user?.strongAreas || '')
-    const [interests, setInterests] = useState(user?.interests || '')
-    const [geminiToken, setGeminiToken] = useState('') // セキュリティのため入力用は空で管理
+    // ── User Profile settings (General) ──────────────────────────────────────
+    const [nickname, setNickname] = useState('')
+    const [occupation, setOccupation] = useState('')
+    const [goal, setGoal] = useState('')
+    const [weakAreas, setWeakAreas] = useState('')
+    const [strongAreas, setStrongAreas] = useState('')
+    const [interests, setInterests] = useState('')
 
     const [profileLoading, setProfileLoading] = useState(false)
     const [profileSaved, setProfileSaved] = useState(false)
     const [profileError, setProfileError] = useState<string | null>(null)
+
+    // ── Gemini Token settings (Independent) ──────────────────────────────────
+    const [geminiToken, setGeminiToken] = useState('')
+    const [tokenLoading, setTokenLoading] = useState(false)
+    const [tokenSaved, setTokenSaved] = useState(false)
+    const [tokenError, setTokenError] = useState<string | null>(null)
+    const [isTokenRegistered, setIsTokenRegistered] = useState(user?.geminiTokenSet ?? false)
 
     // ── Material editing ─────────────────────────────────────────────────────
     const [editingMaterial, setEditingMaterial] = useState<string | null>(null)
@@ -49,28 +55,12 @@ export default function ProfilePage() {
     const [alertLoading, setAlertLoading] = useState(false)
     const [alertSaved, setAlertSaved] = useState(false)
 
-    useEffect(() => {
-        loadSubjects()
-        loadMaterials()
-        loadAlertSettings()
-    }, [])
-
-    useEffect(() => {
-        setAlertThreshold(alertSettings.thresholdDays)
-        setAlertIncludeUntouched(alertSettings.includeUntouched)
-    }, [alertSettings])
-
-    useEffect(() => {
-        if (editingMaterial !== null) materialEditRef.current?.focus()
-    }, [editingMaterial])
-
-    // プロフィール読み込み用のEffectを追加
+    // Initial Load
     useEffect(() => {
         const loadProfile = async () => {
             setProfileLoading(true);
             try {
                 const data = await fetchUserProfile();
-                // 取得したデータを各Stateにセット
                 if (data) {
                     setNickname(data.nickname || '');
                     setOccupation(data.occupation || '');
@@ -78,7 +68,7 @@ export default function ProfilePage() {
                     setWeakAreas(data.weakAreas || '');
                     setStrongAreas(data.strongAreas || '');
                     setInterests(data.interests || '');
-                    // geminiTokenはセキュリティ上、入力欄は空のまま（placeholderで登録済みか判定）
+                    setIsTokenRegistered(data.geminiTokenSet);
                 }
             } catch (e) {
                 setProfileError(e instanceof Error ? e.message : '読み込みに失敗しました');
@@ -93,8 +83,17 @@ export default function ProfilePage() {
         loadAlertSettings();
     }, []);
 
+    useEffect(() => {
+        setAlertThreshold(alertSettings.thresholdDays)
+        setAlertIncludeUntouched(alertSettings.includeUntouched)
+    }, [alertSettings])
+
+    useEffect(() => {
+        if (editingMaterial !== null) materialEditRef.current?.focus()
+    }, [editingMaterial])
+
     const handleLogout = async () => {
-        await apiLogout().catch(() => {})
+        await apiLogout().catch(() => { })
         clearAuth()
         navigate('/login')
     }
@@ -105,6 +104,7 @@ export default function ProfilePage() {
         setProfileError(null)
         setProfileSaved(false)
         try {
+            // APIキーを除いた情報のみを送信
             await updateUserProfile({
                 nickname,
                 occupation,
@@ -112,15 +112,32 @@ export default function ProfilePage() {
                 weakAreas,
                 strongAreas,
                 interests,
-                geminiToken: geminiToken.trim() || undefined
             })
             setProfileSaved(true)
-            setGeminiToken('') // 保存後はトークン入力をクリア
             setTimeout(() => setProfileSaved(false), 2000)
         } catch (e) {
             setProfileError(e instanceof Error ? e.message : '保存に失敗しました')
         } finally {
             setProfileLoading(false)
+        }
+    }
+
+    // ── Token handler ────────────────────────────────────────────────────────
+    const handleTokenSave = async () => {
+        if (!geminiToken.trim()) return
+        setTokenLoading(true)
+        setTokenError(null)
+        setTokenSaved(false)
+        try {
+            await updateUserProfile({ geminiToken: geminiToken.trim() })
+            setTokenSaved(true)
+            setIsTokenRegistered(true)
+            setGeminiToken('')
+            setTimeout(() => setTokenSaved(false), 2000)
+        } catch (e) {
+            setTokenError(e instanceof Error ? e.message : 'トークンの保存に失敗しました')
+        } finally {
+            setTokenLoading(false)
         }
     }
 
@@ -190,8 +207,8 @@ export default function ProfilePage() {
         <div style={pageWrapper}>
             <div style={content}>
                 <button style={backBtn} onClick={() => navigate(-1)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight: '6px'}}>
-                        <polyline points="15 18 9 12 15 6"/>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
+                        <polyline points="15 18 9 12 15 6" />
                     </svg>
                     Back
                 </button>
@@ -214,7 +231,7 @@ export default function ProfilePage() {
                     <span style={sectionHeading}>AI・パーソナライズ設定</span>
                 </div>
                 <div style={settingsBlock}>
-                    <p style={settingsNote}>ここで入力した内容は、AIエージェントのアドバイス内容を最適化するために使用されます。</p>
+                    <p style={settingsNote}>ここで入力した内容は、AIエージェントのアドバイスを最適化するために使用されます。</p>
 
                     {profileError && <p style={errorText}>{profileError}</p>}
 
@@ -246,27 +263,44 @@ export default function ProfilePage() {
                             <input style={textInput} value={interests} onChange={e => setInterests(e.target.value)} placeholder="例：物理学、哲学、サッカー" />
                         </div>
 
-                        <div style={divider} />
-
-                        <div style={field}>
-                            <label style={inputLabel}>
-                                Gemini APIキー
-                                <span style={{ fontWeight: 400, marginLeft: '6px', opacity: 0.6 }}>(任意)</span>
-                            </label>
-                            <input
-                                type="password"
-                                style={textInput}
-                                value={geminiToken}
-                                onChange={e => setGeminiToken(e.target.value)}
-                                placeholder={user.geminiTokenSet ? "●●●●●●●● (登録済み)" : "AIアドバイス用のキーを入力"}
-                            />
-                        </div>
-
                         <div style={alertSaveRow}>
                             <button onClick={handleProfileSave} disabled={profileLoading} style={saveBtn}>
                                 {profileLoading ? '保存中...' : 'プロフィールを更新'}
                             </button>
                             {profileSaved && <span style={savedText}>保存しました</span>}
+                        </div>
+                    </div>
+                </div>
+
+                {/* APIキー設定 (独立) */}
+                <div style={sectionHeadingWrap}>
+                    <span style={sectionHeading}>高度な設定</span>
+                </div>
+                <div style={settingsBlock}>
+                    <p style={settingsSubLabel}>Gemini APIキー</p>
+                    <p style={settingsNote}>独自のAPIキーを使用することで、より高度な解析機能を利用できます。</p>
+
+                    {tokenError && <p style={errorText}>{tokenError}</p>}
+
+                    <div style={formStack}>
+                        <div style={field}>
+                            <input
+                                type="password"
+                                style={textInput}
+                                value={geminiToken}
+                                onChange={e => setGeminiToken(e.target.value)}
+                                placeholder={isTokenRegistered ? "●●●●●●●● (登録済み)" : "AIアドバイス用のキーを入力"}
+                            />
+                        </div>
+                        <div style={alertSaveRow}>
+                            <button
+                                onClick={handleTokenSave}
+                                disabled={tokenLoading || !geminiToken.trim()}
+                                style={{...saveBtn, backgroundColor: geminiToken.trim() ? '#2383e2' : 'rgba(55, 53, 47, 0.2)'}}
+                            >
+                                {tokenLoading ? '保存中...' : 'APIキーを更新'}
+                            </button>
+                            {tokenSaved && <span style={savedText}>保存しました</span>}
                         </div>
                     </div>
                 </div>
@@ -376,7 +410,7 @@ export default function ProfilePage() {
     )
 }
 
-// ── Styles ──────────────────────────────────────────────────────────────
+// ── Styles (一部追加・修正) ──────────────────────────────────────────────
 
 const pageWrapper: React.CSSProperties = { backgroundColor: c.bg, minHeight: '100vh', color: c.text }
 const content: React.CSSProperties = { maxWidth: '480px', margin: '0 auto', padding: '48px 20px 120px' }
@@ -413,13 +447,13 @@ const inputLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, col
 const textInput: React.CSSProperties = {
     border: `1px solid rgba(55, 53, 47, 0.12)`, borderRadius: '4px',
     padding: '8px 10px', fontSize: font.base, color: c.text, outline: 'none',
-    backgroundColor: 'rgba(55, 53, 47, 0.02)',
+    backgroundColor: 'rgba(55, 53, 47, 0.02)', width: '100%', boxSizing: 'border-box'
 }
 const textArea: React.CSSProperties = {
     border: `1px solid rgba(55, 53, 47, 0.12)`, borderRadius: '4px',
     padding: '8px 10px', fontSize: font.base, color: c.text, outline: 'none',
     backgroundColor: 'rgba(55, 53, 47, 0.02)', resize: 'none', height: '100px',
-    fontFamily: 'inherit'
+    fontFamily: 'inherit', width: '100%', boxSizing: 'border-box'
 }
 
 const itemList: React.CSSProperties = { display: 'flex', flexDirection: 'column' }

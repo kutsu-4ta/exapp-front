@@ -38,7 +38,8 @@ export function AIAgentWidget({ onGetAdvice }: Props) {
     };
 
     return (
-        <div style={container}>
+        <div style={aiWidgetWrapper}>
+            <div style={container}>
             {/* コントロール行 */}
             <div style={controls}>
                 <div style={selectWrapper}>
@@ -102,6 +103,7 @@ export function AIAgentWidget({ onGetAdvice }: Props) {
                     <p style={adviceText}>{advice}</p>
                 </div>
             )}
+        </div>
         </div>
     );
 }
@@ -239,4 +241,15 @@ const errorText: React.CSSProperties = {
 const errorCloseBtn: React.CSSProperties = {
     ...closeBtn,
     color: 'rgba(235,87,87,0.5)',
+};
+const aiWidgetWrapper: React.CSSProperties = {
+    flex: '1 1 280px', // 最小幅を確保しつつ、空きスペースを埋める
+    background: '#fff',
+    padding: '8px 12px', // 上下のパディングを少し削り、横とのバランスを調整
+    borderRadius: '8px',
+    border: '1px solid rgba(55, 53, 47, 0.08)',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center' // 中身を垂直中央に
 };

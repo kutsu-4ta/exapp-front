@@ -52,7 +52,7 @@ export const cardStyle: React.CSSProperties = {
 export const cardLabelStyle: React.CSSProperties = {
   fontSize: font.sm,
   color: c.textSub,
-  fontWeight: 600,
+  fontWeight: 400,
   marginBottom: '6px',
   letterSpacing: '0.02em',
 }

@@ -182,16 +182,25 @@ export default function DashboardPage() {
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
+                <AIAgentWidget onGetAdvice={fetchAIAdvice}/>
+
                 {/* 統計とAIエージェントの行 */}
                 <div style={statRowContainer}>
                     <StatCard
-                        label="Monthly Total (Actual)"
-                        value={formatHours(stats?.thisMonthMinutes ?? 0)}
-                        sub={`${stats?.thisMonthDays ?? 0} days active`}
+                        label="All Total"
+                        value={formatHours(stats?.allTotalMinutes ?? 0)}
+                        sub={`${stats?.allTotalDays ?? 0}d Active`}
                     />
-                    <div style={aiWidgetWrapper}>
-                        <AIAgentWidget onGetAdvice={fetchAIAdvice}/>
-                    </div>
+                    <StatCard
+                        label="Monthly"
+                        value={formatHours(stats?.thisMonthMinutes ?? 0)}
+                        sub={`${stats?.thisMonthDays ?? 0}d Active`}
+                    />
+                    <StatCard
+                        label="CurrentStreak"
+                        value={`${stats?.currentStreak ?? 0}d`}
+                        sub={`${stats?.thisWeekTotalMinutes ?? 0}h`}
+                    />
                 </div>
 
                 {/* バーンダウンチャート */}
@@ -403,20 +412,8 @@ const ctaLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, margi
 const ctaValue: React.CSSProperties = { fontSize: '18px', fontWeight: 700 }
 const statRowContainer: React.CSSProperties = {
     display: 'flex',
-    gap: '12px', // 密度を高めるために狭める
-    alignItems: 'stretch', // 高さを揃えて、並んだ時のデコボコを解消
+    gap: '12px',
+    alignItems: 'stretch',
     marginBottom: '24px',
     flexWrap: 'wrap'
-};
-
-const aiWidgetWrapper: React.CSSProperties = {
-    flex: '1 1 280px', // 最小幅を確保しつつ、空きスペースを埋める
-    background: '#fff',
-    padding: '8px 12px', // 上下のパディングを少し削り、横とのバランスを調整
-    borderRadius: '8px',
-    border: '1px solid rgba(55, 53, 47, 0.08)',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center' // 中身を垂直中央に
 };
