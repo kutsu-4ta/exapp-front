@@ -43,7 +43,6 @@ export default function DailyLogsPage() {
         (async () => {
             try {
                 const data = await fetchDailyLogs()
-                // 日付の降順（新しい順）で初期ソート
                 setLogs(data.sort((a, b) => b.date.localeCompare(a.date)))
             } catch (err) {
                 console.error(err)
@@ -54,10 +53,17 @@ export default function DailyLogsPage() {
     }, [])
 
     const handleDateSelect = async (date: string) => {
-        if (!date) return
+        // スマホの不完全な入力（年だけ選んだ状態など）をガード
+        if (!date || date.length < 10) return
+
         const exists = logs.find(log => log.date === date)
         if (!exists) {
-            try { await createDailyLog(date) } catch (err) { console.error(err) }
+            try {
+                await createDailyLog(date)
+            } catch (err) {
+                console.error(err)
+                return
+            }
         }
         navigate(`/workspace/${date}`)
     }
@@ -126,16 +132,15 @@ export default function DailyLogsPage() {
                                     ))}
                                 </select>
                             ) : (
-                                /* リスト画面の時だけカレンダーを表示 */
                                 <div style={toolbar}>
-                                    <label style={calendarLabel}>
-                                        <span style={{ fontSize: '18px', cursor: 'pointer' }}>📅</span>
+                                    <div style={calendarWrapper}>
+                                        <span style={calendarIcon}>📅</span>
                                         <input
                                             type="date"
-                                            style={hiddenDateInput}
+                                            style={nativeDateInput}
                                             onChange={(e) => handleDateSelect(e.target.value)}
                                         />
-                                    </label>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -219,11 +224,14 @@ const monthSelect: React.CSSProperties = {
     fontSize: '14px', fontWeight: 600, color: '#37352f', backgroundColor: '#fff', cursor: 'pointer', outline: 'none'
 }
 const toolbar: React.CSSProperties = { display: 'flex', alignItems: 'center' }
-const calendarLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', padding: '6px', borderRadius: '4px', cursor: 'pointer' }
-const hiddenDateInput: React.CSSProperties = { position: 'absolute', opacity: 0, width: '24px', cursor: 'pointer' }
+
+// スマホ実機対応のスタイル
+const calendarWrapper: React.CSSProperties = { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', cursor: 'pointer' }
+const calendarIcon: React.CSSProperties = { fontSize: '20px', pointerEvents: 'none', zIndex: 1 }
+const nativeDateInput: React.CSSProperties = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2, appearance: 'none', WebkitAppearance: 'none' }
 
 const scrollContainer: React.CSSProperties = {
-    height: 'calc(100vh - 250px)', // 余白を調整してスクロール領域を広く確保
+    height: 'calc(100vh - 250px)',
     overflowY: 'auto',
     border: '1px solid rgba(55, 53, 47, 0.06)',
     borderRadius: '8px',
