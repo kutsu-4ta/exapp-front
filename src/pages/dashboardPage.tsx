@@ -139,7 +139,7 @@ export default function DashboardPage() {
     return (
         <div style={pageWrapper}>
             <div style={content}>
-                <StopWatchWidget />
+                {/*<StopWatchWidget />*/}
 
                 <Link to={`/workspace/${todayString()}`} style={mainActionCard}>
                     <div style={mainActionBody}>
