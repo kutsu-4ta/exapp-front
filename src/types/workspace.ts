@@ -102,20 +102,20 @@ export type Proficiency = (typeof PROFICIENCY_VALUES)[number]
 export const FAILURE_TYPE_VALUES = ['定義ミス', '解法ミス', '計算ミス'] as const
 export type FailureType = (typeof FAILURE_TYPE_VALUES)[number]
 
-// export type Problem = {
-//   id: number
-//   subject: string
-//   material: string
-//   subCategoryId: number | null
-//   questionRef: string
-//   note: string | null
-//   proficiency: Proficiency
-//   failureTypes: FailureType[]
-//   isGoodQuestion: boolean
-//   solvedAt: string // YYYY-MM-DD
-//   createdAt: string
-//   updatedAt: string
-// }
+export type Problem = {
+  id: number
+  subject: string
+  materialId: string
+  subCategoryId: number | null
+  questionRef: string
+  note: string | null
+  proficiency: Proficiency
+  failureTypes: FailureType[]
+  isGoodQuestion: boolean
+  solvedAt: string // YYYY-MM-DD
+  createdAt: string
+  updatedAt: string
+}
 
 export type AnalysisResponse = {
   subject_name: string
@@ -136,7 +136,20 @@ export type ChartDataPoint = {
   range: [number, number]
 }
 
-export type ProblemInput = Omit<Problem, 'id' | 'createdAt' | 'updatedAt'>
+export type ProblemInput = {
+  subject: string
+  subCategoryId: number | null
+
+  materialId: string | null
+  materialName: string | null
+
+  questionRef: string
+  note: string | null
+  proficiency: string
+  failureTypes: string[]
+  isGoodQuestion: boolean
+  solvedAt: string
+}
 
 // ── Dashboard stats ──────────────────────────────────────────────────────────
 

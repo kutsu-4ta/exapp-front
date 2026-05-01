@@ -63,18 +63,23 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [] }: Props
             // API呼び出し（戻り値は保存済みモデルではなく解析データの配列）
             const result: AnalysisResponse = await analyzeImage(converted)
 
+            const subCategory = subCategories.find(
+                (s) => s.name === result.sub_category_name
+            )
+
             // ProblemInput 形式にマッピング
             const input: ProblemInput = {
-                subject:      result.subject_name ?? '',
-                subCategory:    result.sub_category_name ?? '',
-                questionRef:    result.question_ref ?? '',
-                note:           result.note ?? '',
-                proficiency:    result.proficiency as any,
-                failureTypes:   result.failure_types as any[],
+                subject: result.subject_name ?? '',
+                subCategoryId: subCategory?.id ?? null,
+                questionRef: result.question_ref ?? '',
+                note: result.note ?? '',
+                proficiency: result.proficiency as any,
+                failureTypes: result.failure_types as any[],
                 isGoodQuestion: result.is_good_question,
-                solvedAt:       result.solved_at,
+                solvedAt: result.solved_at,
                 // 以下、解析に含まれないものは初期値をセット
-                materialId:     undefined,
+                materialName: '',
+                materialId: null,
             }
 
             setPrefill(input)

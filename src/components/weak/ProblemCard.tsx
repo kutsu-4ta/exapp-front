@@ -25,7 +25,8 @@ export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }:
       <ProblemForm
         initial={{
           subject: problem.subject,
-          material: problem.material,
+          materialId: null,
+          materialName: problem.materialId,
           subCategoryId: problem.subCategoryId,
           questionRef: problem.questionRef,
           note: problem.note,
@@ -95,8 +96,8 @@ export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }:
 
       {/* Material + solvedAt + actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {problem.material && (
-          <span style={{ fontSize: '0.75rem', color: '#b5a99a' }}>{problem.material}</span>
+        {problem.materialId && (
+          <span style={{ fontSize: '0.75rem', color: '#b5a99a' }}>{problem.materialId}</span>
         )}
         <span style={{ fontSize: '0.75rem', color: '#b5a99a', marginLeft: 'auto' }}>
           {problem.solvedAt.replace(/-/g, '/')}

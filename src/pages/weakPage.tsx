@@ -1,4 +1,5 @@
 import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from "../types/workspace";
+import type { Problem } from "../types/workspace";
 import type {FailureType, ProblemInput, Proficiency, SubCategory} from "../types/workspace";
 import { useSettingsStore } from '../lib/store/settings';
 import {ProblemCard} from "../components/weak/ProblemCard";

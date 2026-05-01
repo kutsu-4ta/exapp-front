@@ -60,7 +60,7 @@ export default function ProblemDetailPage() {
                 <div style={metaRow}>
                     <span style={subjectTag}>{problem.subject}</span>
                     {subCategoryName && <span style={subCatTag}>{subCategoryName}</span>}
-                    {problem.material && <span style={materialTag}>{problem.material}</span>}
+                    {problem.materialId && <span style={materialTag}>{problem.materialId}</span>}
                 </div>
 
                 {/* 問題番号 */}

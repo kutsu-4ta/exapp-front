@@ -22,7 +22,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
   const materials = useSettingsStore((s) => s.materials)
 
   const [subject, setSubject] = useState(initial?.subject ?? '')
-  const [material, setMaterial] = useState(initial?.material ?? '')
+  const [material, setMaterial] = useState(initial?.materialName ?? '')
   const [subCategoryName, setSubCategoryName] = useState<string>(
     initial?.subCategoryId
       ? subCategories.find((sc) => sc.id === initial.subCategoryId)?.name ?? ''
@@ -30,8 +30,8 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
   )
   const [questionRef, setQuestionRef] = useState(initial?.questionRef ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
-  const [proficiency, setProficiency] = useState<Proficiency>(initial?.proficiency ?? '×')
-  const [failureTypes, setFailureTypes] = useState<FailureType[]>(initial?.failureTypes ?? [])
+  const [proficiency, setProficiency] = useState<Proficiency>((initial?.proficiency as Proficiency) ?? '×')
+  const [failureTypes, setFailureTypes] = useState<FailureType[]>((initial?.failureTypes as FailureType[]) ?? [])
   const [isGoodQuestion, setIsGoodQuestion] = useState(initial?.isGoodQuestion ?? false)
   const [solvedAt, setSolvedAt] = useState(initial?.solvedAt ?? todayString())
   const [loading, setLoading] = useState(false)
@@ -54,7 +54,8 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
     try {
       await onSubmit({
         subject: subject.trim(),
-        material: material.trim(),
+        materialId: null,
+        materialName: material.trim() || null,
         subCategoryId: subCategories.find(
           (sc) => sc.subject === subject.trim() && sc.name === subCategoryName.trim()
         )?.id ?? null,

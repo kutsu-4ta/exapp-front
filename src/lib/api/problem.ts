@@ -1,7 +1,7 @@
 /**
  * ── Problems (苦手問題管理) ──────────────────────────────────────────────────
  */ import { apiFetch, apiUpload } from '../client'
-import type { Problem, ProblemInput } from '../../types/workspace'
+import type {AnalysisResponse, Problem, ProblemInput} from '../../types/workspace'
 
 
 // GET /api/problems
@@ -45,7 +45,7 @@ export async function fetchProblem(id: number): Promise<Problem> {
 }
 
 // POST /api/ai/analysis — multipart/form-data で画像を送信し、解析済み Problem を返す
-export async function analyzeImage(image: File): Promise<Problem> {
+export async function analyzeImage(image: File): Promise<AnalysisResponse> {
   const form = new FormData()
   form.append('image', image)
   const res = await apiUpload('/api/ai/analysis', form)
