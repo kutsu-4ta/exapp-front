@@ -1,6 +1,6 @@
 import { useAuthStore } from './store/auth'
 
-const BASE_URL = import.meta.env.VITE_BACKEND_ROOT || ''
+const BASE_URL = import.meta.env.DEV ? '' : import.meta.env.VITE_BACKEND_ROOT
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     const token = useAuthStore.getState().token

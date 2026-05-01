@@ -15,7 +15,7 @@ export default defineConfig(() => {
       port: 3000,
       proxy: {
         '/api': {
-          target: "http://localhost:8000", // loadEnvで取得した変数を使用
+          target: 'http://localhost:8000',
           changeOrigin: true,
         },
       },
