@@ -1,3 +1,5 @@
+import {apiFetch} from "@/lib/client.ts";
+
 export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 
 export type AlertSettings = {
@@ -138,4 +140,66 @@ export type DashboardStats = {
   subjectMinutes: { subject: string; minutes: number }[]
   lastTouchedBySubject: { subject: string; lastdate: string | null }[]
   dailyMinutes: { date: string; minutes: number }[]
+}
+
+// ── User Profile types ──────────────────────────────────────────────────────
+
+export type UserProfile = {
+  nickname: string
+  occupation: string
+  goal: string
+  weakAreas: string
+  strongAreas: string
+  interests: string
+  geminiToken?: string // セキュリティ上、取得時は非表示またはマスキングされる想定
+  createdAt?: string
+  updatedAt?: string
+}
+
+/**
+ * プロフィール更新用の入力型
+ * 全てのフィールドを任意（Partial）にすることで、特定の項目のみの更新にも対応可能にします。
+ */
+export type UserProfileInput = Partial<UserProfile>
+
+/**
+ * ユーザープロフィールを更新するAPI関数
+ * @param input 更新データ
+ * @returns 更新後のプロフィール情報
+ */
+export async function updateUserProfile(input: UserProfileInput): Promise<UserProfile> {
+  const response = await apiFetch('/api/profile', {
+    method: 'PUT', // または PUT。LaravelのRoute定義に合わせて調整
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      // 必要に応じてAuthorizationヘッダを追加
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'プロフィールの更新に失敗しました');
+  }
+
+  return response.json();
+}
+
+/**
+ * ユーザープロフィールを取得するAPI関数
+ */
+export async function fetchUserProfile(): Promise<UserProfile> {
+  const response = await apiFetch('/api/profile', {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('プロフィールの取得に失敗しました');
+  }
+
+  return response.json();
 }

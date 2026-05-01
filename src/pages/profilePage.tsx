@@ -5,7 +5,8 @@ import { useSettingsStore } from '../lib/store/settings'
 import { logout as apiLogout } from '../lib/api/authenticate'
 import { renameMaterial, deleteMaterial } from '../lib/api/materials'
 import { updateAlertSettings } from '../lib/api/alertSettings'
-import {backBtn, c, font} from '../styles/notion'
+import { backBtn, c, font } from '../styles/notion'
+import {fetchUserProfile, updateUserProfile} from "@/types/workspace.ts";
 
 export default function ProfilePage() {
     const navigate = useNavigate()
@@ -13,14 +14,25 @@ export default function ProfilePage() {
     const clearAuth = useAuthStore((state) => state.logout)
 
     const loadSubjects = useSettingsStore((s) => s.loadSubjects)
-
     const materials = useSettingsStore((s) => s.materials)
     const setMaterials = useSettingsStore((s) => s.setMaterials)
     const loadMaterials = useSettingsStore((s) => s.loadMaterials)
-
     const alertSettings = useSettingsStore((s) => s.alertSettings)
     const setAlertSettings = useSettingsStore((s) => s.setAlertSettings)
     const loadAlertSettings = useSettingsStore((s) => s.loadAlertSettings)
+
+    // ── User Profile settings ────────────────────────────────────────────────
+    const [nickname, setNickname] = useState(user?.nickname || '')
+    const [occupation, setOccupation] = useState(user?.occupation || '')
+    const [goal, setGoal] = useState(user?.goal || '')
+    const [weakAreas, setWeakAreas] = useState(user?.weakAreas || '')
+    const [strongAreas, setStrongAreas] = useState(user?.strongAreas || '')
+    const [interests, setInterests] = useState(user?.interests || '')
+    const [geminiToken, setGeminiToken] = useState('') // セキュリティのため入力用は空で管理
+
+    const [profileLoading, setProfileLoading] = useState(false)
+    const [profileSaved, setProfileSaved] = useState(false)
+    const [profileError, setProfileError] = useState<string | null>(null)
 
     // ── Material editing ─────────────────────────────────────────────────────
     const [editingMaterial, setEditingMaterial] = useState<string | null>(null)
@@ -52,10 +64,64 @@ export default function ProfilePage() {
         if (editingMaterial !== null) materialEditRef.current?.focus()
     }, [editingMaterial])
 
+    // プロフィール読み込み用のEffectを追加
+    useEffect(() => {
+        const loadProfile = async () => {
+            setProfileLoading(true);
+            try {
+                const data = await fetchUserProfile();
+                // 取得したデータを各Stateにセット
+                if (data) {
+                    setNickname(data.nickname || '');
+                    setOccupation(data.occupation || '');
+                    setGoal(data.goal || '');
+                    setWeakAreas(data.weakAreas || '');
+                    setStrongAreas(data.strongAreas || '');
+                    setInterests(data.interests || '');
+                    // geminiTokenはセキュリティ上、入力欄は空のまま（placeholderで登録済みか判定）
+                }
+            } catch (e) {
+                setProfileError(e instanceof Error ? e.message : '読み込みに失敗しました');
+            } finally {
+                setProfileLoading(false);
+            }
+        };
+
+        loadProfile();
+        loadSubjects();
+        loadMaterials();
+        loadAlertSettings();
+    }, []);
+
     const handleLogout = async () => {
         await apiLogout().catch(() => {})
         clearAuth()
         navigate('/login')
+    }
+
+    // ── Profile handlers ─────────────────────────────────────────────────────
+    const handleProfileSave = async () => {
+        setProfileLoading(true)
+        setProfileError(null)
+        setProfileSaved(false)
+        try {
+            await updateUserProfile({
+                nickname,
+                occupation,
+                goal,
+                weakAreas,
+                strongAreas,
+                interests,
+                geminiToken: geminiToken.trim() || undefined
+            })
+            setProfileSaved(true)
+            setGeminiToken('') // 保存後はトークン入力をクリア
+            setTimeout(() => setProfileSaved(false), 2000)
+        } catch (e) {
+            setProfileError(e instanceof Error ? e.message : '保存に失敗しました')
+        } finally {
+            setProfileLoading(false)
+        }
     }
 
     // ── Material handlers ────────────────────────────────────────────────────
@@ -118,7 +184,7 @@ export default function ProfilePage() {
 
     if (!user) return null
 
-    const initial = user.name?.charAt(0).toUpperCase() ?? '?'
+    const initial = nickname?.charAt(0).toUpperCase() || user.name?.charAt(0).toUpperCase() || '?'
 
     return (
         <div style={pageWrapper}>
@@ -135,15 +201,73 @@ export default function ProfilePage() {
                     <div style={avatar}>{initial}</div>
                 </div>
 
+                {/* 基本情報 */}
                 <div style={card}>
                     <div style={row}>
-                        <span style={label}>名前</span>
-                        <span style={value}>{user.name}</span>
+                        <span style={label}>名前 / メールアドレス</span>
+                        <span style={value}>{user.name} ({user.email})</span>
                     </div>
-                    <div style={divider} />
-                    <div style={row}>
-                        <span style={label}>メールアドレス</span>
-                        <span style={value}>{user.email}</span>
+                </div>
+
+                {/* AI・パーソナライズ設定 */}
+                <div style={sectionHeadingWrap}>
+                    <span style={sectionHeading}>AI・パーソナライズ設定</span>
+                </div>
+                <div style={settingsBlock}>
+                    <p style={settingsNote}>ここで入力した内容は、AIエージェントのアドバイス内容を最適化するために使用されます。</p>
+
+                    {profileError && <p style={errorText}>{profileError}</p>}
+
+                    <div style={formStack}>
+                        <div style={field}>
+                            <label style={inputLabel}>ニックネーム</label>
+                            <input style={textInput} value={nickname} onChange={e => setNickname(e.target.value)} placeholder="例：タロウ" />
+                        </div>
+                        <div style={field}>
+                            <label style={inputLabel}>現在の職業</label>
+                            <input style={textInput} value={occupation} onChange={e => setOccupation(e.target.value)} placeholder="例：ITエンジニア、製造業など" />
+                        </div>
+                        <div style={field}>
+                            <label style={inputLabel}>試験の合格目標・ミッション</label>
+                            <textarea style={textArea} value={goal} onChange={e => setGoal(e.target.value)} placeholder="例：2026年の一発合格を目指しています。" />
+                        </div>
+                        <div style={fieldRow}>
+                            <div style={{ flex: 1 }}>
+                                <label style={inputLabel}>得意な領域</label>
+                                <textarea style={{ ...textArea, height: '80px' }} value={strongAreas} onChange={e => setStrongAreas(e.target.value)} placeholder="マーケ、財務" />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label style={inputLabel}>苦手な領域</label>
+                                <textarea style={{ ...textArea, height: '80px' }} value={weakAreas} onChange={e => setWeakAreas(e.target.value)} placeholder="法務、経済" />
+                            </div>
+                        </div>
+                        <div style={field}>
+                            <label style={inputLabel}>興味・趣味</label>
+                            <input style={textInput} value={interests} onChange={e => setInterests(e.target.value)} placeholder="例：物理学、哲学、サッカー" />
+                        </div>
+
+                        <div style={divider} />
+
+                        <div style={field}>
+                            <label style={inputLabel}>
+                                Gemini APIキー
+                                <span style={{ fontWeight: 400, marginLeft: '6px', opacity: 0.6 }}>(任意)</span>
+                            </label>
+                            <input
+                                type="password"
+                                style={textInput}
+                                value={geminiToken}
+                                onChange={e => setGeminiToken(e.target.value)}
+                                placeholder={user.geminiTokenSet ? "●●●●●●●● (登録済み)" : "AIアドバイス用のキーを入力"}
+                            />
+                        </div>
+
+                        <div style={alertSaveRow}>
+                            <button onClick={handleProfileSave} disabled={profileLoading} style={saveBtn}>
+                                {profileLoading ? '保存中...' : 'プロフィールを更新'}
+                            </button>
+                            {profileSaved && <span style={savedText}>保存しました</span>}
+                        </div>
                     </div>
                 </div>
 
@@ -266,7 +390,7 @@ const avatar: React.CSSProperties = {
 }
 const card: React.CSSProperties = { border: `1px solid rgba(55, 53, 47, 0.09)`, borderRadius: '8px', overflow: 'hidden', marginBottom: '32px' }
 const row: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', padding: '16px 20px' }
-const divider: React.CSSProperties = { height: '1px', backgroundColor: 'rgba(55, 53, 47, 0.06)' }
+const divider: React.CSSProperties = { height: '1px', backgroundColor: 'rgba(55, 53, 47, 0.06)', margin: '8px 0' }
 const label: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: 'rgba(55, 53, 47, 0.3)', letterSpacing: '0.06em', textTransform: 'uppercase' }
 const value: React.CSSProperties = { fontSize: font.base, color: c.text, fontWeight: 500 }
 
@@ -275,14 +399,30 @@ const sectionHeading: React.CSSProperties = { fontSize: '11px', fontWeight: 700,
 
 const settingsBlock: React.CSSProperties = {
     border: `1px solid rgba(55, 53, 47, 0.09)`, borderRadius: '8px',
-    padding: '16px 20px', marginBottom: '16px',
+    padding: '16px 20px', marginBottom: '16px', backgroundColor: '#fff'
 }
 const settingsSubLabel: React.CSSProperties = { fontSize: '13px', fontWeight: 700, marginBottom: '6px', color: c.text }
 const settingsNote: React.CSSProperties = { fontSize: '11px', color: 'rgba(55, 53, 47, 0.45)', marginBottom: '16px', lineHeight: 1.6 }
 const errorText: React.CSSProperties = { fontSize: '12px', color: c.red, marginBottom: '12px' }
 
-const itemList: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
+const formStack: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '16px' }
+const field: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' }
+const fieldRow: React.CSSProperties = { display: 'flex', gap: '12px' }
+const inputLabel: React.CSSProperties = { fontSize: '12px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.6)' }
 
+const textInput: React.CSSProperties = {
+    border: `1px solid rgba(55, 53, 47, 0.12)`, borderRadius: '4px',
+    padding: '8px 10px', fontSize: font.base, color: c.text, outline: 'none',
+    backgroundColor: 'rgba(55, 53, 47, 0.02)',
+}
+const textArea: React.CSSProperties = {
+    border: `1px solid rgba(55, 53, 47, 0.12)`, borderRadius: '4px',
+    padding: '8px 10px', fontSize: font.base, color: c.text, outline: 'none',
+    backgroundColor: 'rgba(55, 53, 47, 0.02)', resize: 'none', height: '100px',
+    fontFamily: 'inherit'
+}
+
+const itemList: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const itemRow: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '10px 0',
@@ -312,8 +452,8 @@ const deleteConfirmText: React.CSSProperties = {
 }
 
 const saveBtn: React.CSSProperties = {
-    padding: '4px 10px', backgroundColor: '#2383e2', color: '#fff',
-    border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+    padding: '8px 16px', backgroundColor: '#2383e2', color: '#fff',
+    border: 'none', borderRadius: '4px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
 }
 const cancelBtn: React.CSSProperties = {
     padding: '4px 10px', backgroundColor: 'transparent',

@@ -374,7 +374,6 @@ const pageWrapper: React.CSSProperties = {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif',
 }
 const content: React.CSSProperties = { maxWidth: '800px', margin: '0 auto', padding: '40px 20px 120px' }
-const statRow: React.CSSProperties = { marginBottom: '40px' }
 const section: React.CSSProperties = { marginBottom: '48px' }
 const goalEditorInputRow: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: '6px',
@@ -420,10 +419,4 @@ const aiWidgetWrapper: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center' // 中身を垂直中央に
-};
-
-// StatCardをラップして制御する場合
-const statCardWrapper: React.CSSProperties = {
-    flex: '1 1 140px', // 統計カードは少し小さめのベース幅に
-    minWidth: '140px'
 };
