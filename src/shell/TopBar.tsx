@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../lib/store/auth'
 import { useTimer } from '../context/TimerContext'
@@ -15,7 +15,14 @@ export function TopBar() {
     const user = useAuthStore((state) => state.user)
 
     const [dialogOpen, setDialogOpen] = useState(false)
+    const [isDragging, setIsDragging] = useState(false)
     const touchStartY = useRef<number>(0)
+
+    // ドラッグ中はページスクロールを無効化する
+    useEffect(() => {
+        document.body.style.overflow = isDragging ? 'hidden' : ''
+        return () => { document.body.style.overflow = '' }
+    }, [isDragging])
 
     const isAuthPage = ['/login', '/register', '/terms', '/privacy'].includes(pathname)
     if (!token || isAuthPage) return null
@@ -32,9 +39,11 @@ export function TopBar() {
 
     const handleDialogTouchStart = (e: React.TouchEvent) => {
         touchStartY.current = e.touches[0].clientY
+        setIsDragging(true)
     }
 
     const handleDialogTouchEnd = (e: React.TouchEvent) => {
+        setIsDragging(false)
         const deltaY = touchStartY.current - e.changedTouches[0].clientY
         // 上方向に 60px 以上スワイプで閉じる
         if (deltaY > 60) setDialogOpen(false)
@@ -161,6 +170,7 @@ export function TopBar() {
                     // 隠れているときはポインターイベントを無効化
                     pointerEvents: dialogOpen ? 'auto' : 'none',
                     paddingTop: '4px',
+                    touchAction: 'none',
                 }}
             >
                 <StopWatchWidget />
@@ -185,7 +195,6 @@ export function TopBar() {
                         letterSpacing: '0.05em',
                         userSelect: 'none',
                     }}>
-                        上にスワイプで閉じる
                     </span>
                 </div>
             </div>
