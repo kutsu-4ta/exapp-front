@@ -16,7 +16,6 @@ import {useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {fetchSubCategories} from "../lib/api/subcategory";
 import type {DailyLog, SubCategory} from "../types/workspace";
 import {Suspense, useCallback, useEffect, useState} from "react";
-import {backBtn} from "@/styles/notion.ts";
 import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget.tsx";
 
 export default function WorkspaceDatePage() {
@@ -36,6 +35,8 @@ function WorkspaceDateContent() {
     const initialMinutes = searchParams.get('minutes')
         ? parseInt(searchParams.get('minutes')!, 10)
         : undefined
+    const initialSubject = searchParams.get('subject') ?? undefined
+    const initialMaterial = searchParams.get('material') ?? undefined
 
     const [log, setLog] = useState<DailyLog | null>(null)
     const [subCategories, setSubCategories] = useState<SubCategory[]>([])
@@ -166,6 +167,8 @@ function WorkspaceDateContent() {
                             sessions={log.studySessions}
                             readonly={log.isCompleted}
                             initialMinutes={initialMinutes}
+                            initialSubject={initialSubject}
+                            initialMaterial={initialMaterial}
                             subCategories={subCategories}
                             onAdd={handleAddSession}
                             onUpdate={handleUpdateSession}
@@ -240,7 +243,13 @@ function WorkspaceDateContent() {
     )
 }
 
-// Styles
+const backBtn: React.CSSProperties = {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: '13px', color: 'rgba(55, 53, 47, 0.45)', fontWeight: 600,
+    padding: '4px 8px', marginLeft: '-8px', marginBottom: '24px',
+    display: 'flex', alignItems: 'center', borderRadius: '4px',
+}
+
 const pageWrapper: React.CSSProperties = {
     backgroundColor: '#fff',
     minHeight: '100vh',

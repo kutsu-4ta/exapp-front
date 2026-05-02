@@ -9,6 +9,7 @@ type Props = {
     onSubmit: (input: ProblemInput) => Promise<void>
     onClose: () => void
     subCategories?: SubCategory[]
+    initial?: Partial<ProblemInput>
 }
 
 // ── 進捗メッセージ（2秒ごとにローテーション）─────────────────────────────────
@@ -102,11 +103,27 @@ function redrawAsJpeg(file: Blob): Promise<Blob> {
     })
 }
 
-export function AddProblemModal({ onSubmit, onClose, subCategories = [] }: Props) {
+export function AddProblemModal({ onSubmit, onClose, subCategories = [], initial }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const [prefill, setPrefill] = useState<ProblemInput | undefined>(undefined)
+    const [prefill, setPrefill] = useState<ProblemInput | undefined>(() =>
+        initial
+            ? {
+                subject: initial.subject ?? '',
+                subCategoryId: initial.subCategoryId ?? null,
+                materialId: initial.materialId ?? null,
+                materialName: initial.materialName ?? null,
+                questionRef: initial.questionRef ?? '',
+                note: initial.note ?? null,
+                proficiency: initial.proficiency ?? '×',
+                failureTypes: initial.failureTypes ?? [],
+                isGoodQuestion: initial.isGoodQuestion ?? false,
+                solvedAt: initial.solvedAt ?? new Date().toISOString().slice(0, 10),
+              }
+            : undefined
+    )
     const [prefillKey, setPrefillKey] = useState(0)
+    const [aiPrefilled, setAiPrefilled] = useState(false)
 
     const [analyzing, setAnalyzing] = useState(false)
     const [loadingMsgIdx, setLoadingMsgIdx] = useState(0)
@@ -153,6 +170,7 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [] }: Props
 
             setPrefill(input)
             setPrefillKey((k) => k + 1)
+            setAiPrefilled(true)
         } catch (err) {
             console.error('Analysis failed:', err)
             setAnalysisError('AI解析に失敗しました。画像が不鮮明か、サーバーが混み合っている可能性があります。')
@@ -209,7 +227,7 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [] }: Props
                         </div>
                     )}
 
-                    {prefill && !analyzing && (
+                    {aiPrefilled && prefill && !analyzing && (
                         <div style={aiBanner}>
                             ✦ AI解析の結果を反映しました。内容を確認して保存してください。
                         </div>

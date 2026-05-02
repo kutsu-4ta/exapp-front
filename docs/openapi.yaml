@@ -134,6 +134,35 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
+    PracticeQuestionInput:
+      type: object
+      required: [index, judgement, elapsedMs]
+      properties:
+        index:      { type: integer, minimum: 1, description: '1始まりの問題番号' }
+        judgement:  { type: string, enum: ['○', '△', '×'] }
+        elapsedMs:  { type: integer, minimum: 0, description: 'この問題に費やしたミリ秒' }
+        note:       { type: string, nullable: true }
+
+    PracticeSessionInput:
+      type: object
+      required: [subject, date, questions, totalElapsedMs]
+      properties:
+        subject:        { $ref: '#/components/schemas/Subject' }
+        date:           { type: string, format: date }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/PracticeQuestionInput' }
+        totalElapsedMs: { type: integer, minimum: 0 }
+
+    PracticeSessionResult:
+      type: object
+      required: [id, subject, date, totalMinutes]
+      properties:
+        id:           { type: integer }
+        subject:      { $ref: '#/components/schemas/Subject' }
+        date:         { type: string, format: date }
+        totalMinutes: { type: integer, description: '切り上げ後の分数（WorkspaceのStudySession作成に使用）' }
+
     StudySessionInput:
       type: object
       required: [timeSlot, minutes, subject, material]
@@ -1505,6 +1534,35 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '503':
           description: Gemini API 呼び出し失敗（クォータ超過など）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ── Practice sessions ────────────────────────────────────────────────────────
+
+  /practice/sessions:
+    post:
+      summary: 演習セッションを保存する
+      tags: [Practice]
+      description: |
+        一問一答演習の結果を保存する。
+        バックエンドは受け取った totalElapsedMs を分単位（切り上げ）に変換し、
+        該当日の DailyLog に StudySession を自動生成することを推奨する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PracticeSessionInput' }
+      responses:
+        '201':
+          description: 保存成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PracticeSessionResult' }
+        '401':
+          description: 未認証
+        '422':
+          description: バリデーションエラー
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

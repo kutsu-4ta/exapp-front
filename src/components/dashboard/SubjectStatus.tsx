@@ -20,7 +20,7 @@ export function SubjectStatus({ subjectTouched }: Props) {
                         <button
                             key={entry.subject}
                             className="flex items-center justify-between min-h-[44px] w-full px-1 py-2 border-b border-[var(--nt-border-xs)] cursor-pointer hover:bg-[var(--nt-hover)] active:bg-[var(--nt-pressed)] transition-colors rounded text-left bg-transparent"
-                            onClick={() => navigate(`/subjects/${encodeURIComponent(entry.subject)}`)}
+                            onClick={() => navigate(`/practice/${encodeURIComponent(entry.subject)}`)}
                         >
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                 <BookIcon />

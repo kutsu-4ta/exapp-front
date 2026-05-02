@@ -1,7 +1,7 @@
 
 
 // MEMO: 将来的にユーザーが定義できるようにする
-import {useEffect, useRef, useState} from "react";
+import {useRef, useState} from "react";
 import type {StudySession, StudySessionInput, SubCategory, TimeSlot} from "../../types/workspace";
 import {StudyBlockRow} from "./StudyBlockRow";
 
@@ -16,39 +16,45 @@ type Props = {
   date: string
   sessions: StudySession[]
   readonly: boolean
-  initialMinutes?: number // ストップウォッチからの引き継ぎ用
+  initialMinutes?: number
+  initialSubject?: string
+  initialMaterial?: string
   subCategories?: SubCategory[]
   onAdd: (input: StudySessionInput) => Promise<StudySession>
   onUpdate: (id: number, input: Omit<StudySessionInput, 'dailyLogDate'>) => Promise<void>
   onDelete: (id: number) => Promise<void>
 }
 
-type NewRow = { id: string; slot: TimeSlot; defaultMinutes?: number }
+type NewRow = { id: string; slot: TimeSlot; defaultMinutes?: number; defaultSubject?: string; defaultMaterial?: string }
 
-export function StudyBlockList({ date, sessions, readonly, initialMinutes, subCategories = [], onAdd, onUpdate, onDelete }: Props) {
+export function StudyBlockList({ date, sessions, readonly, initialMinutes, initialSubject, initialMaterial, subCategories = [], onAdd, onUpdate, onDelete }: Props) {
   const rowCounter = useRef(0)
 
-  const [expandedSlots, setExpandedSlots] = useState<Set<TimeSlot>>(
-      () => new Set(sessions.map((s) => s.timeSlot)),
-  )
-  const [newRows, setNewRows] = useState<NewRow[]>([])
+  const hasInitial = !readonly && (initialMinutes != null || !!initialSubject)
+
+  const [expandedSlots, setExpandedSlots] = useState<Set<TimeSlot>>(() => {
+    const set = new Set(sessions.map((s) => s.timeSlot))
+    if (hasInitial) set.add('night')
+    return set
+  })
+
+  const [newRows, setNewRows] = useState<NewRow[]>(() => {
+    if (hasInitial) {
+      rowCounter.current = 1
+      return [{
+        id: 'nr-night-0',
+        slot: 'night',
+        defaultMinutes: initialMinutes,
+        defaultSubject: initialSubject,
+        defaultMaterial: initialMaterial,
+      }]
+    }
+    return []
+  })
 
   function nextId(slot: TimeSlot): string {
     return `nr-${slot}-${++rowCounter.current}`
   }
-
-  // 初期投入（ストップウォッチからの遷移時）
-  useEffect(() => {
-    if (initialMinutes && !readonly) {
-      // 現在時刻等からスロット判定も可能だが、一旦「night」か最後に開いた場所に投入
-      const targetSlot: TimeSlot = 'night'
-      setExpandedSlots((prev) => new Set(prev).add(targetSlot))
-      setNewRows((prev) => [
-        ...prev,
-        { id: nextId(targetSlot), slot: targetSlot, defaultMinutes: initialMinutes },
-      ])
-    }
-  }, [initialMinutes, readonly])
 
   function toggleSlot(slot: TimeSlot) {
     const next = new Set(expandedSlots)
@@ -105,6 +111,8 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, subCa
                           <StudyBlockRow
                               key={row.id}
                               initialMinutes={row.defaultMinutes}
+                              initialSubject={row.defaultSubject}
+                              initialMaterial={row.defaultMaterial}
                               subCategories={subCategories}
                               onSave={async (currentId, input) => {
                                 if (currentId === null) {

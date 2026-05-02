@@ -7,13 +7,15 @@ type SaveInput = Omit<StudySessionInput, 'dailyLogDate' | 'timeSlot'>
 type Props = {
   session?: StudySession
   initialMinutes?: number
+  initialSubject?: string
+  initialMaterial?: string
   subCategories?: SubCategory[]
   onSave: (currentId: number | null, input: SaveInput) => Promise<number>
   onDelete: (currentId: number | null) => Promise<void>
   readonly?: boolean
 }
 
-export function StudyBlockRow({ session, initialMinutes, subCategories = [], onSave, onDelete, readonly }: Props) {
+export function StudyBlockRow({ session, initialMinutes, initialSubject, initialMaterial, subCategories = [], onSave, onDelete, readonly }: Props) {
   const uid = useId();
   const subjects = useSettingsStore((s) => s.subjects);
   const materials = useSettingsStore((s) => s.materials);
@@ -21,8 +23,8 @@ export function StudyBlockRow({ session, initialMinutes, subCategories = [], onS
   const savedIdRef = useRef<number | null>(session?.id ?? null);
 
   const [minutes, setMinutes] = useState<string>(String(session?.minutes ?? initialMinutes ?? ''));
-  const [subject, setSubject] = useState(session?.subject ?? '');
-  const [material, setMaterial] = useState(session?.material ?? '');
+  const [subject, setSubject] = useState(session?.subject ?? initialSubject ?? '');
+  const [material, setMaterial] = useState(session?.material ?? initialMaterial ?? '');
   const [subCategoryName, setSubCategoryName] = useState<string>(
       session?.subCategoryId
           ? subCategories.find((sc) => sc.id === session.subCategoryId)?.name ?? ''
