@@ -150,10 +150,6 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [], initial
             // API呼び出し（戻り値は保存済みモデルではなく解析データの配列）
             const result: AnalysisResponse = await analyzeImage(converted)
 
-            const subCategory = subCategories.find(
-                (s) => s.name === result.sub_category_name
-            )
-
             // ProblemInput 形式にマッピング
             const input: ProblemInput = {
                 subject: result.subject_name ?? '',
