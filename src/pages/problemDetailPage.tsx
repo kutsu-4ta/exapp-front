@@ -1,23 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Problem, SubCategory } from '../types/workspace'
+import type { Problem } from '../types/workspace'
 import { formatDate, daysAgo } from '../types/workspace'
 import { fetchProblem } from '../lib/api/problem'
-import { fetchSubCategories } from '../lib/api/subcategory'
 import { c, font } from '../styles/notion'
 
 export default function ProblemDetailPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const [problem, setProblem] = useState<Problem | null>(null)
-    const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         if (!id) return
-        Promise.all([fetchProblem(Number(id)), fetchSubCategories()])
-            .then(([p, sc]) => { setProblem(p); setSubCategories(sc) })
+        fetchProblem(Number(id))
+            .then((p) => setProblem(p))
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setLoading(false))
     }, [id])
@@ -29,9 +27,7 @@ export default function ProblemDetailPage() {
     if (loading) return <div style={loadingWrap}><p style={mutedText}>読み込み中...</p></div>
     if (error || !problem) return <div style={loadingWrap}><p style={errorText}>{error ?? '問題が見つかりませんでした'}</p></div>
 
-    const subCategoryName = problem.subCategoryId
-        ? subCategories.find((sc) => sc.id === problem.subCategoryId)?.name
-        : null
+    const subCategoryName = problem.subCategory
 
     const proficiencyColor: Record<string, string> = {
         '○': '#3a7a2a',
@@ -60,7 +56,7 @@ export default function ProblemDetailPage() {
                 <div style={metaRow}>
                     <span style={subjectTag}>{problem.subject}</span>
                     {subCategoryName && <span style={subCatTag}>{subCategoryName}</span>}
-                    {problem.materialId && <span style={materialTag}>{problem.materialId}</span>}
+                    {problem.material && <span style={materialTag}>{problem.material}</span>}
                 </div>
 
                 {/* 問題番号 */}
@@ -102,6 +98,16 @@ export default function ProblemDetailPage() {
                 {problem.isGoodQuestion && (
                     <div style={goodQuestionBadge}>
                         ★ 良問
+                    </div>
+                )}
+
+                {/* 敗因 */}
+                {problem.defeatReason && (
+                    <div style={section}>
+                        <p style={sectionLabel}>敗因</p>
+                        <div style={{ ...noteBox, color: c.red, borderColor: 'rgba(235,87,87,0.2)', background: 'rgba(235,87,87,0.03)' }}>
+                            {problem.defeatReason}
+                        </div>
                     </div>
                 )}
 

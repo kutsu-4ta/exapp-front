@@ -23,17 +23,14 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
 
   const [subject, setSubject] = useState(initial?.subject ?? '')
   const [material, setMaterial] = useState(initial?.materialName ?? '')
-  const [subCategoryName, setSubCategoryName] = useState<string>(
-    initial?.subCategoryId
-      ? subCategories.find((sc) => sc.id === initial.subCategoryId)?.name ?? ''
-      : ''
-  )
+  const [subCategoryName, setSubCategoryName] = useState<string>(initial?.subCategory ?? '')
   const [questionRef, setQuestionRef] = useState(initial?.questionRef ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
   const [proficiency, setProficiency] = useState<Proficiency>((initial?.proficiency as Proficiency) ?? '×')
   const [failureTypes, setFailureTypes] = useState<FailureType[]>((initial?.failureTypes as FailureType[]) ?? [])
   const [isGoodQuestion, setIsGoodQuestion] = useState(initial?.isGoodQuestion ?? false)
   const [solvedAt, setSolvedAt] = useState(initial?.solvedAt ?? todayString())
+  const [defeatReason, setDefeatReason] = useState(initial?.defeatReason ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -56,11 +53,10 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
         subject: subject.trim(),
         materialId: null,
         materialName: material.trim() || null,
-        subCategoryId: subCategories.find(
-          (sc) => sc.subject === subject.trim() && sc.name === subCategoryName.trim()
-        )?.id ?? null,
+        subCategory: subCategoryName.trim() || null,
         questionRef: questionRef.trim(),
         note: note.trim() || null,
+        defeatReason: defeatReason.trim() || null,
         proficiency,
         failureTypes,
         isGoodQuestion,
@@ -219,7 +215,18 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
           </button>
         </div>
 
-        {/* Row 6: note */}
+        {/* Row 6: defeat reason */}
+        <div style={field}>
+          <label style={labelStyle}>敗因（ひとこと）</label>
+          <input
+              value={defeatReason}
+              onChange={(e) => setDefeatReason(e.target.value)}
+              placeholder="例: 条文の読み違え、解法の選択ミス"
+              style={inp}
+          />
+        </div>
+
+        {/* Row 7: note */}
         <div style={field}>
           <label style={labelStyle}>分析・メモ</label>
           <textarea

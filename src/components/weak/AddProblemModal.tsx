@@ -110,11 +110,12 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [], initial
         initial
             ? {
                 subject: initial.subject ?? '',
-                subCategoryId: initial.subCategoryId ?? null,
-                materialId: initial.materialId ?? null,
+                materialId: null,
                 materialName: initial.materialName ?? null,
+                subCategory: initial.subCategory ?? null,
                 questionRef: initial.questionRef ?? '',
                 note: initial.note ?? null,
+                defeatReason: initial.defeatReason ?? null,
                 proficiency: initial.proficiency ?? '×',
                 failureTypes: initial.failureTypes ?? [],
                 isGoodQuestion: initial.isGoodQuestion ?? false,
@@ -156,16 +157,16 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [], initial
             // ProblemInput 形式にマッピング
             const input: ProblemInput = {
                 subject: result.subject_name ?? '',
-                subCategoryId: subCategory?.id ?? null,
+                materialId: null,
+                materialName: '',
+                subCategory: result.sub_category_name || null,
                 questionRef: result.question_ref ?? '',
                 note: result.note ?? '',
+                defeatReason: null,
                 proficiency: result.proficiency as any,
                 failureTypes: result.failure_types as any[],
                 isGoodQuestion: result.is_good_question,
                 solvedAt: result.solved_at,
-                // 以下、解析に含まれないものは初期値をセット
-                materialName: '',
-                materialId: null,
             }
 
             setPrefill(input)

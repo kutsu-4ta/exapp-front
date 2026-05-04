@@ -105,10 +105,11 @@ export type FailureType = (typeof FAILURE_TYPE_VALUES)[number]
 export type Problem = {
   id: number
   subject: string
-  materialId: string
-  subCategoryId: number | null
+  material: string
+  subCategory: string | null
   questionRef: string
   note: string | null
+  defeatReason: string | null
   proficiency: Proficiency
   failureTypes: FailureType[]
   isGoodQuestion: boolean
@@ -138,13 +139,12 @@ export type ChartDataPoint = {
 
 export type ProblemInput = {
   subject: string
-  subCategoryId: number | null
-
-  materialId: string | null
+  materialId: number | null
   materialName: string | null
-
+  subCategory: string | null
   questionRef: string
   note: string | null
+  defeatReason: string | null
   proficiency: string
   failureTypes: string[]
   isGoodQuestion: boolean

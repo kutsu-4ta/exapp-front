@@ -15,8 +15,9 @@ import {DashboardChart} from "../components/dashboard/DashboardChart";
 import {FailureAnalysisSection} from "../components/dashboard/FailureAnalysisSection";
 import {AlertWidget} from "../components/dashboard/AlertWidget";
 import {StatCard} from "../components/dashboard/StatCard";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import {AIAgentWidget} from "@/components/aiAgent/aiAgentWidget.tsx";
+import { loadAllDrafts, type PracticeDraft } from "@/lib/practiceDraft.ts";
 
 function buildChartData(
     year: number,
@@ -60,7 +61,11 @@ function buildChartData(
 
 export default function DashboardPage() {
     const subjects = useSettingsStore((s) => s.subjects)
+    const navigate = useNavigate()
     const now = new Date()
+    const [practiceDrafts] = useState<Array<{ subject: string; draft: PracticeDraft }>>(
+        () => loadAllDrafts()
+    )
 
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [problems, setProblems] = useState<Problem[]>([])
@@ -186,6 +191,35 @@ export default function DashboardPage() {
                         </svg>
                     </div>
                 </Link>
+
+                {practiceDrafts.length > 0 && (
+                    <div className="mb-4 p-3.5 rounded-xl border border-[var(--nt-blue-border)] bg-[var(--nt-blue-bg)]">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-n-blue tracking-widest uppercase mb-2.5">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            演習の続きがあります
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            {practiceDrafts.map(({ subject, draft }) => (
+                                <div key={subject} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-white border border-[var(--nt-blue-border)]">
+                                    <div className="flex flex-col gap-0.5 min-w-0">
+                                        <span className="text-[14px] font-bold text-n-text truncate">{subject}</span>
+                                        <span className="text-[11px] text-[rgba(55,53,47,0.45)] font-medium">
+                                            {draft.log.length}問 回答済み・Q{draft.currentIndex} まで
+                                        </span>
+                                    </div>
+                                    <button
+                                        className="shrink-0 px-3.5 py-1.5 rounded-md bg-n-blue text-white text-[12px] font-bold border-none cursor-pointer whitespace-nowrap"
+                                        onClick={() => navigate(`/practice/${encodeURIComponent(subject)}`)}
+                                    >
+                                        再開する →
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 

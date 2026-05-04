@@ -26,10 +26,11 @@ export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }:
         initial={{
           subject: problem.subject,
           materialId: null,
-          materialName: problem.materialId,
-          subCategoryId: problem.subCategoryId,
+          materialName: problem.material,
+          subCategory: problem.subCategory,
           questionRef: problem.questionRef,
           note: problem.note,
+          defeatReason: problem.defeatReason,
           proficiency: problem.proficiency,
           failureTypes: problem.failureTypes,
           isGoodQuestion: problem.isGoodQuestion,
@@ -80,6 +81,13 @@ export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }:
         </div>
       )}
 
+      {/* Defeat reason */}
+      {problem.defeatReason && (
+        <p style={{ fontSize: '0.8125rem', color: '#eb5757', margin: 0, fontWeight: 500 }}>
+          敗因: {problem.defeatReason}
+        </p>
+      )}
+
       {/* Note */}
       {problem.note && (
         <p style={{
@@ -96,8 +104,8 @@ export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }:
 
       {/* Material + solvedAt + actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {problem.materialId && (
-          <span style={{ fontSize: '0.75rem', color: '#b5a99a' }}>{problem.materialId}</span>
+        {problem.material && (
+          <span style={{ fontSize: '0.75rem', color: '#b5a99a' }}>{problem.material}</span>
         )}
         <span style={{ fontSize: '0.75rem', color: '#b5a99a', marginLeft: 'auto' }}>
           {problem.solvedAt.replace(/-/g, '/')}

@@ -1,17 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { QuestionDraft } from '../types/exam'
 import { PracticeAnswerView } from '@/components/practice/PracticeAnswerView.tsx'
 import { savePracticeSession } from '@/lib/api/practice.ts'
 import { c, font } from '@/styles/notion.ts'
+import { type AnsweredRecord, clearDraft, loadDraft, saveDraft } from '@/lib/practiceDraft.ts'
 
 type Phase = 'active' | 'complete'
-
-type AnsweredRecord = {
-    index: number
-    answers: { answer: string; isDoubtful: boolean; note: string | null }[]
-    elapsedMs: number
-}
 
 function makeBlankQuestion(index: number): QuestionDraft {
     return {
@@ -51,16 +46,27 @@ export default function PracticeSessionPage() {
     const navigate = useNavigate()
 
     const [phase, setPhase] = useState<Phase>('active')
-    const [currentIndex, setCurrentIndex] = useState(1)
-    const [currentQuestion, setCurrentQuestion] = useState<QuestionDraft>(() => makeBlankQuestion(1))
+    const [currentIndex, setCurrentIndex] = useState(() => loadDraft(subject)?.currentIndex ?? 1)
+    const [currentQuestion, setCurrentQuestion] = useState<QuestionDraft>(() =>
+        makeBlankQuestion(loadDraft(subject)?.currentIndex ?? 1)
+    )
     const [subQuestions, setSubQuestions] = useState<QuestionDraft[]>([])
 
-    const [sessionStartMs] = useState(Date.now())
     const [questionStartMs, setQuestionStartMs] = useState(Date.now())
-    const [log, setLog] = useState<AnsweredRecord[]>([])
+    const [log, setLog] = useState<AnsweredRecord[]>(() => loadDraft(subject)?.log ?? [])
     const [totalElapsedMs, setTotalElapsedMs] = useState(0)
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [resumedFrom] = useState(() => {
+        const d = loadDraft(subject)
+        return d && d.log.length > 0 ? d.currentIndex : null
+    })
+
+    // 回答するたびにドラフトを保存
+    useEffect(() => {
+        if (phase !== 'active') return
+        saveDraft(subject, { currentIndex, log })
+    }, [currentIndex, log, phase, subject])
 
     // ── 設問追加 / リセット ──
     const handleAddSubQuestion = () => {
@@ -99,7 +105,8 @@ export default function PracticeSessionPage() {
 
     // ── 終了 ──
     const handleFinish = () => {
-        setTotalElapsedMs(Date.now() - sessionStartMs)
+        const logTotal = log.reduce((s, r) => s + r.elapsedMs, 0)
+        setTotalElapsedMs(logTotal + (Date.now() - questionStartMs))
         setPhase('complete')
     }
 
@@ -119,6 +126,7 @@ export default function PracticeSessionPage() {
                 })),
                 totalElapsedMs,
             })
+            clearDraft(subject)
             navigate(
                 `/workspace/today?minutes=${minutes}&subject=${encodeURIComponent(subject)}&material=${encodeURIComponent('演習')}`
             )
@@ -155,7 +163,7 @@ export default function PracticeSessionPage() {
 
                     {saveError && <p style={errorText}>{saveError}</p>}
 
-                    <button style={discardBtn} onClick={() => navigate(-1)} disabled={saving}>
+                    <button style={discardBtn} onClick={() => { clearDraft(subject); navigate(-1) }} disabled={saving}>
                         記録せずに戻る
                     </button>
                 </div>
@@ -167,7 +175,12 @@ export default function PracticeSessionPage() {
     return (
         <div style={page}>
             <div style={sessionHeader}>
-                <span style={indexLabel}>{subject} </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={indexLabel}>{subject}</span>
+                    {resumedFrom !== null && (
+                        <span style={resumeBadge}>Q{resumedFrom}から再開</span>
+                    )}
+                </div>
                 <button style={finishBtn} onClick={handleFinish}>
                     終了する
                 </button>
@@ -203,6 +216,16 @@ const indexLabel: React.CSSProperties = {
     fontSize: font.md,
     fontWeight: 800,
     color: c.text,
+}
+
+const resumeBadge: React.CSSProperties = {
+    fontSize: font.xs,
+    fontWeight: 600,
+    color: c.blue,
+    background: 'rgba(35,131,226,0.08)',
+    border: '1px solid rgba(35,131,226,0.2)',
+    borderRadius: '4px',
+    padding: '2px 7px',
 }
 
 const finishBtn: React.CSSProperties = {
