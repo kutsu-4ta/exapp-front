@@ -184,7 +184,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 text-[11px] font-semibold opacity-80 ml-4 shrink-0">
-                        <span>開始する</span>
+                        <span>開始</span>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12"/>
                             <polyline points="12 5 19 12 12 19"/>
