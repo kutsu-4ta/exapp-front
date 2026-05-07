@@ -5,7 +5,7 @@ import {
 } from "../../types/workspace";
 import type {FailureType, ProblemInput, Proficiency, SubCategory} from "../../types/workspace";
 import { useSettingsStore } from '../../lib/store/settings';
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 type Props = {
   initial?: ProblemInput
@@ -33,6 +33,14 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
   const [defeatReason, setDefeatReason] = useState(initial?.defeatReason ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const noteRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const el = noteRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [])
 
   const subjectId = `pf-subject-${Math.random().toString(36).slice(2)}`
   const materialId = `pf-material-${Math.random().toString(36).slice(2)}`
@@ -230,9 +238,14 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
         <div style={field}>
           <label style={labelStyle}>分析・メモ</label>
           <textarea
+              ref={noteRef}
               value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
+              onChange={(e) => {
+                setNote(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = `${e.target.scrollHeight}px`
+              }}
+              rows={1}
               placeholder="間違えた原因や、思い出したかった知識を言語化してください"
               style={textarea}
           />
@@ -297,8 +310,8 @@ const inp: React.CSSProperties = {
 const textarea: React.CSSProperties = {
   ...inp,
   resize: 'none',
-  minHeight: '80px',
-  lineHeight: '1.5',
+  overflow: 'hidden',
+  lineHeight: '1.6',
 }
 
 const segmentedControl: React.CSSProperties = {

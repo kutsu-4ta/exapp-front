@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 type Props = {
   value: string | null
@@ -10,12 +10,22 @@ export function DayReflection({ value, readonly, onSave }: Props) {
   const [text, setText] = useState(value ?? '')
   const [saved, setSaved] = useState(true)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [])
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const v = e.target.value
       setText(v)
       setSaved(false)
+      e.target.style.height = 'auto'
+      e.target.style.height = `${e.target.scrollHeight}px`
 
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(async () => {
@@ -51,11 +61,12 @@ export function DayReflection({ value, readonly, onSave }: Props) {
         )}
       </div>
       <textarea
+        ref={textareaRef}
         value={text}
         onChange={handleChange}
         readOnly={readonly}
         placeholder={readonly ? '' : '今日気づいたこと、明日への一言…'}
-        rows={4}
+        rows={1}
         style={{
           width: '100%',
           padding: '0.875rem 1rem',
@@ -67,7 +78,8 @@ export function DayReflection({ value, readonly, onSave }: Props) {
           fontFamily: 'inherit',
           letterSpacing: '0.01em',
           lineHeight: 1.7,
-          resize: 'vertical',
+          resize: 'none',
+          overflow: 'hidden',
           outline: 'none',
           boxSizing: 'border-box',
         }}
