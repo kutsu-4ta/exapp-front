@@ -1,31 +1,118 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Problem } from '../types/workspace'
+import type { Problem, ProblemInput, SubCategory } from '../types/workspace'
 import { formatDate, daysAgo } from '../types/workspace'
-import { fetchProblem } from '../lib/api/problem'
+import { fetchProblem, updateProblem, deleteProblem } from '../lib/api/problem'
+import { fetchSubCategories } from '../lib/api/subcategory'
+import { ProblemForm } from '../components/weak/ProblemForm'
 import { c, font } from '../styles/notion'
 
 export default function ProblemDetailPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const [problem, setProblem] = useState<Problem | null>(null)
+    const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [editing, setEditing] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const [copied, setCopied] = useState(false)
 
     useEffect(() => {
         if (!id) return
-        fetchProblem(Number(id))
-            .then((p) => setProblem(p))
+        Promise.all([fetchProblem(Number(id)), fetchSubCategories()])
+            .then(([p, sc]) => { setProblem(p); setSubCategories(sc) })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setLoading(false))
     }, [id])
 
-    const handleGeminiExplain = () => {
-        console.log('Gemini解説リクエスト:', problem)
+    const handleUpdate = async (input: ProblemInput) => {
+        if (!problem) return
+        const updated = await updateProblem(problem.id, input)
+        setProblem(updated)
+        setEditing(false)
+    }
+
+    const handleDelete = async () => {
+        if (!problem) return
+        if (!confirm('この問題を削除しますか？')) return
+        setDeleting(true)
+        try {
+            await deleteProblem(problem.id)
+            navigate(-1)
+        } finally {
+            setDeleting(false)
+        }
+    }
+
+    const handleGeminiExplain = async () => {
+        if (!problem) return
+
+        const lines: string[] = [
+            `【問題】${problem.questionRef}`,
+            `【科目】${problem.subject}`,
+        ]
+        if (problem.material) lines.push(`【教材】${problem.material}`)
+        if (problem.subCategory) lines.push(`【分野】${problem.subCategory}`)
+        if (problem.failureTypes.length > 0) lines.push(`【ミスの種類】${problem.failureTypes.join('、')}`)
+        if (problem.defeatReason) lines.push(`【敗因】${problem.defeatReason}`)
+        if (problem.note) lines.push(`【メモ】${problem.note}`)
+        lines.push('')
+        lines.push('この問題について解説してください。なぜ間違えやすいのか、正しいアプローチ、次回に向けた復習のポイントを教えてください。')
+
+        const prompt = lines.join('\n')
+
+        try {
+            await navigator.clipboard.writeText(prompt)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2500)
+        } catch { /* clipboard 不可でも続行 */ }
+
+        window.open('https://gemini.google.com/app', '_blank')
     }
 
     if (loading) return <div style={loadingWrap}><p style={mutedText}>読み込み中...</p></div>
     if (error || !problem) return <div style={loadingWrap}><p style={errorText}>{error ?? '問題が見つかりませんでした'}</p></div>
+
+    if (editing) {
+        return (
+            <div style={container}>
+                <div style={stickyHeader}>
+                    <div style={headerInner}>
+                        <button onClick={() => setEditing(false)} style={backBtn} aria-label="キャンセル">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                            <span>キャンセル</span>
+                        </button>
+                        <span style={headerTitle}>編集</span>
+                        <div style={{ width: '60px' }} />
+                    </div>
+                </div>
+                <div style={content}>
+                    <ProblemForm
+                        initial={{
+                            subject: problem.subject,
+                            materialId: null,
+                            materialName: problem.material,
+                            subCategory: problem.subCategory,
+                            questionRef: problem.questionRef,
+                            note: problem.note,
+                            defeatReason: problem.defeatReason,
+                            proficiency: problem.proficiency,
+                            failureTypes: problem.failureTypes,
+                            isGoodQuestion: problem.isGoodQuestion,
+                            solvedAt: problem.solvedAt,
+                        }}
+                        subCategories={subCategories}
+                        onSubmit={handleUpdate}
+                        onCancel={() => setEditing(false)}
+                    />
+                </div>
+            </div>
+        )
+    }
 
     const subCategoryName = problem.subCategory
 
@@ -47,7 +134,10 @@ export default function ProblemDetailPage() {
                         <span>戻る</span>
                     </button>
                     <span style={headerTitle}>問題詳細</span>
-                    <div style={{ width: '60px' }} />
+                    <div style={headerActions}>
+                        <button style={headerEditBtn} onClick={() => setEditing(true)}>編集</button>
+                        <button style={headerDeleteBtn} onClick={handleDelete} disabled={deleting}>削除</button>
+                    </div>
                 </div>
             </div>
 
@@ -121,11 +211,17 @@ export default function ProblemDetailPage() {
 
                 <div style={divider} />
 
-                {/* Gemini解説ボタン */}
+                {/* Gemini解説 */}
                 <button style={geminiBtn} onClick={handleGeminiExplain}>
                     <GeminiIcon />
-                    <span>Geminiの解説</span>
+                    <span>Geminiに解説させる</span>
                 </button>
+
+                {copied && (
+                    <div style={copiedToast}>
+                        プロンプトをコピーしました — Geminiに貼り付けてください
+                    </div>
+                )}
             </div>
         </div>
     )
@@ -169,6 +265,20 @@ const backBtn: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: '4px',
     background: 'none', border: 'none', cursor: 'pointer',
     color: c.textSub, fontSize: font.sm, padding: '4px 0', minWidth: '60px',
+}
+
+const headerActions: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '4px', minWidth: '60px', justifyContent: 'flex-end',
+}
+
+const headerEditBtn: React.CSSProperties = {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: font.sm, color: c.textSub, fontWeight: 600, padding: '4px 6px',
+}
+
+const headerDeleteBtn: React.CSSProperties = {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: font.sm, color: c.red, fontWeight: 600, padding: '4px 6px',
 }
 
 const content: React.CSSProperties = {
@@ -263,3 +373,14 @@ const geminiBtn: React.CSSProperties = {
 
 const mutedText: React.CSSProperties = { color: c.textSub, fontSize: font.base }
 const errorText: React.CSSProperties = { color: c.red, fontSize: font.base }
+
+const copiedToast: React.CSSProperties = {
+    marginTop: '10px',
+    padding: '10px 14px',
+    borderRadius: '6px',
+    background: 'rgba(55,53,47,0.05)',
+    border: `1px solid ${c.border}`,
+    fontSize: font.sm,
+    color: c.textSub,
+    textAlign: 'center',
+}

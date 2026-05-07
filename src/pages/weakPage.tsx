@@ -1,9 +1,10 @@
 import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from "../types/workspace";
 import type { Problem } from "../types/workspace";
 import type {FailureType, ProblemInput, Proficiency, SubCategory} from "../types/workspace";
+
 import { useSettingsStore } from '../lib/store/settings';
 import {ProblemCard} from "../components/weak/ProblemCard";
-import {addProblem, deleteProblem, fetchProblems, updateProblem} from "../lib/api/problem";
+import {addProblem, fetchProblems} from "../lib/api/problem";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import {FilterPill} from "../components/weak/FilterPill";
@@ -37,17 +38,6 @@ export default function WeakPage() {
         setShowAddForm(false)
         navigate(`/weak/${p.id}`)
     }, [navigate])
-
-    const handleUpdate = useCallback(async (id: number, input: ProblemInput) => {
-        const updated = await updateProblem(id, input)
-        setProblems((prev) => prev.map((p) => (p.id === id ? updated : p)))
-    }, [])
-
-    const handleDelete = useCallback(async (id: number) => {
-        if (!confirm('この項目を削除しますか？')) return
-        await deleteProblem(id)
-        setProblems((prev) => prev.filter((p) => p.id !== id))
-    }, [])
 
     const grouped = useMemo(() => {
         const filtered = problems
@@ -102,7 +92,7 @@ export default function WeakPage() {
                         </div>
                         <div style={cardGrid}>
                             {items.map((p) => (
-                                <ProblemCard key={p.id} problem={p} subCategories={subCategories} onUpdate={handleUpdate} onDelete={handleDelete} />
+                                <ProblemCard key={p.id} problem={p} />
                             ))}
                         </div>
                     </section>

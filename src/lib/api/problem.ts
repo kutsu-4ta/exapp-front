@@ -44,6 +44,14 @@ export async function fetchProblem(id: number): Promise<Problem> {
   return res.json()
 }
 
+// POST /api/ai/problems/:id/explain — 問題の解説を生成
+export async function explainProblem(id: number): Promise<string> {
+  const res = await apiFetch(`/api/ai/problems/${id}/explain`, { method: 'POST' })
+  if (!res.ok) throw new Error('解説の生成に失敗しました')
+  const data = await res.json()
+  return data.explanation
+}
+
 // POST /api/ai/analysis — multipart/form-data で画像を送信し、解析済み Problem を返す
 export async function analyzeImage(image: File): Promise<AnalysisResponse> {
   const form = new FormData()

@@ -1,13 +1,9 @@
-import type {Problem, ProblemInput, Proficiency, SubCategory} from "../../types/workspace";
-import {ProblemForm} from "./ProblemForm";
-import {useState} from "react";
+import type {Problem, Proficiency} from "../../types/workspace";
+import {useNavigate} from "react-router-dom";
 
 
 type Props = {
   problem: Problem
-  subCategories?: SubCategory[]
-  onUpdate: (id: number, input: ProblemInput) => Promise<void>
-  onDelete: (id: number) => Promise<void>
 }
 
 const PROFICIENCY_STYLE: Record<Proficiency, { backgroundColor: string; color: string }> = {
@@ -16,50 +12,13 @@ const PROFICIENCY_STYLE: Record<Proficiency, { backgroundColor: string; color: s
   '×': { backgroundColor: '#fce8e6', color: '#c0392b' },
 }
 
-export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }: Props) {
-  const [editing, setEditing] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
-  if (editing) {
-    return (
-      <ProblemForm
-        initial={{
-          subject: problem.subject,
-          materialId: null,
-          materialName: problem.material,
-          subCategory: problem.subCategory,
-          questionRef: problem.questionRef,
-          note: problem.note,
-          defeatReason: problem.defeatReason,
-          proficiency: problem.proficiency,
-          failureTypes: problem.failureTypes,
-          isGoodQuestion: problem.isGoodQuestion,
-          solvedAt: problem.solvedAt,
-        }}
-        subCategories={subCategories}
-        onSubmit={async (input) => {
-          await onUpdate(problem.id, input)
-          setEditing(false)
-        }}
-        onCancel={() => setEditing(false)}
-      />
-    )
-  }
-
-  async function handleDelete() {
-    if (!confirm('この問題を削除しますか？')) return
-    setDeleting(true)
-    try {
-      await onDelete(problem.id)
-    } finally {
-      setDeleting(false)
-    }
-  }
+export function ProblemCard({ problem }: Props) {
+  const navigate = useNavigate()
 
   const profStyle = PROFICIENCY_STYLE[problem.proficiency]
 
   return (
-    <div style={card}>
+    <div style={card} onClick={() => navigate(`/weak/${problem.id}`)}>
       {/* Top row: subject chip + questionRef + proficiency badge + 良問 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
         <span style={subjectChip}>{problem.subject}</span>
@@ -102,7 +61,7 @@ export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }:
         </p>
       )}
 
-      {/* Material + solvedAt + actions */}
+      {/* Material + solvedAt */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {problem.material && (
           <span style={{ fontSize: '0.75rem', color: '#b5a99a' }}>{problem.material}</span>
@@ -110,21 +69,6 @@ export function ProblemCard({ problem, subCategories = [], onUpdate, onDelete }:
         <span style={{ fontSize: '0.75rem', color: '#b5a99a', marginLeft: 'auto' }}>
           {problem.solvedAt.replace(/-/g, '/')}
         </span>
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          style={actionBtn}
-        >
-          編集
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          style={{ ...actionBtn, color: '#c0392b' }}
-        >
-          削除
-        </button>
       </div>
     </div>
   )
@@ -138,6 +82,7 @@ const card: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '0.5rem',
+  cursor: 'pointer',
 }
 
 const subjectChip: React.CSSProperties = {
@@ -164,12 +109,3 @@ const failureChip: React.CSSProperties = {
   color: '#7a6858',
 }
 
-const actionBtn: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  padding: '0.25rem 0.375rem',
-  fontSize: '0.75rem',
-  color: '#8a7b6e',
-  cursor: 'pointer',
-  letterSpacing: '0.02em',
-}
