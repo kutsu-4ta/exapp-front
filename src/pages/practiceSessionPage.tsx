@@ -176,7 +176,15 @@ export default function PracticeSessionPage() {
         <div style={page}>
             <div style={sessionHeader}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={indexLabel}>{subject}</span>
+                    <button
+                        style={subjectLink}
+                        onClick={() => navigate(`/subjects/${encodeURIComponent(subject)}`)}
+                    >
+                        {subject}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: '4px', flexShrink: 0 }}>
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </button>
                     {resumedFrom !== null && (
                         <span style={resumeBadge}>Q{resumedFrom}から再開</span>
                     )}
@@ -212,10 +220,16 @@ const sessionHeader: React.CSSProperties = {
     marginBottom: '16px',
 }
 
-const indexLabel: React.CSSProperties = {
+const subjectLink: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
     fontSize: font.md,
     fontWeight: 800,
     color: c.text,
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
 }
 
 const resumeBadge: React.CSSProperties = {

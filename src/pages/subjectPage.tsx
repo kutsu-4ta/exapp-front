@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useSettingsStore } from '../lib/store/settings'
 import { renameSubject, deleteSubject } from '../lib/api/subjects'
 import { addSubCategory, updateSubCategory, deleteSubCategory } from '../lib/api/subcategory'
-import type { SubCategory } from '../types/workspace'
+import { fetchProblems } from '../lib/api/problem'
+import { ProblemCard } from '../components/weak/ProblemCard'
+import type { SubCategory, Problem } from '../types/workspace'
 import {backBtn, c} from '../styles/notion'
 
 export default function SubjectPage() {
@@ -110,6 +112,17 @@ export default function SubjectPage() {
             setDeleteSubCatTarget(null)
         } finally { setDeleteSubCatLoading(false) }
     }
+
+    // ── Weak Problems ────────────────────────────────────────────────────────
+    const [problems, setProblems] = useState<Problem[]>([])
+    const [problemsLoading, setProblemsLoading] = useState(true)
+
+    useEffect(() => {
+        fetchProblems()
+            .then((all) => setProblems(all.filter((p) => p.subject === subjectName)))
+            .catch(() => {})
+            .finally(() => setProblemsLoading(false))
+    }, [subjectName])
 
     // ── Delete Subject ────────────────────────────────────────────────────────
     const [deleteConfirming, setDeleteConfirming] = useState(false)
@@ -222,6 +235,24 @@ export default function SubjectPage() {
                         />
                         <button onClick={handleAdd} disabled={addLoading || !addValue.trim()} style={addBtn}>追加</button>
                     </div>
+                </div>
+
+                {/* Section: Weak Problems */}
+                <div style={sectionHeadingWrap}>
+                    <span style={sectionHeading}>WEAK PROBLEMS</span>
+                </div>
+                <div style={{ ...block, padding: problems.length === 0 ? '20px' : '12px', marginBottom: '32px' }}>
+                    {problemsLoading ? (
+                        <p style={emptyText}>読み込み中...</p>
+                    ) : problems.length === 0 ? (
+                        <p style={emptyText}>この科目の苦手問題はありません</p>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {problems.map((p) => (
+                                <ProblemCard key={p.id} problem={p} />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Section: Danger Zone */}
