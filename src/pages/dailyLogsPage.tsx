@@ -343,4 +343,3 @@ const confirmBtn: React.CSSProperties = {
     flex: 1, padding: '10px', borderRadius: '6px', border: 'none',
     backgroundColor: '#2383e2', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer',
 }
-const loaderStyle: React.CSSProperties = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'rgba(55, 53, 47, 0.45)' }

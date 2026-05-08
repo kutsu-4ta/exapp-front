@@ -408,6 +408,5 @@ const geminiBtn: React.CSSProperties = {
     cursor: 'pointer',
 }
 
-const mutedText: React.CSSProperties = { color: c.textSub, fontSize: font.base }
 const errorText: React.CSSProperties = { color: c.red, fontSize: font.base }
 

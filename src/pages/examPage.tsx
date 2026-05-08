@@ -200,7 +200,6 @@ const analysisHeader: React.CSSProperties = { display: 'flex', justifyContent: '
 const title: React.CSSProperties = { fontSize: '18px', fontWeight: 900 }
 const startBtn: React.CSSProperties = { padding: '10px 16px', backgroundColor: '#37352f', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }
 const errorText: React.CSSProperties = { color: '#eb5757', fontSize: '13px', marginBottom: '12px' }
-const loadingText: React.CSSProperties = { color: '#888', fontSize: '13px', padding: '20px 0' }
 
 // モーダル関連のスタイル
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }

@@ -364,9 +364,7 @@ const fullPageCenter: React.CSSProperties = {
     backgroundColor: '#fff'
 }
 
-const infoText: React.CSSProperties = {color: 'rgba(55, 53, 47, 0.4)', fontSize: '14px', fontWeight: 500}
 const errorText: React.CSSProperties = {color: '#eb5757', fontSize: '14px', fontWeight: 500}
-const loaderStyle: React.CSSProperties = {...fullPageCenter}
 
 const bottomBar: React.CSSProperties = {
     position: 'fixed',

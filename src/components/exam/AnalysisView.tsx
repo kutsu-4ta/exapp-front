@@ -160,4 +160,3 @@ const dataItem: React.CSSProperties = { display: 'flex', flexDirection: 'column'
 const dataLabel: React.CSSProperties = { fontSize: '8px', color: '#aaa', fontWeight: 700 }
 const dataValue: React.CSSProperties = { fontSize: '14px', fontWeight: 900, color: '#37352f' }
 const emptyText: React.CSSProperties = { fontSize: '13px', color: '#aaa', textAlign: 'center', padding: '20px 0' }
-const loaderStyle: React.CSSProperties = { padding: '40px', textAlign: 'center', color: '#aaa', fontSize: '13px' }
