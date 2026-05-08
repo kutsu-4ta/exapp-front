@@ -1,11 +1,12 @@
 import {daysAgo, FAILURE_TYPE_VALUES, formatHours, todayString} from "../types/workspace";
 import { useSettingsStore } from '../lib/store/settings';
-import type {ChartDataPoint, DashboardStats, DailyLogSummary, Problem} from "../types/workspace";
+import type {ChartDataPoint, DashboardStats, DailyLog, DailyLogSummary, Problem} from "../types/workspace";
 import {fetchProblems} from "../lib/api/problem";
 import {useEffect, useMemo, useState} from "react";
 import {
     fetchAIAdvice,
     fetchDashboardStats,
+    fetchDailyLog,
     fetchMonthlyLogs,
     fetchMonthlySettings,
     updateMonthlySettings
@@ -70,6 +71,7 @@ export default function DashboardPage() {
 
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [problems, setProblems] = useState<Problem[]>([])
+    const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
 
     // Chart month navigation
     const [chartYear, setChartYear] = useState(now.getFullYear())
@@ -88,6 +90,7 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchDashboardStats().then(setStats).catch(console.error)
         fetchProblems().then(setProblems).catch(console.error)
+        fetchDailyLog(todayString()).then(log => setTodayLog(log)).catch(console.error)
     }, [])
 
     useEffect(() => {
@@ -167,6 +170,65 @@ export default function DashboardPage() {
         subjectTouched.filter(({ lastDate }) => !lastDate || daysAgo(lastDate) >= 7)
     , [subjectTouched])
 
+    // 今日の科目別合計分数
+    const todaySubjects = useMemo(() => {
+        if (!todayLog?.studySessions.length) return []
+        const map = new Map<string, number>()
+        for (const s of todayLog.studySessions) {
+            map.set(s.subject, (map.get(s.subject) ?? 0) + s.minutes)
+        }
+        return Array.from(map.entries())
+            .map(([subject, minutes]) => ({ subject, minutes }))
+            .sort((a, b) => b.minutes - a.minutes)
+    }, [todayLog])
+
+    const [statsCopied, setStatsCopied] = useState(false)
+
+    const buildStatsPrompt = () => {
+        const lines = ['【学習状況サマリー】']
+        lines.push(`累計: ${formatHours(stats?.allTotalMinutes ?? 0)} (${stats?.allTotalDays ?? 0}日)`)
+        lines.push(`今月: ${formatHours(stats?.thisMonthMinutes ?? 0)} (${stats?.thisMonthDays ?? 0}日)`)
+        lines.push(`連続: ${stats?.currentStreak ?? 0}日`)
+        lines.push(`今週: ${formatHours(stats?.thisWeekTotalMinutes ?? 0)}`)
+        lines.push('')
+        lines.push(`【本日 ${todayString().replace(/-/g, '/')}】`)
+        if (todaySubjects.length > 0) {
+            lines.push(`合計: ${todayLog!.totalMinutes}分`)
+            todaySubjects.forEach(({ subject, minutes }) => lines.push(`・${subject}: ${minutes}分`))
+        } else {
+            lines.push('まだ学習していません')
+        }
+        lines.push('')
+        lines.push('【科目別 最終学習日】')
+        subjectTouched.forEach(({ subject, lastDate }) => {
+            lines.push(lastDate
+                ? `・${subject}: ${lastDate.replace(/-/g, '/')} (${daysAgo(lastDate)}日前)`
+                : `・${subject}: 未学習`)
+        })
+        const activeFt = failureData.filter(f => f.count > 0)
+        if (activeFt.length > 0) {
+            lines.push('')
+            lines.push('【ミスの傾向】')
+            activeFt.forEach(f => lines.push(`・${f.type}: ${f.count}問`))
+        }
+        lines.push('')
+        lines.push('以上のデータをもとに、学習改善のアドバイスをしてください。')
+        return lines.join('\n')
+    }
+
+    const handleCopyStats = async () => {
+        try {
+            await navigator.clipboard.writeText(buildStatsPrompt())
+            setStatsCopied(true)
+            setTimeout(() => setStatsCopied(false), 2500)
+        } catch { /* silent */ }
+    }
+
+    const handleGeminiStats = async () => {
+        try { await navigator.clipboard.writeText(buildStatsPrompt()) } catch { /* silent */ }
+        window.open('https://gemini.google.com/app', '_blank')
+    }
+
     return (
         <div className="bg-white min-h-screen text-n-text">
             <div className="max-w-[800px] mx-auto px-5 pt-10 pb-[120px]">
@@ -223,6 +285,34 @@ export default function DashboardPage() {
                 )}
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
+
+                {/* 本日の学習状況 */}
+                <section className="mb-6">
+                    <div className="text-[10px] font-bold text-[rgba(55,53,47,0.3)] tracking-widest uppercase mb-2">
+                        TODAY
+                    </div>
+                    {todaySubjects.length > 0 ? (
+                        <div className="p-4 border border-[var(--nt-border)] rounded-lg bg-white">
+                            <div className="flex items-baseline justify-between mb-3">
+                                <span className="text-[12px] font-semibold text-[rgba(55,53,47,0.4)] tracking-wide">合計</span>
+                                <span className="text-[22px] font-bold text-n-text tabular-nums">{formatHours(todayLog!.totalMinutes)}</span>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                {todaySubjects.map(({ subject, minutes }) => (
+                                    <div key={subject} className="flex items-center justify-between">
+                                        <span className="text-[13px] text-n-text font-medium">{subject}</span>
+                                        <span className="text-[13px] text-[rgba(55,53,47,0.45)] font-semibold tabular-nums">{minutes}分</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 border border-[var(--nt-border)] rounded-lg bg-white flex items-center justify-between">
+                            <span className="text-[13px] text-[rgba(55,53,47,0.3)]">まだ学習していません</span>
+                            <span className="text-[22px] font-bold text-[rgba(55,53,47,0.12)] tabular-nums">0h</span>
+                        </div>
+                    )}
+                </section>
 
                 {/* AI Advisor */}
                 <div className="mb-6">
@@ -347,6 +437,29 @@ export default function DashboardPage() {
 
                 <SubjectStatus subjectTouched={subjectTouched} />
                 <FailureAnalysisSection failureData={failureData} />
+
+                {/* 指標コピー / Gemini */}
+                <div className="flex gap-2 mt-10 pt-8 border-t border-[var(--nt-border)]">
+                    <button
+                        onClick={handleCopyStats}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[var(--nt-border)] bg-[rgba(55,53,47,0.03)] text-[rgba(55,53,47,0.5)] text-[13px] font-semibold cursor-pointer"
+                    >
+                        {statsCopied
+                            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>
+                        }
+                        <span>{statsCopied ? 'コピー済み' : 'コピー'}</span>
+                    </button>
+                    <button
+                        onClick={handleGeminiStats}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[var(--nt-blue-border)] bg-[var(--nt-blue-bg)] text-n-blue text-[13px] font-semibold cursor-pointer"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z"/>
+                        </svg>
+                        <span>Gemini</span>
+                    </button>
+                </div>
 
             </div>
         </div>

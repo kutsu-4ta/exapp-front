@@ -46,9 +46,8 @@ export default function ProblemDetailPage() {
         }
     }
 
-    const handleGeminiExplain = async () => {
-        if (!problem) return
-
+    const buildPrompt = () => {
+        if (!problem) return ''
         const lines: string[] = [
             `【問題】${problem.questionRef}`,
             `【科目】${problem.subject}`,
@@ -60,15 +59,19 @@ export default function ProblemDetailPage() {
         if (problem.note) lines.push(`【メモ】${problem.note}`)
         lines.push('')
         lines.push('この問題について解説してください。なぜ間違えやすいのか、正しいアプローチ、次回に向けた復習のポイントを教えてください。')
+        return lines.join('\n')
+    }
 
-        const prompt = lines.join('\n')
-
+    const handleCopy = async () => {
         try {
-            await navigator.clipboard.writeText(prompt)
+            await navigator.clipboard.writeText(buildPrompt())
             setCopied(true)
             setTimeout(() => setCopied(false), 2500)
-        } catch { /* clipboard 不可でも続行 */ }
+        } catch { /* silent */ }
+    }
 
+    const handleGeminiExplain = async () => {
+        try { await navigator.clipboard.writeText(buildPrompt()) } catch { /* silent */ }
         window.open('https://gemini.google.com/app', '_blank')
     }
 
@@ -212,17 +215,17 @@ export default function ProblemDetailPage() {
 
                 <div style={divider} />
 
-                {/* Gemini解説 */}
-                <button style={geminiBtn} onClick={handleGeminiExplain}>
-                    <GeminiIcon />
-                    <span>Geminiに解説させる</span>
-                </button>
-
-                {copied && (
-                    <div style={copiedToast}>
-                        プロンプトをコピーしました — Geminiに貼り付けてください
-                    </div>
-                )}
+                {/* アクションボタン行 */}
+                <div style={actionRow}>
+                    <button style={copyBtn} onClick={handleCopy} title="プロンプトをコピー">
+                        {copied ? <CheckIcon /> : <ClipboardIcon />}
+                        <span>{copied ? 'コピー済み' : 'コピー'}</span>
+                    </button>
+                    <button style={geminiBtn} onClick={handleGeminiExplain}>
+                        <GeminiIcon />
+                        <span>Gemini</span>
+                    </button>
+                </div>
             </div>
         </div>
     )
@@ -230,9 +233,28 @@ export default function ProblemDetailPage() {
 
 function GeminiIcon() {
     return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
             <path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z"
                 fill="currentColor" />
+        </svg>
+    )
+}
+
+function ClipboardIcon() {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="2" width="6" height="4" rx="1" />
+            <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+        </svg>
+    )
+}
+
+function CheckIcon() {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
         </svg>
     )
 }
@@ -362,26 +384,30 @@ const noteBox: React.CSSProperties = {
     whiteSpace: 'pre-wrap', wordBreak: 'break-word',
 }
 
+const actionRow: React.CSSProperties = {
+    display: 'flex', gap: '8px',
+}
+
+const copyBtn: React.CSSProperties = {
+    flex: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    padding: '10px 16px', borderRadius: '6px',
+    backgroundColor: 'rgba(55,53,47,0.04)',
+    border: `1px solid ${c.border}`,
+    color: c.textSub, fontSize: font.sm, fontWeight: 600,
+    cursor: 'pointer',
+}
+
 const geminiBtn: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: '8px',
-    padding: '10px 20px', borderRadius: '6px',
+    flex: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    padding: '10px 16px', borderRadius: '6px',
     backgroundColor: 'rgba(35,131,226,0.06)',
     border: '1px solid rgba(35,131,226,0.2)',
-    color: c.blue, fontSize: font.base, fontWeight: 600,
-    cursor: 'pointer', transition: 'background 0.15s',
-    width: '100%', justifyContent: 'center',
+    color: c.blue, fontSize: font.sm, fontWeight: 600,
+    cursor: 'pointer',
 }
 
 const mutedText: React.CSSProperties = { color: c.textSub, fontSize: font.base }
 const errorText: React.CSSProperties = { color: c.red, fontSize: font.base }
 
-const copiedToast: React.CSSProperties = {
-    marginTop: '10px',
-    padding: '10px 14px',
-    borderRadius: '6px',
-    background: 'rgba(55,53,47,0.05)',
-    border: `1px solid ${c.border}`,
-    fontSize: font.sm,
-    color: c.textSub,
-    textAlign: 'center',
-}
