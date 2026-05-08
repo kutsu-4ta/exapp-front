@@ -1,14 +1,29 @@
 import { useMemo, useState } from 'react'
 import { BarChartIcon, PieChartIcon } from '@/lib/icon/ChartIcons.tsx'
+import type { Problem } from '@/types/workspace'
+import { FAILURE_TYPE_VALUES } from '@/types/workspace'
 
-type FailureEntry = { type: string; count: number }
-type Props = { failureData: FailureEntry[] }
+type Props = { problems: Problem[]; subjects: string[] }
 
 const COLORS = ['#2383e2', '#eb5757', '#f2ab26', '#19a576', '#8a7b6e', '#5c3a1e']
 
-export function FailureAnalysisSection({ failureData }: Props) {
+export function FailureAnalysisSection({ problems, subjects }: Props) {
     const [viewMode, setViewMode] = useState<'bar' | 'pie'>('bar')
+    const [selectedSubject, setSelectedSubject] = useState<string | null>(null)
+
+    const filteredProblems = useMemo(() =>
+        selectedSubject ? problems.filter(p => p.subject === selectedSubject) : problems
+    , [problems, selectedSubject])
+
+    const failureData = useMemo(() =>
+        FAILURE_TYPE_VALUES.map(ft => ({
+            type: ft,
+            count: filteredProblems.filter(p => p.failureTypes.includes(ft)).length,
+        }))
+    , [filteredProblems])
+
     const totalCount = useMemo(() => failureData.reduce((s, d) => s + d.count, 0), [failureData])
+    const maxCount = Math.max(...failureData.map(d => d.count), 1)
 
     const pieGradient = useMemo(() => {
         let current = 0
@@ -19,8 +34,6 @@ export function FailureAnalysisSection({ failureData }: Props) {
         })
         return `conic-gradient(${stops.join(', ')})`
     }, [failureData, totalCount])
-
-    const maxCount = Math.max(...failureData.map(d => d.count), 1)
 
     return (
         <section className="mb-12">
@@ -34,6 +47,23 @@ export function FailureAnalysisSection({ failureData }: Props) {
                         <PieChartIcon color={viewMode === 'pie' ? '#37352f' : 'rgba(55,53,47,0.3)'} />
                     </ToggleBtn>
                 </div>
+            </div>
+
+            {/* Subject filter */}
+            <div className="flex flex-wrap gap-1.5 mb-4">
+                <FilterPill
+                    label="ALL"
+                    active={selectedSubject === null}
+                    onClick={() => setSelectedSubject(null)}
+                />
+                {subjects.map(s => (
+                    <FilterPill
+                        key={s}
+                        label={s}
+                        active={selectedSubject === s}
+                        onClick={() => setSelectedSubject(prev => prev === s ? null : s)}
+                    />
+                ))}
             </div>
 
             {viewMode === 'bar' ? (
@@ -91,6 +121,22 @@ export function FailureAnalysisSection({ failureData }: Props) {
                 </div>
             )}
         </section>
+    )
+}
+
+function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            className={[
+                'px-2.5 py-1 rounded-full text-[11px] font-semibold border-none cursor-pointer transition-colors',
+                active
+                    ? 'bg-n-text text-white'
+                    : 'bg-[rgba(55,53,47,0.06)] text-[rgba(55,53,47,0.5)] hover:bg-[rgba(55,53,47,0.1)]',
+            ].join(' ')}
+        >
+            {label}
+        </button>
     )
 }
 

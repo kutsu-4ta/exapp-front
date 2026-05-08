@@ -146,13 +146,6 @@ export default function DashboardPage() {
         buildChartData(chartYear, chartMonth, chartLogs, chartTargetMin, chartTargetMax, todayString())
     , [chartYear, chartMonth, chartLogs, chartTargetMin, chartTargetMax])
 
-    const failureData = useMemo(() =>
-        FAILURE_TYPE_VALUES.map((ft) => ({
-            type: ft,
-            count: problems.filter((p) => p.failureTypes.includes(ft)).length,
-        }))
-    , [problems])
-
     const subjectTouched = useMemo(() => {
         const raw = stats?.lastTouchedBySubject
             ?? subjects.map((s) => ({ subject: s, lastdate: null }))
@@ -205,7 +198,9 @@ export default function DashboardPage() {
                 ? `・${subject}: ${lastDate.replace(/-/g, '/')} (${daysAgo(lastDate)}日前)`
                 : `・${subject}: 未学習`)
         })
-        const activeFt = failureData.filter(f => f.count > 0)
+        const activeFt = FAILURE_TYPE_VALUES
+            .map(ft => ({ type: ft, count: problems.filter(p => p.failureTypes.includes(ft)).length }))
+            .filter(f => f.count > 0)
         if (activeFt.length > 0) {
             lines.push('')
             lines.push('【ミスの傾向】')
@@ -284,8 +279,6 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
-
                 {/* 本日の学習状況 */}
                 <section className="mb-6">
                     <div className="text-[10px] font-bold text-[rgba(55,53,47,0.3)] tracking-widest uppercase mb-2">
@@ -313,6 +306,8 @@ export default function DashboardPage() {
                         </div>
                     )}
                 </section>
+
+                {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
                 {/* AI Advisor */}
                 <div className="mb-6">
@@ -436,7 +431,7 @@ export default function DashboardPage() {
                 </section>
 
                 <SubjectStatus subjectTouched={subjectTouched} />
-                <FailureAnalysisSection failureData={failureData} />
+                <FailureAnalysisSection problems={problems} subjects={subjects} />
 
                 {/* 指標コピー / Gemini */}
                 <div className="flex gap-2 mt-10 pt-8 border-t border-[var(--nt-border)]">
