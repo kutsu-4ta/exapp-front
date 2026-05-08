@@ -228,25 +228,41 @@ export default function DashboardPage() {
         <div className="bg-white min-h-screen text-n-text">
             <div className="max-w-[800px] mx-auto px-5 pt-10 pb-[120px]">
 
-                {/* CTA: 今日のワークスペース */}
+                {/* TODAY + ワークスペースCTA 統合カード */}
                 <Link
                     to={`/workspace/${todayString()}`}
-                    className="flex items-center justify-between px-6 py-5 mb-6 bg-white rounded-xl text-n-blue no-underline border border-[var(--nt-blue-border)] shadow-[0_2px_4px_rgba(35,131,226,0.05)] transition-transform active:scale-[0.99]"
+                    className="block mb-6 rounded-xl border border-[var(--nt-blue-border)] bg-white no-underline overflow-hidden transition-transform active:scale-[0.99]"
                 >
-                    <div className="flex-1 min-w-0">
-                        <div className="text-[11px] font-semibold mb-0.5 tracking-wide">
-                            GO TO TODAY'S WORKSPACE
+                    {/* 本文エリア */}
+                    <div className="px-5 pt-4 pb-3">
+                        <div className="text-[10px] font-bold tracking-widest text-n-blue uppercase mb-3">
+                            TODAY &nbsp;·&nbsp; {todayString().replace(/-/g, '/')}
                         </div>
-                        <div className="text-[18px] font-bold">
-                            {todayString().replace(/-/g, '/')}
-                        </div>
+                        {todaySubjects.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                                {todaySubjects.map(({ subject, minutes }) => (
+                                    <div key={subject} className="flex items-center justify-between">
+                                        <span className="text-[14px] font-medium text-n-text">{subject}</span>
+                                        <span className="text-[14px] font-semibold text-[rgba(55,53,47,0.45)] tabular-nums">{minutes}分</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <span className="text-[13px] text-[rgba(55,53,47,0.3)]">まだ学習していません</span>
+                        )}
                     </div>
-                    <div className="flex flex-col items-end gap-1 text-[11px] font-semibold opacity-80 ml-4 shrink-0">
-                        <span>開始</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                            <polyline points="12 5 19 12 12 19"/>
-                        </svg>
+                    {/* フッター: 合計 + ワークスペースリンク */}
+                    <div className="flex items-center justify-between px-5 py-3 bg-[var(--nt-blue-bg)] border-t border-[var(--nt-blue-border)]">
+                        <span className="text-[15px] font-bold text-n-text tabular-nums">
+                            {todaySubjects.length > 0 ? formatHours(todayLog!.totalMinutes) : '0h'}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-n-blue text-[12px] font-semibold">
+                            <span>ワークスペースを開く</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </div>
                     </div>
                 </Link>
 
@@ -278,34 +294,6 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 )}
-
-                {/* 本日の学習状況 */}
-                <section className="mb-6">
-                    <div className="text-[10px] font-bold text-[rgba(55,53,47,0.3)] tracking-widest uppercase mb-2">
-                        TODAY
-                    </div>
-                    {todaySubjects.length > 0 ? (
-                        <div className="p-4 border border-[var(--nt-border)] rounded-lg bg-white">
-                            <div className="flex items-baseline justify-between mb-3">
-                                <span className="text-[12px] font-semibold text-[rgba(55,53,47,0.4)] tracking-wide">合計</span>
-                                <span className="text-[22px] font-bold text-n-text tabular-nums">{formatHours(todayLog!.totalMinutes)}</span>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                                {todaySubjects.map(({ subject, minutes }) => (
-                                    <div key={subject} className="flex items-center justify-between">
-                                        <span className="text-[13px] text-n-text font-medium">{subject}</span>
-                                        <span className="text-[13px] text-[rgba(55,53,47,0.45)] font-semibold tabular-nums">{minutes}分</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-4 border border-[var(--nt-border)] rounded-lg bg-white flex items-center justify-between">
-                            <span className="text-[13px] text-[rgba(55,53,47,0.3)]">まだ学習していません</span>
-                            <span className="text-[22px] font-bold text-[rgba(55,53,47,0.12)] tabular-nums">0h</span>
-                        </div>
-                    )}
-                </section>
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
