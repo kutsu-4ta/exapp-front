@@ -18,6 +18,7 @@ import {StatCard} from "../components/dashboard/StatCard";
 import {Link, useNavigate} from "react-router-dom";
 import {AIAgentWidget} from "@/components/aiAgent/aiAgentWidget.tsx";
 import { loadAllDrafts, type PracticeDraft } from "@/lib/practiceDraft.ts";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner.tsx";
 
 function buildChartData(
     year: number,
@@ -338,7 +339,7 @@ export default function DashboardPage() {
                         )}
 
                         {chartLoading
-                            ? <div className="flex items-center justify-center text-[13px] text-[rgba(55,53,47,0.35)]" style={{ height: 'clamp(200px, 35vw, 280px)' }}>読み込み中...</div>
+                            ? <div className="flex items-center justify-center" style={{ height: 'clamp(200px, 35vw, 280px)' }}><LoadingSpinner /></div>
                             : <DashboardChart data={transformedChartData} targetMin={chartTargetMin} targetMax={chartTargetMax} />
                         }
                     </div>

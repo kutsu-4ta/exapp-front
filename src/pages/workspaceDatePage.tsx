@@ -17,10 +17,11 @@ import {fetchSubCategories} from "../lib/api/subcategory";
 import type {DailyLog, SubCategory} from "../types/workspace";
 import {Suspense, useCallback, useEffect, useState} from "react";
 import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget.tsx";
+import {LoadingSpinner} from "@/components/common/LoadingSpinner.tsx";
 
 export default function WorkspaceDatePage() {
     return (
-        <Suspense fallback={<div style={loaderStyle}>Loading...</div>}>
+        <Suspense fallback={<LoadingSpinner fullPage />}>
             <WorkspaceDateContent/>
         </Suspense>
     )
@@ -129,7 +130,7 @@ function WorkspaceDateContent() {
         } : null)
     }, [])
 
-    if (loading) return <div style={fullPageCenter}><p style={infoText}>Loading...</p></div>
+    if (loading) return <LoadingSpinner fullPage />
     if (error || !log) return <div style={fullPageCenter}><p style={errorText}>{error}</p></div>
 
     return (

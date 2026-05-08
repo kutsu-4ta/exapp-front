@@ -7,6 +7,7 @@ import { fetchProblems } from '../lib/api/problem'
 import { ProblemCard } from '../components/weak/ProblemCard'
 import type { SubCategory, Problem } from '../types/workspace'
 import {backBtn, c} from '../styles/notion'
+import { LoadingSpinner } from '../components/common/LoadingSpinner'
 
 export default function SubjectPage() {
     const { name: encodedName } = useParams<{ name: string }>()
@@ -243,7 +244,7 @@ export default function SubjectPage() {
                 </div>
                 <div style={{ ...block, padding: problems.length === 0 ? '20px' : '12px', marginBottom: '32px' }}>
                     {problemsLoading ? (
-                        <p style={emptyText}>読み込み中...</p>
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}><LoadingSpinner size="sm" /></div>
                     ) : problems.length === 0 ? (
                         <p style={emptyText}>この科目の苦手問題はありません</p>
                     ) : (

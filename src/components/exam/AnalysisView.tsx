@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { LoadingSpinner } from '../common/LoadingSpinner'
 import {
   ResponsiveContainer, LineChart, CartesianGrid,
   XAxis, YAxis, Tooltip, ReferenceLine, Line,
@@ -78,7 +79,7 @@ export default function AnalysisView() {
   }
 
   if (loading) {
-    return <div style={loaderStyle}>読み込み中...</div>
+    return <LoadingSpinner fullPage />
   }
 
   return (

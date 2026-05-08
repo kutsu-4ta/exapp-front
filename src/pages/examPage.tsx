@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { useSettingsStore } from '../lib/store/settings'
 import type { ExamSession } from '../types/exam'
 import type { ExamQuestionInput } from '../types/exam'
@@ -130,7 +131,7 @@ export default function ExamPage() {
   }
 
   if (loading) {
-    return <div style={container}><p style={loadingText}>読み込み中...</p></div>
+    return <LoadingSpinner fullPage />
   }
 
   if (activeSession) {

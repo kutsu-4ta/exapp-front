@@ -11,6 +11,7 @@ import {FilterPill} from "../components/weak/FilterPill";
 import {AddProblemModal} from "../components/weak/AddProblemModal";
 import {fetchSubCategories} from "../lib/api/subcategory";
 import {c, font} from "../styles/notion";
+import {LoadingSpinner} from "../components/common/LoadingSpinner";
 
 export default function WeakPage() {
     const navigate = useNavigate()
@@ -80,7 +81,7 @@ export default function WeakPage() {
             <div style={mainContent}>
                 {showAddForm && <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} subCategories={subCategories} />}
 
-                {loading && <p style={mutedText}>Loading data...</p>}
+                {loading && <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}><LoadingSpinner /></div>}
                 {error && <p style={errorText}>{error}</p>}
                 {!loading && grouped.length === 0 && <div style={emptyState}><p style={mutedText}>該当する問題は見つかりませんでした</p></div>}
 

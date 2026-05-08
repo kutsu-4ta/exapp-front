@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LoadingSpinner } from '../common/LoadingSpinner'
 import { fetchSubjectStats } from '../../lib/api/exam'
 import type { ExamSubjectStats, Rank } from '../../types/exam'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
@@ -27,7 +28,7 @@ export default function SubjectDetailView({ subject, onBack }: SubjectDetailView
         <h2 style={detailTitle}>{subject} 分析</h2>
       </div>
 
-      {loading && <p style={stateText}>読み込み中...</p>}
+      {loading && <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}><LoadingSpinner /></div>}
       {error && <p style={{ ...stateText, color: '#eb5757' }}>{error}</p>}
 
       {stats && (

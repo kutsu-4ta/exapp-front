@@ -5,6 +5,7 @@ import { formatDate, daysAgo } from '../types/workspace'
 import { fetchProblem, updateProblem, deleteProblem } from '../lib/api/problem'
 import { fetchSubCategories } from '../lib/api/subcategory'
 import { ProblemForm } from '../components/weak/ProblemForm'
+import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { c, font } from '../styles/notion'
 
 export default function ProblemDetailPage() {
@@ -71,7 +72,7 @@ export default function ProblemDetailPage() {
         window.open('https://gemini.google.com/app', '_blank')
     }
 
-    if (loading) return <div style={loadingWrap}><p style={mutedText}>読み込み中...</p></div>
+    if (loading) return <LoadingSpinner fullPage />
     if (error || !problem) return <div style={loadingWrap}><p style={errorText}>{error ?? '問題が見つかりませんでした'}</p></div>
 
     if (editing) {

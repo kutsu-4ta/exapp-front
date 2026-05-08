@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { Link, useNavigate } from 'react-router-dom'
 import {
     ResponsiveContainer, LineChart, CartesianGrid,
@@ -138,7 +139,7 @@ export default function DailyLogsPage() {
         navigate(`/workspace/${selectedDate}`)
     }
 
-    if (listInitialLoading) return <div style={loaderStyle}>Loading...</div>
+    if (listInitialLoading) return <LoadingSpinner fullPage />
 
     return (
         <div style={pageWrapper}>
@@ -225,7 +226,7 @@ export default function DailyLogsPage() {
                         )}
 
                         <div ref={sentinelRef} style={sentinel}>
-                            {listLoadingMore && <span style={sentinelText}>読み込み中...</span>}
+                            {listLoadingMore && <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}><LoadingSpinner size="sm" /></div>}
                             {!listHasMore && listLogs.length > 0 && <span style={sentinelText}>すべて表示しました</span>}
                         </div>
                     </div>
@@ -233,7 +234,7 @@ export default function DailyLogsPage() {
                     <div style={chartContainer}>
                         <div style={chartCard}>
                             {chartLoading ? (
-                                <p style={sentinelText}>読み込み中...</p>
+                                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}><LoadingSpinner /></div>
                             ) : (
                                 <div style={{ width: '100%', height: 300 }}>
                                     <ResponsiveContainer>
