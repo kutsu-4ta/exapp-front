@@ -260,7 +260,7 @@ function WorkspaceDateContent() {
         })
     }, [date])
 
-    const handleSaveReflection = useCallback(async (text: string) => {
+    const handleSaveReflection = useCallback(async (text: string | null) => {
         if (!log || !date) return
         const updatedLog = await updateReflection(log.date, text)
         setLog(updatedLog)
