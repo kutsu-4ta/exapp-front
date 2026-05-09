@@ -56,7 +56,7 @@ export default function DailyLogsPage() {
         fetchRecentDailyLogs(5)
             .then((data) => {
                 setListLogs(data)
-                setListHasMore(data.length === 30)
+                setListHasMore(data.length === 5)
             })
             .catch(console.error)
             .finally(() => setListInitialLoading(false))
@@ -71,7 +71,7 @@ export default function DailyLogsPage() {
         try {
             const data = await fetchRecentDailyLogs(5, oldest)
             setListLogs((prev) => [...prev, ...data])
-            setListHasMore(data.length === 30)
+            setListHasMore(data.length === 5)
         } catch (e) {
             console.error(e)
         } finally {
