@@ -45,6 +45,10 @@ export default function WeakPage() {
     const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
+    // loadMore の最新クロージャを保持。Observer は再接続せずこの ref 経由で呼ぶ
+    const loadMoreRef = useRef<() => void>(() => {})
+    // バックグラウンド再フェッチが追加ロード済みデータを上書きしないためのフラグ
+    const hasLoadedMoreRef = useRef(false)
 
     const [filterSubject, setFilterSubject] = useState<string>('all')
     const [filterProficiency, setFilterProficiency] = useState<Proficiency | 'all'>('all')
@@ -60,8 +64,11 @@ export default function WeakPage() {
         }
         fetchProblems(PAGE_SIZE)
             .then((p) => {
-                setProblems(p)
-                setHasMore(p.length === PAGE_SIZE)
+                // 追加ロード済みの場合はキャッシュのみ更新して表示は触らない
+                if (!hasLoadedMoreRef.current) {
+                    setProblems(p)
+                    setHasMore(p.length === PAGE_SIZE)
+                }
                 setCached('weak-problems-initial', p)
             })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
@@ -74,6 +81,7 @@ export default function WeakPage() {
         const last = problems[problems.length - 1]
         if (!last) return
         setLoadingMore(true)
+        hasLoadedMoreRef.current = true
         try {
             const more = await fetchProblems(PAGE_SIZE, last.id)
             setProblems((prev) => [...prev, ...more])
@@ -85,17 +93,20 @@ export default function WeakPage() {
         }
     }, [problems, loadingMore, hasMore])
 
-    // IntersectionObserver
+    // ref を常に最新の loadMore に同期
+    useEffect(() => { loadMoreRef.current = loadMore }, [loadMore])
+
+    // IntersectionObserver はマウント時に1回だけ設置し再接続しない
     useEffect(() => {
         const el = sentinelRef.current
         if (!el) return
         const observer = new IntersectionObserver(
-            (entries) => { if (entries[0].isIntersecting) loadMore() },
+            (entries) => { if (entries[0].isIntersecting) loadMoreRef.current() },
             { threshold: 0.1 },
         )
         observer.observe(el)
         return () => observer.disconnect()
-    }, [loadMore])
+    }, [])
 
     const handleAdd = useCallback(async (input: ProblemInput) => {
         const p = await addProblem(input)
