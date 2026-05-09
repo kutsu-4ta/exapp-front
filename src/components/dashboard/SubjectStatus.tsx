@@ -1,20 +1,41 @@
-import { daysAgo } from '../../types/workspace'
+import { useState } from 'react'
+import { daysAgo, formatHours } from '../../types/workspace'
 import { useNavigate } from 'react-router-dom'
 
 type SubjectEntry = { subject: string; lastDate: string | null }
+type ViewMode = 'status' | 'time'
 
 type Props = {
     subjectTouched: SubjectEntry[]
+    subjectMinutes: { subject: string; minutes: number }[]
 }
 
-export function SubjectStatus({ subjectTouched }: Props) {
+export function SubjectStatus({ subjectTouched, subjectMinutes }: Props) {
     const navigate = useNavigate()
+    const [mode, setMode] = useState<ViewMode>('status')
+
+    const minuteMap = Object.fromEntries(subjectMinutes.map(s => [s.subject, s.minutes]))
+    const maxMinutes = Math.max(...subjectTouched.map(e => minuteMap[e.subject] ?? 0), 1)
+
+    const timeRows = [...subjectTouched].sort(
+        (a, b) => (minuteMap[b.subject] ?? 0) - (minuteMap[a.subject] ?? 0)
+    )
 
     return (
         <section className="mb-12">
-            <SectionLabel>SUBJECT STATUS</SectionLabel>
+            <div className="flex items-center mb-3">
+                <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--nt-text-hint)] tracking-[0.05em] uppercase">
+                    <span className="text-[8px]">▼</span>
+                    SUBJECT STATUS
+                </div>
+                <div className="ml-auto flex items-center gap-1">
+                    <ToggleBtn active={mode === 'status'} onClick={() => setMode('status')}>最終学習</ToggleBtn>
+                    <ToggleBtn active={mode === 'time'} onClick={() => setMode('time')}>学習時間</ToggleBtn>
+                </div>
+            </div>
+
             <div className="flex flex-col">
-                {subjectTouched.map((entry) => {
+                {mode === 'status' && subjectTouched.map((entry) => {
                     const label = getStatusLabel(entry.lastDate)
                     return (
                         <button
@@ -35,8 +56,50 @@ export function SubjectStatus({ subjectTouched }: Props) {
                         </button>
                     )
                 })}
+
+                {mode === 'time' && timeRows.map((entry) => {
+                    const minutes = minuteMap[entry.subject] ?? 0
+                    const pct = Math.round((minutes / maxMinutes) * 100)
+                    return (
+                        <button
+                            key={entry.subject}
+                            className="flex items-center min-h-[44px] w-full px-1 py-2 border-b border-[var(--nt-border-xs)] cursor-pointer hover:bg-[var(--nt-hover)] active:bg-[var(--nt-pressed)] transition-colors rounded text-left bg-transparent gap-3"
+                            onClick={() => navigate(`/practice/${encodeURIComponent(entry.subject)}`)}
+                        >
+                            <span className="text-[13px] font-medium text-n-text shrink-0 w-[72px] truncate">
+                                {entry.subject}
+                            </span>
+                            <div className="flex-1 h-[5px] bg-[rgba(55,53,47,0.07)] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-n-blue rounded-full transition-all duration-300"
+                                    style={{ width: `${pct}%` }}
+                                />
+                            </div>
+                            <span className="text-[12px] font-semibold tabular-nums shrink-0"
+                                style={{ color: 'rgba(55,53,47,0.45)', minWidth: '44px', textAlign: 'right' }}>
+                                {formatHours(minutes)}
+                            </span>
+                        </button>
+                    )
+                })}
             </div>
         </section>
+    )
+}
+
+function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+    return (
+        <button
+            onClick={onClick}
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors cursor-pointer"
+            style={{
+                backgroundColor: active ? 'rgba(55,53,47,0.08)' : 'transparent',
+                color: active ? '#37352f' : 'rgba(55,53,47,0.4)',
+                borderColor: active ? 'rgba(55,53,47,0.15)' : 'rgba(55,53,47,0.1)',
+            }}
+        >
+            {children}
+        </button>
     )
 }
 
@@ -56,19 +119,10 @@ function getStatusLabel(lastDate: string | null) {
         return { text: '未学習', color: '#7c7168', bg: 'rgba(55,53,47,0.07)' }
     }
     const n = daysAgo(lastDate)
-    if (n === 0) return { text: '今日',   color: '#2d6a1f', bg: 'rgba(45,106,31,0.10)' }
-    if (n === 1) return { text: '昨日',   color: '#5c3a1e', bg: 'rgba(92,58,30,0.10)' }
-    if (n <= 6)  return { text: `${n}日前`, color: '#a16207', bg: 'rgba(161,98,7,0.10)' }
-    return             { text: `${n}日前`, color: '#b91c1c', bg: 'rgba(185,28,28,0.10)' }
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--nt-text-hint)] tracking-[0.05em] mb-3 uppercase">
-            <span className="text-[8px]">▼</span>
-            {children}
-        </div>
-    )
+    if (n === 0) return { text: '今日',     color: '#19a576', bg: 'rgba(45,106,31,0.10)' }
+    if (n === 1) return { text: '昨日',     color: '#f2ab26', bg: 'rgba(242,171,38,0.12)' }
+    if (n <= 6)  return { text: `${n}日前`, color: '#f2ab26', bg: 'rgba(242,171,38,0.10)' }
+    return             { text: `${n}日前`, color: '#eb5757', bg: 'rgba(235,87,87,0.10)' }
 }
 
 function BookIcon() {

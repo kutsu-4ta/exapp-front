@@ -418,7 +418,7 @@ export default function DashboardPage() {
                     </div>
                 </section>
 
-                <SubjectStatus subjectTouched={subjectTouched} />
+                <SubjectStatus subjectTouched={subjectTouched} subjectMinutes={stats?.subjectMinutes ?? []} />
                 <FailureAnalysisSection problems={problems} subjects={subjects} />
 
                 {/* 指標コピー / Gemini */}
