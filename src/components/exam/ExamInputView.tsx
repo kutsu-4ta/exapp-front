@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useSettingsStore } from '../../lib/store/settings'
 import type { ExamSession, QuestionDraft, ExamQuestionInput, Rank } from '../../types/exam'
 import { QuestionRow } from './QuestionRow'
-import { ExamStopWatchWidget } from './ExamStopWatchWidget'
 import { useTimer } from '../../context/TimerContext'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 
@@ -309,12 +308,6 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
           )}
         </div>
 
-        {!isScoring && (
-          <div style={timerWrapper}>
-            <ExamStopWatchWidget />
-          </div>
-        )}
-
         {isScoring && (
           <div style={scoreGrid}>
             <div style={scoreCell}>
@@ -403,7 +396,6 @@ const statsBadge: React.CSSProperties = { display: 'flex', gap: '10px', backgrou
 const statItem: React.CSSProperties = { fontSize: '11px', fontWeight: 800 }
 const dotO: React.CSSProperties = { color: '#2383e2' }
 const dotX: React.CSSProperties = { color: '#eb5757' }
-const timerWrapper: React.CSSProperties = { margin: '0 -20px 0' }
 const scoreGrid: React.CSSProperties = { display: 'flex', alignItems: 'center', paddingBottom: '8px' }
 const scoreCell: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }
 const scoreLab: React.CSSProperties = { fontSize: '9px', fontWeight: 800, color: '#aaa' }
