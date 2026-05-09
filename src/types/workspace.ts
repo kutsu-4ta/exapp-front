@@ -163,6 +163,7 @@ export type DashboardStats = {
   last7DaysMinutes: number
   weeklyAvgMinutes: number
   subjectMinutes: { subject: string; minutes: number }[]
+  thisMonthSubjectMinutes: { subject: string; minutes: number }[]
   lastTouchedBySubject: { subject: string; lastdate: string | null }[]
   dailyMinutes: { date: string; minutes: number }[]
 }

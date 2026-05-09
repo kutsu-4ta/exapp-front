@@ -4,17 +4,33 @@ import { useNavigate } from 'react-router-dom'
 
 type SubjectEntry = { subject: string; lastDate: string | null }
 type ViewMode = 'status' | 'time'
+type Period = 'all' | 'month' | 'today'
+
+type MinuteEntry = { subject: string; minutes: number }
 
 type Props = {
     subjectTouched: SubjectEntry[]
-    subjectMinutes: { subject: string; minutes: number }[]
+    subjectMinutes: MinuteEntry[]
+    thisMonthSubjectMinutes?: MinuteEntry[]
+    todaySubjectMinutes?: MinuteEntry[]
 }
 
-export function SubjectStatus({ subjectTouched, subjectMinutes }: Props) {
+export function SubjectStatus({
+    subjectTouched,
+    subjectMinutes,
+    thisMonthSubjectMinutes = [],
+    todaySubjectMinutes = [],
+}: Props) {
     const navigate = useNavigate()
     const [mode, setMode] = useState<ViewMode>('status')
+    const [period, setPeriod] = useState<Period>('all')
 
-    const minuteMap = Object.fromEntries(subjectMinutes.map(s => [s.subject, s.minutes]))
+    const currentMinutes =
+        period === 'all'   ? subjectMinutes :
+        period === 'month' ? thisMonthSubjectMinutes :
+                             todaySubjectMinutes
+
+    const minuteMap = Object.fromEntries(currentMinutes.map(s => [s.subject, s.minutes]))
     const maxMinutes = Math.max(...subjectTouched.map(e => minuteMap[e.subject] ?? 0), 1)
 
     const timeRows = [...subjectTouched].sort(
@@ -33,6 +49,14 @@ export function SubjectStatus({ subjectTouched, subjectMinutes }: Props) {
                     <ToggleBtn active={mode === 'time'} onClick={() => setMode('time')}>学習時間</ToggleBtn>
                 </div>
             </div>
+
+            {mode === 'time' && (
+                <div className="flex justify-end gap-1 mb-2">
+                    <PeriodBtn active={period === 'all'}   onClick={() => setPeriod('all')}>全期間</PeriodBtn>
+                    <PeriodBtn active={period === 'month'} onClick={() => setPeriod('month')}>今月</PeriodBtn>
+                    <PeriodBtn active={period === 'today'} onClick={() => setPeriod('today')}>今日</PeriodBtn>
+                </div>
+            )}
 
             <div className="flex flex-col">
                 {mode === 'status' && subjectTouched.map((entry) => {
@@ -96,6 +120,22 @@ function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: ()
                 backgroundColor: active ? 'rgba(55,53,47,0.08)' : 'transparent',
                 color: active ? '#37352f' : 'rgba(55,53,47,0.4)',
                 borderColor: active ? 'rgba(55,53,47,0.15)' : 'rgba(55,53,47,0.1)',
+            }}
+        >
+            {children}
+        </button>
+    )
+}
+
+function PeriodBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+    return (
+        <button
+            onClick={onClick}
+            className="text-[10px] font-semibold px-2 py-0.5 rounded border transition-colors cursor-pointer"
+            style={{
+                backgroundColor: active ? '#2383e2' : 'transparent',
+                color: active ? '#fff' : 'rgba(55,53,47,0.4)',
+                borderColor: active ? '#2383e2' : 'rgba(55,53,47,0.1)',
             }}
         >
             {children}
