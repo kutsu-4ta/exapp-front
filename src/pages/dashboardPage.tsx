@@ -448,7 +448,7 @@ export default function DashboardPage() {
                 <SubjectStatus
                     subjectTouched={subjectTouched}
                     subjectMinutes={stats?.subjectMinutes ?? []}
-                    thisMonthSubjectMinutes={stats?.thisMonthSubjectMinutes ?? []}
+                    allSubjectMinutes={stats?.allSubjectMinutes ?? []}
                     todaySubjectMinutes={todaySubjects}
                 />
                 <FailureAnalysisSection problems={problems} subjects={subjects} />

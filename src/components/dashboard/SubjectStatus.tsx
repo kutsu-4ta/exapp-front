@@ -11,14 +11,14 @@ type MinuteEntry = { subject: string; minutes: number }
 type Props = {
     subjectTouched: SubjectEntry[]
     subjectMinutes: MinuteEntry[]
-    thisMonthSubjectMinutes?: MinuteEntry[]
+    allSubjectMinutes?: MinuteEntry[]
     todaySubjectMinutes?: MinuteEntry[]
 }
 
 export function SubjectStatus({
     subjectTouched,
     subjectMinutes,
-    thisMonthSubjectMinutes = [],
+    allSubjectMinutes = [],
     todaySubjectMinutes = [],
 }: Props) {
     const navigate = useNavigate()
@@ -26,8 +26,8 @@ export function SubjectStatus({
     const [period, setPeriod] = useState<Period>('all')
 
     const currentMinutes =
-        period === 'all'   ? subjectMinutes :
-        period === 'month' ? thisMonthSubjectMinutes :
+        period === 'all'   ? allSubjectMinutes :
+        period === 'month' ? subjectMinutes :
                              todaySubjectMinutes
 
     const minuteMap = Object.fromEntries(currentMinutes.map(s => [s.subject, s.minutes]))
