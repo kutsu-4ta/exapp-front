@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react"
-import { fetchStopwatch } from "../lib/api/stopwatch"
+import { fetchStopwatch, resetStopwatch } from "../lib/api/stopwatch"
 
 type TimerContextType = {
     time: number
@@ -16,11 +16,14 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     const [time, setTime] = useState(0)
     const [isActive, setIsActive] = useState(false)
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+    const timeRef = useRef(0)
 
-    // アプリ起動時に一度だけサーバー状態を同期する。
-    // setTime + setIsActive を同一 Promise callback 内で呼ぶことで
-    // React 18 の自動バッチングにより 1 回のレンダーにまとまり、
-    // 下の useEffect が正しい elapsed time を捕捉できる。
+    // timeRef を常に最新の time と同期させる
+    useEffect(() => {
+        timeRef.current = time
+    }, [time])
+
+    // アプリ起動時に一度だけサーバー状態を同期する
     useEffect(() => {
         fetchStopwatch()
             .then((res) => {
@@ -30,11 +33,10 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
             .catch(() => {})
     }, [])
 
-    // isActive が変化した render サイクルの time を捕捉して startTime を確定する。
-    // これにより setInterval のドリフトに依存せず経過時間を正確に計算できる。
+    // isActive 変化時、timeRef 経由で最新の elapsed を確実に捕捉する
     useEffect(() => {
         if (isActive) {
-            const startTime = Date.now() - time
+            const startTime = Date.now() - timeRef.current
             intervalRef.current = setInterval(() => {
                 setTime(Date.now() - startTime)
             }, 10)
@@ -44,12 +46,13 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current)
         }
-    }, [isActive]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isActive])
 
     const toggle = () => setIsActive((prev) => !prev)
     const reset = () => {
         setIsActive(false)
         setTime(0)
+        resetStopwatch().catch(() => {})
     }
 
     return (

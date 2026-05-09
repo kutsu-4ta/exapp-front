@@ -20,3 +20,8 @@ export async function stopStopwatch(): Promise<void> {
     const res = await apiFetch('/api/stopwatch/stop', { method: 'POST' })
     if (!res.ok) throw new Error('停止に失敗しました')
 }
+
+export async function resetStopwatch(): Promise<void> {
+    const res = await apiFetch('/api/stopwatch/reset', { method: 'POST' })
+    if (!res.ok) throw new Error('リセットに失敗しました')
+}
