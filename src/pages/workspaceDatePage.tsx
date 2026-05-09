@@ -19,13 +19,13 @@ import {Suspense, useCallback, useEffect, useRef, useState} from "react";
 import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget.tsx";
 import {LoadingSpinner} from "@/components/common/LoadingSpinner.tsx";
 import { useTimer } from '@/context/TimerContext.tsx'
+import { getCached, setCached, invalidateCache } from '../lib/pageCache'
 
 function triggerTaptic(ms = 15) {
     if (navigator.vibrate) {
         navigator.vibrate(ms)
         return
     }
-    // iOS Safari: programmatic checkbox click triggers selection haptic in user-gesture context
     try {
         const el = document.createElement('input')
         el.setAttribute('type', 'checkbox')
@@ -35,6 +35,96 @@ function triggerTaptic(ms = 15) {
         el.remove()
     } catch { /* silent */ }
 }
+
+// ── スケルトン ────────────────────────────────────────────────────────────────
+
+function SkeletonBlock({ w, h, radius = 6 }: { w: number | string; h: number; radius?: number }) {
+    return (
+        <div style={{
+            width: w, height: h, borderRadius: radius,
+            backgroundColor: 'rgba(55,53,47,0.08)',
+            animation: 'wsSkeleton 1.4s ease-in-out infinite',
+            flexShrink: 0,
+        }} />
+    )
+}
+
+function WorkspaceSkeleton({ onBack }: { onBack: () => void }) {
+    return (
+        <>
+            <style>{`@keyframes wsSkeleton{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+            <div style={pageWrapper}>
+                <div style={content}>
+                    <nav>
+                        <button style={backBtn} onClick={onBack}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                strokeWidth="3" style={{marginRight: '6px'}}>
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                            Back
+                        </button>
+                    </nav>
+
+                    {/* DayHeader skeleton */}
+                    <div style={{ marginBottom: '32px', paddingTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <SkeletonBlock w={24} h={24} radius={4} />
+                                <SkeletonBlock w={160} h={26} />
+                            </div>
+                            <SkeletonBlock w={72} h={24} radius={12} />
+                        </div>
+                        <div style={{ borderTop: '1px solid rgba(55,53,47,0.08)', borderBottom: '1px solid rgba(55,53,47,0.08)', padding: '16px 0' }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '12px' }}>
+                                <SkeletonBlock w={85} h={12} />
+                                <SkeletonBlock w={60} h={18} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <SkeletonBlock w={80} h={24} radius={4} />
+                                <SkeletonBlock w={80} h={24} radius={4} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CONTENT skeleton */}
+                    <section style={section}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                            <SkeletonBlock w={12} h={12} radius={2} />
+                            <SkeletonBlock w={72} h={12} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {[90, 72, 80].map((w, i) => (
+                                <div key={i} style={{ padding: '16px', borderRadius: '8px', border: '1px solid rgba(55,53,47,0.08)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <SkeletonBlock w={`${w}%`} h={14} />
+                                    <SkeletonBlock w="50%" h={12} />
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* REFLECTION skeleton */}
+                    <section style={{ ...reflectionWrapper }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                            <SkeletonBlock w={12} h={12} radius={2} />
+                            <SkeletonBlock w={88} h={12} />
+                        </div>
+                        <SkeletonBlock w="100%" h={100} radius={8} />
+                    </section>
+                </div>
+            </div>
+
+            <div style={bottomBar}>
+                <div style={bottomBarContainer}>
+                    <button style={{ ...completeBtn, opacity: 0.4, cursor: 'default' }} disabled>
+                        Complete
+                    </button>
+                </div>
+            </div>
+        </>
+    )
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function WorkspaceDatePage() {
     return (
@@ -57,7 +147,6 @@ function WorkspaceDateContent() {
     const initialMaterial = searchParams.get('material') ?? undefined
 
     const { reset: resetTimer } = useTimer()
-    // ストップウォッチ経由の場合のみ、初回セッション保存後にリセット
     const fromStopwatch = !!initialMinutes
     const stopwatchResetDone = useRef(false)
 
@@ -70,21 +159,31 @@ function WorkspaceDateContent() {
     const [deleteError, setDeleteError] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
 
-    // 初期データ取得
+    // 初期データ取得（キャッシュヒット時は即表示 → バックグラウンド再フェッチ）
     useEffect(() => {
         if (!date) return
-            ;
-        (async () => {
+        const cacheKey = `workspace-log-${date}`
+
+        const cached = getCached<DailyLog>(cacheKey)
+        if (cached) {
+            setLog(cached)
+            setLoading(false)
+        }
+
+        ;(async () => {
             try {
                 const logData = await fetchDailyLog(date).then((d) => d ?? createDailyLog(date))
                 setLog(logData)
+                setCached(cacheKey, logData)
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました')
+                if (!cached) setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました')
             } finally {
                 setLoading(false)
             }
         })()
     }, [date])
+
+    // ── Mutation handlers（すべてキャッシュを最新状態に更新）────────────────
 
     const handleComplete = useCallback(async () => {
         if (!date) return
@@ -93,6 +192,7 @@ function WorkspaceDateContent() {
         try {
             const updatedLog = await completeDailyLog(date)
             setLog(updatedLog)
+            setCached(`workspace-log-${date}`, updatedLog)
         } finally {
             setActionLoading(false)
         }
@@ -105,6 +205,7 @@ function WorkspaceDateContent() {
         try {
             const updatedLog = await uncompleteDailyLog(date)
             setLog(updatedLog)
+            setCached(`workspace-log-${date}`, updatedLog)
         } finally {
             setActionLoading(false)
         }
@@ -116,6 +217,7 @@ function WorkspaceDateContent() {
         setDeleteError(null)
         try {
             await deleteDailyLog(date)
+            invalidateCache(`workspace-log-${date}`)
             navigate('/workspace/daily-logs', {replace: true})
         } catch (err) {
             setDeleteError(err instanceof Error ? err.message : '削除に失敗しました')
@@ -125,34 +227,49 @@ function WorkspaceDateContent() {
 
     const handleAddSession = useCallback(async (input: any) => {
         const newSession = await addStudySession(input)
-        setLog(prev => prev ? {
-            ...prev,
-            studySessions: [...prev.studySessions, newSession]
-        } : null)
+        setLog(prev => {
+            if (!prev) return null
+            const updated = { ...prev, studySessions: [...prev.studySessions, newSession] }
+            setCached(`workspace-log-${date}`, updated)
+            return updated
+        })
         if (fromStopwatch && !stopwatchResetDone.current) {
             stopwatchResetDone.current = true
             resetTimer()
         }
         return newSession
-    }, [fromStopwatch, resetTimer])
+    }, [date, fromStopwatch, resetTimer])
 
     const handleUpdateSession = useCallback(async (id: number, input: any) => {
         const updated = await updateStudySession(id, input)
-        setLog(prev => prev ? {
-            ...prev,
-            studySessions: prev.studySessions.map(s => s.id === id ? updated : s)
-        } : null)
-    }, [])
+        setLog(prev => {
+            if (!prev) return null
+            const next = { ...prev, studySessions: prev.studySessions.map(s => s.id === id ? updated : s) }
+            setCached(`workspace-log-${date}`, next)
+            return next
+        })
+    }, [date])
 
     const handleDeleteSession = useCallback(async (id: number) => {
         await deleteStudySession(id)
-        setLog(prev => prev ? {
-            ...prev,
-            studySessions: prev.studySessions.filter(s => s.id !== id)
-        } : null)
-    }, [])
+        setLog(prev => {
+            if (!prev) return null
+            const next = { ...prev, studySessions: prev.studySessions.filter(s => s.id !== id) }
+            setCached(`workspace-log-${date}`, next)
+            return next
+        })
+    }, [date])
 
-    if (loading) return <LoadingSpinner fullPage />
+    const handleSaveReflection = useCallback(async (text: string) => {
+        if (!log || !date) return
+        const updatedLog = await updateReflection(log.date, text)
+        setLog(updatedLog)
+        setCached(`workspace-log-${date}`, updatedLog)
+    }, [log, date])
+
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    if (loading) return <WorkspaceSkeleton onBack={() => navigate(-1)} />
     if (error || !log) return <div style={fullPageCenter}><p style={errorText}>{error}</p></div>
 
     return (
@@ -171,7 +288,6 @@ function WorkspaceDateContent() {
 
                     <DayHeader log={log}/>
 
-                    {/* Complete時は非表示にする */}
                     {!log.isCompleted && (
                         <StopWatchWidget/>
                     )}
@@ -210,10 +326,7 @@ function WorkspaceDateContent() {
                         <DayReflection
                             value={log.reflection}
                             readonly={log.isCompleted}
-                            onSave={async (t) => {
-                                const updatedLog = await updateReflection(log.date, t)
-                                setLog(updatedLog)
-                            }}
+                            onSave={handleSaveReflection}
                         />
                     </section>
 
@@ -248,7 +361,6 @@ function WorkspaceDateContent() {
                 </div>
             </div>
 
-            {/* 固定ボトムアクションバー: BottomNavの上に配置 */}
             <div style={bottomBar}>
                 <div style={bottomBarContainer}>
                     {log.isCompleted ? (
@@ -283,7 +395,6 @@ const content: React.CSSProperties = {
     width: '100%',
     maxWidth: '720px',
     margin: '0 auto',
-    // ボトムバー(約80px) + BottomNav(56px) + 余白を考慮
     padding: '20px 20px 180px'
 }
 
@@ -390,7 +501,6 @@ const errorText: React.CSSProperties = {color: '#eb5757', fontSize: '14px', font
 
 const bottomBar: React.CSSProperties = {
     position: 'fixed',
-    // BottomNav(56px + safe-area) のすぐ上に配置されるように計算
     bottom: 'calc(56px + env(safe-area-inset-bottom))',
     left: 0,
     right: 0,
@@ -399,7 +509,7 @@ const bottomBar: React.CSSProperties = {
     backdropFilter: 'blur(10px)',
     WebkitBackdropFilter: 'blur(10px)',
     borderTop: '1px solid rgba(55, 53, 47, 0.08)',
-    zIndex: 900, // BottomNav(1000)より背面に設定して重なりを整理
+    zIndex: 900,
 }
 
 const bottomBarContainer: React.CSSProperties = {
