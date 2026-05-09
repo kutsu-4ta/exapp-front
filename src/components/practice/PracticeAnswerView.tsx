@@ -16,8 +16,8 @@ import {
 } from './PracticeAnswerView.styles'
 import { AddProblemModal } from '@/components/weak/AddProblemModal.tsx'
 import { addProblem } from '@/lib/api/problem.ts'
-import { fetchSubCategories } from '@/lib/api/subcategory.ts'
-import type { ProblemInput, SubCategory } from '@/types/workspace.ts'
+import type { ProblemInput } from '@/types/workspace.ts'
+import { useSettingsStore } from '@/lib/store/settings.ts'
 
 type ViewPhase = 'input' | 'confirm'
 
@@ -89,8 +89,7 @@ export function PracticeAnswerView({
         })
     )
     const [showModal, setShowModal] = useState(false)
-    const [subCategories, setSubCategories] = useState<SubCategory[]>([])
-    const [subCatFetched, setSubCatFetched] = useState(false)
+    const subCategories = useSettingsStore((s) => s.subCategories)
 
     // 設問が追加/削除されたとき
     useEffect(() => {
@@ -146,13 +145,7 @@ export function PracticeAnswerView({
         return parts.join('\n\n')
     }
 
-    const handleOpenModal = async () => {
-        if (!subCatFetched) {
-            try { setSubCategories(await fetchSubCategories()) } catch { /* ignore */ }
-            setSubCatFetched(true)
-        }
-        setShowModal(true)
-    }
+    const handleOpenModal = () => setShowModal(true)
 
     // 新規作成API
     const handleAddProblem = async (input: ProblemInput) => {

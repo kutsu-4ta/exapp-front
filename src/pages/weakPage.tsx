@@ -1,16 +1,14 @@
 import { FAILURE_TYPE_VALUES, PROFICIENCY_VALUES } from "../types/workspace";
 import type { Problem } from "../types/workspace";
-import type { FailureType, ProblemInput, Proficiency, SubCategory } from "../types/workspace";
-
+import type { FailureType, ProblemInput, Proficiency } from "../types/workspace";
 import { useSettingsStore } from '../lib/store/settings';
 import { ProblemCard } from "../components/weak/ProblemCard";
 import { ProblemQuickModal } from "../components/weak/ProblemQuickModal";
 import { addProblem, fetchProblems } from "../lib/api/problem"
-import { getCached, setCached, invalidateCache } from "../lib/pageCache";
+import { getCached, setCached, invalidateCache } from "../lib/pageCache"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FilterPill } from "../components/weak/FilterPill";
 import { AddProblemModal } from "../components/weak/AddProblemModal";
-import { fetchSubCategories } from "../lib/api/subcategory";
 import { c, font, pageHeading } from "../styles/notion";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
@@ -18,8 +16,8 @@ const PAGE_SIZE = 5
 
 export default function WeakPage() {
     const subjects = useSettingsStore((s) => s.subjects)
+    const subCategories = useSettingsStore((s) => s.subCategories)
     const [problems, setProblems] = useState<Problem[]>([])
-    const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [initialLoading, setInitialLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
     const [hasMore, setHasMore] = useState(true)
@@ -35,21 +33,17 @@ export default function WeakPage() {
 
     // 初回ロード
     useEffect(() => {
-        const cachedProblems = getCached<Problem[]>('weak-problems-initial')
-        const cachedSubCats = getCached<SubCategory[]>('weak-subcategories')
-        if (cachedProblems && cachedSubCats) {
-            setProblems(cachedProblems)
-            setSubCategories(cachedSubCats)
-            setHasMore(cachedProblems.length === PAGE_SIZE)
+        const cached = getCached<Problem[]>('weak-problems-initial')
+        if (cached) {
+            setProblems(cached)
+            setHasMore(cached.length === PAGE_SIZE)
             setInitialLoading(false)
         }
-        Promise.all([fetchProblems(PAGE_SIZE), fetchSubCategories()])
-            .then(([p, sc]) => {
+        fetchProblems(PAGE_SIZE)
+            .then((p) => {
                 setProblems(p)
-                setSubCategories(sc)
                 setHasMore(p.length === PAGE_SIZE)
                 setCached('weak-problems-initial', p)
-                setCached('weak-subcategories', sc)
             })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setInitialLoading(false))

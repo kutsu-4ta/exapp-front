@@ -18,7 +18,6 @@ export default function SubjectPage() {
     const setSubjects = useSettingsStore((s) => s.setSubjects)
     const subCategories = useSettingsStore((s) => s.subCategories)
     const setSubCategories = useSettingsStore((s) => s.setSubCategories)
-    const loadSubCategories = useSettingsStore((s) => s.loadSubCategories)
 
     const items = subCategories.filter((sc) => sc.subject === subjectName)
 
@@ -28,9 +27,6 @@ export default function SubjectPage() {
         }
     }, [subjects, subjectName])
 
-    useEffect(() => {
-        if (subCategories.length === 0) loadSubCategories()
-    }, [])
 
     // ── Title Inline Rename ──────────────────────────────────────────────────
     const [titleValue, setTitleValue] = useState(subjectName)

@@ -13,8 +13,8 @@ import {DayHeader} from "../components/workspace/DayHeader";
 import {DayReflection} from "../components/workspace/DayReflection";
 import {StudyBlockList} from "../components/workspace/StudyBlockList";
 import {useNavigate, useParams, useSearchParams} from "react-router-dom";
-import {fetchSubCategories} from "../lib/api/subcategory";
-import type {DailyLog, SubCategory} from "../types/workspace";
+import type {DailyLog} from "../types/workspace";
+import { useSettingsStore } from '../lib/store/settings';
 import {Suspense, useCallback, useEffect, useRef, useState} from "react";
 import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget.tsx";
 import {LoadingSpinner} from "@/components/common/LoadingSpinner.tsx";
@@ -61,8 +61,8 @@ function WorkspaceDateContent() {
     const fromStopwatch = !!initialMinutes
     const stopwatchResetDone = useRef(false)
 
+    const subCategories = useSettingsStore((s) => s.subCategories)
     const [log, setLog] = useState<DailyLog | null>(null)
-    const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
     const [deleteLoading, setDeleteLoading] = useState(false)
@@ -76,12 +76,8 @@ function WorkspaceDateContent() {
             ;
         (async () => {
             try {
-                const [logData, subCats] = await Promise.all([
-                    fetchDailyLog(date).then((d) => d ?? createDailyLog(date)),
-                    fetchSubCategories(),
-                ])
+                const logData = await fetchDailyLog(date).then((d) => d ?? createDailyLog(date))
                 setLog(logData)
-                setSubCategories(subCats)
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました')
             } finally {

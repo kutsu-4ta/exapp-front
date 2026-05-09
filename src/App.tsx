@@ -32,10 +32,12 @@ function PrivateRoute() {
 function AppLayout() {
     const loadSubjects = useSettingsStore((s) => s.loadSubjects)
     const loadMaterials = useSettingsStore((s) => s.loadMaterials)
+    const loadSubCategories = useSettingsStore((s) => s.loadSubCategories)
 
     useEffect(() => {
         loadSubjects()
         loadMaterials()
+        loadSubCategories()
     }, [])
 
     return (

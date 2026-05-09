@@ -15,6 +15,9 @@ interface SettingsState {
   materials: string[]
   subCategories: SubCategory[]
   alertSettings: AlertSettings
+  subjectsLoaded: boolean
+  materialsLoaded: boolean
+  subCategoriesLoaded: boolean
   setSubjects: (subjects: string[]) => void
   setMaterials: (materials: string[]) => void
   setSubCategories: (subCategories: SubCategory[]) => void
@@ -25,35 +28,41 @@ interface SettingsState {
   loadAlertSettings: () => Promise<void>
 }
 
-export const useSettingsStore = create<SettingsState>()((set) => ({
+export const useSettingsStore = create<SettingsState>()((set, get) => ({
   subjects: [],
   materials: [],
   subCategories: [],
   alertSettings: DEFAULT_ALERT_SETTINGS,
+  subjectsLoaded: false,
+  materialsLoaded: false,
+  subCategoriesLoaded: false,
   setSubjects: (subjects) => set({ subjects }),
   setMaterials: (materials) => set({ materials }),
   setSubCategories: (subCategories) => set({ subCategories }),
   setAlertSettings: (alertSettings) => set({ alertSettings }),
   loadSubjects: async () => {
+    if (get().subjectsLoaded) return
     try {
       const subjects = await fetchSubjects()
-      set({ subjects })
+      set({ subjects, subjectsLoaded: true })
     } catch {
       // silent fail
     }
   },
   loadMaterials: async () => {
+    if (get().materialsLoaded) return
     try {
       const materials = await fetchMaterials()
-      set({ materials })
+      set({ materials, materialsLoaded: true })
     } catch {
       // silent fail
     }
   },
   loadSubCategories: async () => {
+    if (get().subCategoriesLoaded) return
     try {
       const subCategories = await fetchSubCategories()
-      set({ subCategories })
+      set({ subCategories, subCategoriesLoaded: true })
     } catch {
       // silent fail
     }

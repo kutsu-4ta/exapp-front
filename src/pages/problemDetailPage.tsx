@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Problem, ProblemInput, SubCategory } from '../types/workspace'
+import type { Problem, ProblemInput } from '../types/workspace'
 import { formatDate, daysAgo } from '../types/workspace'
 import { fetchProblem, updateProblem, deleteProblem } from '../lib/api/problem'
-import { fetchSubCategories } from '../lib/api/subcategory'
 import { ProblemForm } from '../components/weak/ProblemForm'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { c, font } from '../styles/notion'
+import { useSettingsStore } from '../lib/store/settings'
 
 export default function ProblemDetailPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
+    const subCategories = useSettingsStore((s) => s.subCategories)
     const [problem, setProblem] = useState<Problem | null>(null)
-    const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [editing, setEditing] = useState(false)
@@ -21,8 +21,8 @@ export default function ProblemDetailPage() {
 
     useEffect(() => {
         if (!id) return
-        Promise.all([fetchProblem(Number(id)), fetchSubCategories()])
-            .then(([p, sc]) => { setProblem(p); setSubCategories(sc) })
+        fetchProblem(Number(id))
+            .then((p) => setProblem(p))
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setLoading(false))
     }, [id])

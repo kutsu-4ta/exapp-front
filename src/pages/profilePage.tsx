@@ -13,10 +13,8 @@ export default function ProfilePage() {
     const user = useAuthStore((state) => state.user)
     const clearAuth = useAuthStore((state) => state.logout)
 
-    const loadSubjects = useSettingsStore((s) => s.loadSubjects)
     const materials = useSettingsStore((s) => s.materials)
     const setMaterials = useSettingsStore((s) => s.setMaterials)
-    const loadMaterials = useSettingsStore((s) => s.loadMaterials)
     const alertSettings = useSettingsStore((s) => s.alertSettings)
     const setAlertSettings = useSettingsStore((s) => s.setAlertSettings)
     const loadAlertSettings = useSettingsStore((s) => s.loadAlertSettings)
@@ -78,8 +76,6 @@ export default function ProfilePage() {
         };
 
         loadProfile();
-        loadSubjects();
-        loadMaterials();
         loadAlertSettings();
     }, []);
 
