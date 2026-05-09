@@ -1,37 +1,77 @@
-import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from "../types/workspace";
+import { FAILURE_TYPE_VALUES, PROFICIENCY_VALUES } from "../types/workspace";
 import type { Problem } from "../types/workspace";
-import type {FailureType, ProblemInput, Proficiency, SubCategory} from "../types/workspace";
+import type { FailureType, ProblemInput, Proficiency, SubCategory } from "../types/workspace";
 
 import { useSettingsStore } from '../lib/store/settings';
-import {ProblemCard} from "../components/weak/ProblemCard";
-import {addProblem, fetchProblems} from "../lib/api/problem";
-import {useCallback, useEffect, useMemo, useState} from "react";
-import {useNavigate} from "react-router-dom";
-import {FilterPill} from "../components/weak/FilterPill";
-import {AddProblemModal} from "../components/weak/AddProblemModal";
-import {fetchSubCategories} from "../lib/api/subcategory";
-import {c, font, pageHeading} from "../styles/notion";
-import {LoadingSpinner} from "../components/common/LoadingSpinner";
+import { ProblemCard } from "../components/weak/ProblemCard";
+import { addProblem, fetchProblems } from "../lib/api/problem";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FilterPill } from "../components/weak/FilterPill";
+import { AddProblemModal } from "../components/weak/AddProblemModal";
+import { fetchSubCategories } from "../lib/api/subcategory";
+import { c, font, pageHeading } from "../styles/notion";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
+
+const PAGE_SIZE = 30
 
 export default function WeakPage() {
     const navigate = useNavigate()
     const subjects = useSettingsStore((s) => s.subjects)
     const [problems, setProblems] = useState<Problem[]>([])
     const [subCategories, setSubCategories] = useState<SubCategory[]>([])
-    const [loading, setLoading] = useState(true)
+    const [initialLoading, setInitialLoading] = useState(true)
+    const [loadingMore, setLoadingMore] = useState(false)
+    const [hasMore, setHasMore] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [showAddForm, setShowAddForm] = useState(false)
+
+    const sentinelRef = useRef<HTMLDivElement>(null)
 
     const [filterSubject, setFilterSubject] = useState<string>('all')
     const [filterProficiency, setFilterProficiency] = useState<Proficiency | 'all'>('all')
     const [filterFailureType, setFilterFailureType] = useState<FailureType | 'all'>('all')
 
+    // 初回ロード
     useEffect(() => {
-        Promise.all([fetchProblems(), fetchSubCategories()])
-            .then(([p, sc]) => { setProblems(p); setSubCategories(sc) })
+        Promise.all([fetchProblems(PAGE_SIZE), fetchSubCategories()])
+            .then(([p, sc]) => {
+                setProblems(p)
+                setSubCategories(sc)
+                setHasMore(p.length === PAGE_SIZE)
+            })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
-            .finally(() => setLoading(false))
+            .finally(() => setInitialLoading(false))
     }, [])
+
+    // 追加ロード
+    const loadMore = useCallback(async () => {
+        if (loadingMore || !hasMore) return
+        const last = problems[problems.length - 1]
+        if (!last) return
+        setLoadingMore(true)
+        try {
+            const more = await fetchProblems(PAGE_SIZE, last.id)
+            setProblems((prev) => [...prev, ...more])
+            setHasMore(more.length === PAGE_SIZE)
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setLoadingMore(false)
+        }
+    }, [problems, loadingMore, hasMore])
+
+    // IntersectionObserver
+    useEffect(() => {
+        const el = sentinelRef.current
+        if (!el) return
+        const observer = new IntersectionObserver(
+            (entries) => { if (entries[0].isIntersecting) loadMore() },
+            { threshold: 0.1 },
+        )
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [loadMore])
 
     const handleAdd = useCallback(async (input: ProblemInput) => {
         const p = await addProblem(input)
@@ -53,6 +93,8 @@ export default function WeakPage() {
             items: filtered.filter((p) => p.subject === s),
         })).filter((g) => g.items.length > 0)
     }, [problems, filterSubject, filterProficiency, filterFailureType, subjects])
+
+    if (initialLoading) return <LoadingSpinner fullPage />
 
     return (
         <div style={container}>
@@ -81,9 +123,10 @@ export default function WeakPage() {
             <div style={mainContent}>
                 {showAddForm && <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} subCategories={subCategories} />}
 
-                {loading && <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}><LoadingSpinner /></div>}
                 {error && <p style={errorText}>{error}</p>}
-                {!loading && grouped.length === 0 && <div style={emptyState}><p style={mutedText}>該当する問題は見つかりませんでした</p></div>}
+                {!initialLoading && grouped.length === 0 && (
+                    <div style={emptyState}><p style={mutedText}>該当する問題は見つかりませんでした</p></div>
+                )}
 
                 {grouped.map(({ subject, items }) => (
                     <section key={subject} style={section}>
@@ -98,6 +141,17 @@ export default function WeakPage() {
                         </div>
                     </section>
                 ))}
+
+                <div ref={sentinelRef} style={sentinel}>
+                    {loadingMore && (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
+                            <LoadingSpinner size="sm" />
+                        </div>
+                    )}
+                    {!hasMore && problems.length > 0 && (
+                        <span style={sentinelText}>すべて表示しました</span>
+                    )}
+                </div>
             </div>
 
             {!showAddForm && (
@@ -156,3 +210,5 @@ const fab: React.CSSProperties = {
 const mutedText: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.4)', textAlign: 'center', marginTop: '60px', fontSize: font.base }
 const errorText: React.CSSProperties = { color: c.red, textAlign: 'center', padding: '2rem', fontSize: font.base }
 const emptyState: React.CSSProperties = { padding: '60px 0' }
+const sentinel: React.CSSProperties = { padding: '16px', textAlign: 'center', minHeight: '1px' }
+const sentinelText: React.CSSProperties = { fontSize: '12px', color: 'rgba(55, 53, 47, 0.4)' }
