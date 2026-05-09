@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { QuestionDraft, Rank } from '@/types/exam.ts'
 import { ANSWER_OPTIONS, RANKS } from '@/types/exam.ts'
 import { DoubtIcon } from '@/lib/icon/DoubtIcon.tsx'
-import { c, font } from '@/styles/notion.ts'
+import { c } from '@/styles/notion.ts'
 import {
     wrap, parentHeader, qLabel, subBtnRow, addSubBtn,
     subRowOuter, sideControl, sideBtn, block, qBlock, subLabel,

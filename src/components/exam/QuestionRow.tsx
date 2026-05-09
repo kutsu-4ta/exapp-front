@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { ANSWER_OPTIONS, RANKS } from '../../types/exam'
-import type { QuestionDraft, Rank } from '../../types/exam'
+import type { QuestionDraft } from '../../types/exam'
 import { DoubtIcon } from '@/lib/icon/DoubtIcon.tsx'
-import { c, font } from '@/styles/notion.ts'
+import { c } from '@/styles/notion.ts'
 import {
     rankColors, questionItem, parentStyle, subStyle,
     sideControl, sideBtn, layoutContainer, qNumberHeader, controlsContent,
