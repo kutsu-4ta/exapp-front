@@ -22,6 +22,8 @@ export function DayHeader({ log }: Props) {
         return acc
     }, {})
 
+    const totalMinutes = log.studySessions.reduce((sum, s) => sum + s.minutes, 0)
+
     return (
         <div style={headerContainer}>
             <div style={titleRow}>
@@ -40,7 +42,7 @@ export function DayHeader({ log }: Props) {
             <div style={metaRow}>
                 <div style={mainStat}>
                     <span style={labelStyle}>Total time</span>
-                    <span style={valueStyle}>{formatMinutes(log.totalMinutes)}</span>
+                    <span style={valueStyle}>{formatMinutes(totalMinutes)}</span>
                 </div>
 
                 {Object.keys(subjectTotals).length > 0 && (
