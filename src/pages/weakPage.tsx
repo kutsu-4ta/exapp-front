@@ -12,6 +12,25 @@ import { AddProblemModal } from "../components/weak/AddProblemModal";
 import { c, font, pageHeading } from "../styles/notion";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
+function SkeletonCard() {
+    return (
+        <div style={skeletonCard}>
+            <style>{`@keyframes weakSkeleton{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+            <div style={skRow}>
+                <div style={{ ...sk, width: 72, height: 14 }} />
+                <div style={{ ...sk, width: 52, height: 12 }} />
+                <div style={{ ...sk, width: 44, height: 12 }} />
+            </div>
+            <div style={{ ...sk, width: '90%', height: 14 }} />
+            <div style={{ ...sk, width: '65%', height: 14 }} />
+            <div style={skRow}>
+                <div style={{ ...sk, width: 56, height: 12 }} />
+                <div style={{ ...sk, width: 72, height: 12 }} />
+            </div>
+        </div>
+    )
+}
+
 const PAGE_SIZE = 5
 
 export default function WeakPage() {
@@ -111,8 +130,6 @@ export default function WeakPage() {
         })).filter((g) => g.items.length > 0)
     }, [problems, filterSubject, filterProficiency, filterFailureType, subjects])
 
-    if (initialLoading) return <LoadingSpinner fullPage />
-
     return (
         <div style={container}>
             <div style={stickyHeader}>
@@ -141,6 +158,13 @@ export default function WeakPage() {
                 {showAddForm && <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} subCategories={subCategories} />}
 
                 {error && <p style={errorText}>{error}</p>}
+
+                {initialLoading && !error && (
+                    <div>
+                        {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+                    </div>
+                )}
+
                 {!initialLoading && grouped.length === 0 && (
                     <div style={emptyState}><p style={mutedText}>該当する問題は見つかりませんでした</p></div>
                 )}
@@ -239,3 +263,13 @@ const errorText: React.CSSProperties = { color: c.red, textAlign: 'center', padd
 const emptyState: React.CSSProperties = { padding: '60px 0' }
 const sentinel: React.CSSProperties = { padding: '16px', textAlign: 'center', minHeight: '1px' }
 const sentinelText: React.CSSProperties = { fontSize: '12px', color: 'rgba(55, 53, 47, 0.4)' }
+const skeletonCard: React.CSSProperties = {
+    padding: '16px', marginBottom: '12px', borderRadius: '16px',
+    backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.08)',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '10px',
+}
+const skRow: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center' }
+const sk: React.CSSProperties = {
+    borderRadius: '4px', backgroundColor: 'rgba(55,53,47,0.08)',
+    animation: 'weakSkeleton 1.4s ease-in-out infinite',
+}
