@@ -4,6 +4,13 @@ import type { ExamSession, QuestionDraft, ExamQuestionInput, Rank } from '../../
 import { QuestionRow } from './QuestionRow'
 import { useTimer } from '../../context/TimerContext'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
+import {
+    container, stickyHeader, headerTopRow, metaArea, subjTxt, yearTxt,
+    statsBadge, statItem, dotO, dotX, scoreGrid, scoreCell, scoreLab,
+    scoreVal, scoreValPure, scoreVLine, contentBody, setupRow,
+    autoCompleteInput, yearInput, gridContainer, footer, footerActionGroup,
+    finishBtn, saveBtn, examBackBtn,
+} from './ExamInputView.styles'
 
 type ExamDraft = {
   sessionId: number
@@ -369,12 +376,12 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
       <footer style={footer}>
         {!isScoring ? (
           <div style={footerActionGroup}>
-            <button style={backBtn} onClick={handleCancel}>キャンセル</button>
+            <button style={examBackBtn} onClick={handleCancel}>キャンセル</button>
             <button style={finishBtn} onClick={handleFinishExam}>試験終了（採点へ）</button>
           </div>
         ) : (
           <div style={footerActionGroup}>
-            <button style={backBtn} onClick={() => setIsScoring(false)}>解答を修正する</button>
+            <button style={examBackBtn} onClick={() => setIsScoring(false)}>解答を修正する</button>
             <button style={saveBtn} onClick={handleSave} disabled={saving}>
               {saving ? '保存中...' : '保存して実績を確認'}
             </button>
@@ -386,29 +393,3 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
 }
 
 // ── Styles ──
-const container: React.CSSProperties = { maxWidth: '600px', margin: '0 auto', padding: '0 16px', color: '#37352f' }
-const stickyHeader: React.CSSProperties = { position: 'sticky', top: 0, zIndex: 1000, backgroundColor: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #eee', margin: '0 -16px 20px', padding: '12px 20px' }
-const headerTopRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }
-const metaArea: React.CSSProperties = { flex: 1 }
-const subjTxt: React.CSSProperties = { fontSize: '12px', fontWeight: 900 }
-const yearTxt: React.CSSProperties = { fontSize: '10px', color: '#888', fontWeight: 700 }
-const statsBadge: React.CSSProperties = { display: 'flex', gap: '10px', backgroundColor: '#f4f4f3', padding: '4px 12px', borderRadius: '20px' }
-const statItem: React.CSSProperties = { fontSize: '11px', fontWeight: 800 }
-const dotO: React.CSSProperties = { color: '#2383e2' }
-const dotX: React.CSSProperties = { color: '#eb5757' }
-const scoreGrid: React.CSSProperties = { display: 'flex', alignItems: 'center', paddingBottom: '8px' }
-const scoreCell: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }
-const scoreLab: React.CSSProperties = { fontSize: '9px', fontWeight: 800, color: '#aaa' }
-const scoreVal: React.CSSProperties = { fontSize: '32px', fontWeight: 900 }
-const scoreValPure: React.CSSProperties = { fontSize: '32px', fontWeight: 900, color: '#19a576' }
-const scoreVLine: React.CSSProperties = { width: '1px', height: '30px', backgroundColor: '#eee' }
-const contentBody: React.CSSProperties = { paddingTop: '10px' }
-const setupRow: React.CSSProperties = { display: 'flex', gap: '8px', marginBottom: '24px' }
-const autoCompleteInput: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', fontWeight: 600, boxSizing: 'border-box' }
-const yearInput: React.CSSProperties = { width: '60px', padding: '8px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', textAlign: 'center' }
-const gridContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' }
-const footer: React.CSSProperties = { marginTop: '40px', paddingBottom: '40px' }
-const footerActionGroup: React.CSSProperties = { display: 'flex', gap: '10px' }
-const finishBtn: React.CSSProperties = { flex: 2, padding: '16px', backgroundColor: '#2383e2', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }
-const saveBtn: React.CSSProperties = { flex: 2, padding: '16px', backgroundColor: '#37352f', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }
-const backBtn: React.CSSProperties = { flex: 1, padding: '16px', backgroundColor: '#fff', color: '#37352f', border: '1px solid #eee', borderRadius: '12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }

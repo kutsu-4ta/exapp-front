@@ -6,7 +6,7 @@ export function FilterPill({ active, onClick, children }: Props) {
     return (
         <button type="button" onClick={onClick} style={{
             ...base,
-            backgroundColor: active ? '#edeae6' : 'transparent',
+            backgroundColor: active ? 'rgba(55, 53, 47, 0.08)' : 'transparent',
             color: active ? c.text : c.textSub,
             fontWeight: active ? 600 : 400,
         }}>

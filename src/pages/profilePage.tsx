@@ -5,7 +5,7 @@ import { useSettingsStore } from '../lib/store/settings'
 import { logout as apiLogout } from '../lib/api/authenticate'
 import { renameMaterial, deleteMaterial } from '../lib/api/materials'
 import { updateAlertSettings } from '../lib/api/alertSettings'
-import { backBtn, c, font } from '../styles/notion'
+import { backBtn, c, font, pageHeading } from '../styles/notion'
 import { fetchUserProfile, updateUserProfile } from '@/lib/api/profile'
 
 export default function ProfilePage() {
@@ -212,7 +212,7 @@ export default function ProfilePage() {
                     </svg>
                     Back
                 </button>
-                <h1 style={heading}>プロフィール</h1>
+                <h1 style={pageHeading}>プロフィール</h1>
 
                 <div style={avatarWrap}>
                     <div style={avatar}>{initial}</div>
@@ -414,7 +414,6 @@ export default function ProfilePage() {
 
 const pageWrapper: React.CSSProperties = { backgroundColor: c.bg, minHeight: '100vh', color: c.text }
 const content: React.CSSProperties = { maxWidth: '480px', margin: '0 auto', padding: '48px 20px 120px' }
-const heading: React.CSSProperties = { fontSize: '20px', fontWeight: 700, marginBottom: '32px', letterSpacing: '-0.01em' }
 const avatarWrap: React.CSSProperties = { display: 'flex', justifyContent: 'center', marginBottom: '32px' }
 const avatar: React.CSSProperties = {
     width: '72px', height: '72px', borderRadius: '50%',

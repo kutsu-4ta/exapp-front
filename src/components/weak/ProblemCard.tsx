@@ -1,15 +1,15 @@
-import type {Problem, Proficiency} from "../../types/workspace";
-import {useNavigate} from "react-router-dom";
-
+import type { Problem, Proficiency } from "../../types/workspace";
+import { useNavigate } from "react-router-dom";
+import { c, font } from "../../styles/notion";
 
 type Props = {
   problem: Problem
 }
 
 const PROFICIENCY_STYLE: Record<Proficiency, { backgroundColor: string; color: string }> = {
-  '○': { backgroundColor: '#e8f5e2', color: '#3a7a2a' },
-  '△': { backgroundColor: '#fdf3df', color: '#c8860a' },
-  '×': { backgroundColor: '#fce8e6', color: '#c0392b' },
+  '○': { backgroundColor: '#e6f6eb', color: '#19a576' },
+  '△': { backgroundColor: '#fff5e0', color: '#f2ab26' },
+  '×': { backgroundColor: 'rgba(235, 87, 87, 0.08)', color: c.red },
 }
 
 export function ProblemCard({ problem }: Props) {
@@ -22,12 +22,12 @@ export function ProblemCard({ problem }: Props) {
       {/* Top row: subject chip + questionRef + proficiency badge + 良問 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
         <span style={subjectChip}>{problem.subject}</span>
-        <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1a1108', flex: 1 }}>
+        <span style={{ fontSize: font.base, fontWeight: 600, color: c.text, flex: 1 }}>
           {problem.questionRef}
         </span>
         <span style={{ ...badge, ...profStyle }}>{problem.proficiency}</span>
         {problem.isGoodQuestion && (
-          <span style={{ fontSize: '0.875rem', color: '#c8860a' }}>★</span>
+          <span style={{ fontSize: font.base, color: '#f2ab26' }}>★</span>
         )}
       </div>
 
@@ -42,7 +42,7 @@ export function ProblemCard({ problem }: Props) {
 
       {/* Defeat reason */}
       {problem.defeatReason && (
-        <p style={{ fontSize: '0.8125rem', color: '#eb5757', margin: 0, fontWeight: 500 }}>
+        <p style={{ fontSize: font.sm, color: c.red, margin: 0, fontWeight: 500 }}>
           敗因: {problem.defeatReason}
         </p>
       )}
@@ -50,8 +50,8 @@ export function ProblemCard({ problem }: Props) {
       {/* Note */}
       {problem.note && (
         <p style={{
-          fontSize: '0.875rem',
-          color: '#7a6858',
+          fontSize: font.base,
+          color: c.textSub,
           overflow: 'hidden',
           whiteSpace: 'nowrap',
           textOverflow: 'ellipsis',
@@ -64,9 +64,9 @@ export function ProblemCard({ problem }: Props) {
       {/* Material + solvedAt */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {problem.material && (
-          <span style={{ fontSize: '0.75rem', color: '#b5a99a' }}>{problem.material}</span>
+          <span style={{ fontSize: font.xs, color: c.textHint }}>{problem.material}</span>
         )}
-        <span style={{ fontSize: '0.75rem', color: '#b5a99a', marginLeft: 'auto' }}>
+        <span style={{ fontSize: font.xs, color: c.textHint, marginLeft: 'auto' }}>
           {problem.solvedAt.replace(/-/g, '/')}
         </span>
       </div>
@@ -75,10 +75,10 @@ export function ProblemCard({ problem }: Props) {
 }
 
 const card: React.CSSProperties = {
-  backgroundColor: '#ffffff',
-  border: '1px solid #edeae6',
-  borderRadius: '10px',
-  padding: '0.875rem 1rem',
+  backgroundColor: '#fff',
+  border: `1px solid ${c.border}`,
+  borderRadius: '8px',
+  padding: '14px 16px',
   display: 'flex',
   flexDirection: 'column',
   gap: '0.5rem',
@@ -86,26 +86,25 @@ const card: React.CSSProperties = {
 }
 
 const subjectChip: React.CSSProperties = {
-  backgroundColor: '#f0e8dd',
-  color: '#5c3a1e',
+  backgroundColor: 'rgba(55, 53, 47, 0.06)',
+  color: c.textSub,
   borderRadius: '4px',
-  padding: '0.125rem 0.5rem',
-  fontSize: '0.75rem',
+  padding: '2px 8px',
+  fontSize: font.xs,
   fontWeight: 600,
 }
 
 const badge: React.CSSProperties = {
   borderRadius: '4px',
-  padding: '0.125rem 0.5rem',
-  fontSize: '0.75rem',
-  fontWeight: 600,
+  padding: '2px 8px',
+  fontSize: font.xs,
+  fontWeight: 700,
 }
 
 const failureChip: React.CSSProperties = {
-  border: '1px solid #e4dbd0',
+  border: `1px solid ${c.border}`,
   borderRadius: '4px',
-  padding: '0.125rem 0.5rem',
-  fontSize: '0.75rem',
-  color: '#7a6858',
+  padding: '2px 8px',
+  fontSize: font.xs,
+  color: c.textSub,
 }
-

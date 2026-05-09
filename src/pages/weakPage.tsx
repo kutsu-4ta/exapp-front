@@ -10,7 +10,7 @@ import {useNavigate} from "react-router-dom";
 import {FilterPill} from "../components/weak/FilterPill";
 import {AddProblemModal} from "../components/weak/AddProblemModal";
 import {fetchSubCategories} from "../lib/api/subcategory";
-import {c, font} from "../styles/notion";
+import {c, font, pageHeading} from "../styles/notion";
 import {LoadingSpinner} from "../components/common/LoadingSpinner";
 
 export default function WeakPage() {
@@ -58,7 +58,7 @@ export default function WeakPage() {
         <div style={container}>
             <div style={stickyHeader}>
                 <div style={headerContent}>
-                    <h1 style={title}>弱点管理</h1>
+                    <h1 style={pageHeading}>弱点管理</h1>
                     <div style={controls}>
                         <select style={select} value={filterProficiency} onChange={(e) => setFilterProficiency(e.target.value as Proficiency | 'all')}>
                             <option value="all">習熟度: すべて</option>
@@ -116,14 +116,13 @@ const container: React.CSSProperties = { minHeight: '100vh', backgroundColor: c.
 
 const stickyHeader: React.CSSProperties = {
     position: 'sticky', top: 0, zIndex: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)',
+    backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(8px)',
     borderBottom: `1px solid ${c.border}`, padding: '12px 16px',
 }
 const headerContent: React.CSSProperties = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     maxWidth: '720px', margin: '0 auto 12px',
 }
-const title: React.CSSProperties = { fontSize: font.md, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }
 const controls: React.CSSProperties = { display: 'flex', gap: '8px' }
 const select: React.CSSProperties = {
     padding: '4px 8px', fontSize: '12px', borderRadius: '4px',
@@ -134,11 +133,11 @@ const subjectScroll: React.CSSProperties = {
     display: 'flex', gap: '4px', overflowX: 'auto',
     maxWidth: '720px', margin: '0 auto', paddingBottom: '4px', scrollbarWidth: 'none',
 }
-const mainContent: React.CSSProperties = { maxWidth: '720px', margin: '0 auto', padding: '24px 16px 120px' }
+const mainContent: React.CSSProperties = { maxWidth: '720px', margin: '0 auto', padding: '40px 20px 100px' }
 const section: React.CSSProperties = { marginBottom: '32px' }
 const sectionHeader: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }
 const sectionLabel: React.CSSProperties = {
-    fontSize: font.sm, fontWeight: 700, color: c.textFaint,
+    fontSize: font.sm, fontWeight: 700, color: c.textHint,
     letterSpacing: '0.06em', textTransform: 'uppercase',
 }
 const badge: React.CSSProperties = {
@@ -154,6 +153,6 @@ const fab: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', zIndex: 1000,
 }
-const mutedText: React.CSSProperties = { color: c.textSub, textAlign: 'center', marginTop: '60px', fontSize: font.base }
+const mutedText: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.4)', textAlign: 'center', marginTop: '60px', fontSize: font.base }
 const errorText: React.CSSProperties = { color: c.red, textAlign: 'center', padding: '2rem', fontSize: font.base }
 const emptyState: React.CSSProperties = { padding: '60px 0' }
