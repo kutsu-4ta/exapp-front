@@ -1,9 +1,9 @@
 import type { Problem, Proficiency } from "../../types/workspace";
-import { useNavigate } from "react-router-dom";
 import { c, font } from "../../styles/notion";
 
 type Props = {
   problem: Problem
+  onClick?: () => void
 }
 
 const PROFICIENCY_STYLE: Record<Proficiency, { backgroundColor: string; color: string }> = {
@@ -12,13 +12,11 @@ const PROFICIENCY_STYLE: Record<Proficiency, { backgroundColor: string; color: s
   '×': { backgroundColor: 'rgba(235, 87, 87, 0.08)', color: c.red },
 }
 
-export function ProblemCard({ problem }: Props) {
-  const navigate = useNavigate()
-
+export function ProblemCard({ problem, onClick }: Props) {
   const profStyle = PROFICIENCY_STYLE[problem.proficiency]
 
   return (
-    <div style={card} onClick={() => navigate(`/weak/${problem.id}`)}>
+    <div style={card} onClick={onClick}>
       {/* Top row: subject chip + questionRef + proficiency badge + 良問 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
         <span style={subjectChip}>{problem.subject}</span>

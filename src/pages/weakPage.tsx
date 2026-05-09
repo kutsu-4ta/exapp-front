@@ -4,6 +4,7 @@ import type { FailureType, ProblemInput, Proficiency, SubCategory } from "../typ
 
 import { useSettingsStore } from '../lib/store/settings';
 import { ProblemCard } from "../components/weak/ProblemCard";
+import { ProblemQuickModal } from "../components/weak/ProblemQuickModal";
 import { addProblem, fetchProblems } from "../lib/api/problem";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,7 @@ export default function WeakPage() {
     const [hasMore, setHasMore] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [showAddForm, setShowAddForm] = useState(false)
+    const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -136,7 +138,7 @@ export default function WeakPage() {
                         </div>
                         <div style={cardGrid}>
                             {items.map((p) => (
-                                <ProblemCard key={p.id} problem={p} />
+                                <ProblemCard key={p.id} problem={p} onClick={() => setQuickProblem(p)} />
                             ))}
                         </div>
                     </section>
@@ -153,6 +155,10 @@ export default function WeakPage() {
                     )}
                 </div>
             </div>
+
+            {quickProblem && (
+                <ProblemQuickModal problem={quickProblem} onClose={() => setQuickProblem(null)} />
+            )}
 
             {!showAddForm && (
                 <button style={fab} onClick={() => setShowAddForm(true)}>
