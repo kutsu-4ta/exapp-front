@@ -2,7 +2,7 @@ export const DRAFT_KEY_PREFIX = 'practice_draft_'
 
 export type AnsweredRecord = {
     index: number
-    answers: { answer: string; isDoubtful: boolean; note: string | null }[]
+    answers: { answer: string; isDoubtful: boolean; note: string | null; memos: Record<string, string> }[]
     elapsedMs: number
 }
 

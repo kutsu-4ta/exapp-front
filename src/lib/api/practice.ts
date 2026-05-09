@@ -8,6 +8,7 @@ export type PracticeSessionPayload = {
         judgement: string
         elapsedMs: number
         note: string | null
+        memos: Record<string, string>[]
     }>
     totalElapsedMs: number
 }

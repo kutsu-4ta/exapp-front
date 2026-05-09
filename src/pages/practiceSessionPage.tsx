@@ -85,7 +85,7 @@ export default function PracticeSessionPage() {
 
     // ── 回答送信 ──
     const handleSubmit = (payload: {
-        answers: { answer: string; isDoubtful: boolean; note: string | null }[]
+        answers: { answer: string; isDoubtful: boolean; note: string | null; memos: Record<string, string> }[]
     }) => {
         const now = Date.now()
         const elapsed = now - questionStartMs
@@ -126,6 +126,7 @@ export default function PracticeSessionPage() {
                     judgement: r.answers.map(a => a.answer).join(','),
                     elapsedMs: r.elapsedMs,
                     note: r.answers.map(a => a.note).filter(Boolean).join('\n') || null,
+                    memos: r.answers.map(a => a.memos),
                 })),
                 totalElapsedMs,
             })

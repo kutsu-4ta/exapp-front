@@ -25,7 +25,7 @@ type Props = {
     subQuestions: QuestionDraft[]
     subject: string
     onSubmit: (payload: {
-        answers: { answer: string; isDoubtful: boolean; note: string | null }[]
+        answers: { answer: string; isDoubtful: boolean; note: string | null; memos: Record<string, string> }[]
     }) => void
     onAddSubQuestion: () => void
     onRemoveSubQuestion: (localId: string) => void
@@ -93,8 +93,24 @@ export function PracticeAnswerView({
                 note: a.isDescriptive
                     ? (a.descriptiveText || null)
                     : (a.memos[a.selectedOption] ?? null),
+                memos: a.isDescriptive ? {} : a.memos,
             })),
         })
+    }
+
+    const buildMemoNote = (): string => {
+        const parts = answers.map((a, i) => {
+            const prefix = subQuestions.length > 0
+                ? `【${targets[i]?.displayId || `設問${i + 1}`}】\n`
+                : ''
+            if (a.isDescriptive) {
+                return a.descriptiveText.trim() ? `${prefix}${a.descriptiveText.trim()}` : null
+            }
+            const entries = Object.entries(a.memos).filter(([, v]) => v.trim())
+            if (entries.length === 0) return null
+            return `${prefix}${entries.map(([opt, text]) => `${opt}: ${text}`).join('\n')}`
+        }).filter(Boolean)
+        return parts.join('\n\n')
     }
 
     const handleOpenModal = async () => {
@@ -219,6 +235,7 @@ export function PracticeAnswerView({
                         initial={{
                             subject,
                             solvedAt: new Date().toISOString().slice(0, 10),
+                            note: buildMemoNote() || null,
                         }}
                     />
                 )}
