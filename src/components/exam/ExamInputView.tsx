@@ -127,7 +127,6 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
   const [examYear, setExamYear] = useState(savedDraft?.examYear ?? session.examYear)
   const [isScoring, setIsScoring] = useState(savedDraft?.isScoring ?? session.status === 'scoring')
   const [saving, setSaving] = useState(false)
-  const [activeMenu, setActiveMenu] = useState<string | null>(null)
 
   const [questions, setQuestions] = useState<QuestionDraft[]>(() =>
     initQuestions(session, savedDraft),
@@ -196,8 +195,41 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
     setQuestions(prev => {
       const parentCount = prev.filter(q => !q.isSub).length
       if (parentCount <= 1) return prev
+      const target = prev.find(q => q.localId === localId)
+      if (!target) return prev
+      // 親とその子設問（同じ sortOrder の isSub）を一緒に除去
+      const filtered = prev.filter(q =>
+        q.localId !== localId && !(q.isSub && q.sortOrder === target.sortOrder)
+      )
+      // 親の sortOrder を詰め直し、子はそれに追従
+      const parents = filtered.filter(q => !q.isSub).sort((a, b) => a.sortOrder - b.sortOrder)
+      const orderMap = new Map(parents.map((p, i) => [p.sortOrder, i + 1]))
+      const renumbered = filtered.map(q => ({ ...q, sortOrder: orderMap.get(q.sortOrder) ?? q.sortOrder }))
+      return refreshDisplayIds(renumbered)
+    })
+  }, [])
+
+  const removeSubQuestion = useCallback((localId: string) => {
+    setQuestions(prev => {
+      const target = prev.find(q => q.localId === localId)
+      if (!target) return prev
       const filtered = prev.filter(q => q.localId !== localId)
-      return refreshDisplayIds(filtered.map((q, i) => ({ ...q, sortOrder: i + 1 })))
+      const remainingSubs = filtered.filter(q => q.isSub && q.sortOrder === target.sortOrder)
+      if (remainingSubs.length === 0) {
+        // 設問が全削除されたら親を単体問題に戻す
+        return filtered.map(q =>
+          q.sortOrder === target.sortOrder && !q.isSub ? { ...q, hasChildren: false } : q
+        )
+      }
+      // 残り設問を連番に振り直す
+      let subCount = 0
+      return filtered.map(q => {
+        if (q.isSub && q.sortOrder === target.sortOrder) {
+          subCount++
+          return { ...q, displayId: `設問${subCount}` }
+        }
+        return q
+      })
     })
   }, [])
 
@@ -237,7 +269,6 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
       )
       return refreshDisplayIds(sorted)
     })
-    setActiveMenu(null)
   }, [])
 
   const handleFinishExam = () => {
@@ -331,12 +362,11 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
               key={q.localId}
               question={q}
               isScoring={isScoring}
-              isMenuOpen={activeMenu === q.localId}
               onUpdate={(patch) => updateQuestion(q.localId, patch)}
               onAddParent={() => addParentQuestion(q.localId)}
               onRemoveParent={() => removeParentQuestion(q.localId)}
+              onRemoveSub={() => removeSubQuestion(q.localId)}
               onAddSub={() => addSubQuestion(q.localId)}
-              onToggleMenu={() => setActiveMenu(activeMenu === q.localId ? null : q.localId)}
               onSetQuestionType={(type) => setQuestionType(q.localId, type)}
             />
           ))}

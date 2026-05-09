@@ -163,7 +163,6 @@ export default function DailyLogsPage() {
                     <div style={titleRow}>
                         <div>
                             <h1 style={title}>Daily Logs</h1>
-                            <p style={description}>日々の積み上げと内省の記録</p>
                         </div>
 
                         {viewMode === 'chart' ? (
@@ -239,18 +238,35 @@ export default function DailyLogsPage() {
                                 <div style={{ width: '100%', height: 300 }}>
                                     <ResponsiveContainer>
                                         <LineChart data={filteredChartData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                            <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
-                                            <YAxis fontSize={10} tickLine={false} axisLine={false} />
-                                            <Tooltip contentStyle={tooltipStyle} />
-                                            <ReferenceLine y={385} stroke="#eb5757" strokeDasharray="3 3" label={{ value: 'Target', fontSize: 10, fill: '#eb5757', position: 'insideBottomRight' }} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                                            <XAxis
+                                                dataKey="date"
+                                                fontSize={10}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                dy={10} // ラベルの位置を少し下げて余白を作る
+                                            />
+                                            <YAxis
+                                                fontSize={10}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                dx={-5}
+                                            />
+                                            <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: '#2383e2', strokeWidth: 1 }} />
+                                            <ReferenceLine
+                                                y={385}
+                                                stroke="#eb5757"
+                                                strokeDasharray="5 5"
+                                                label={{ value: 'Target', fontSize: 10, fill: '#eb5757', position: 'insideBottomRight', offset: 10 }}
+                                            />
                                             <Line
                                                 type="monotone"
                                                 dataKey="minutes"
                                                 stroke="#2383e2"
-                                                strokeWidth={3}
-                                                dot={{ r: 4, fill: '#2383e2' }}
-                                                activeDot={{ r: 6 }}
+                                                strokeWidth={2} // 少し細くしてシャープな印象に
+                                                dot={false}     // プロットの点を非表示
+                                                activeDot={{ r: 4, strokeWidth: 0 }} // ホバー時のみ点を表示
+                                                animationDuration={1000}
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
@@ -294,7 +310,6 @@ const content: React.CSSProperties = { width: '100%', maxWidth: '720px', margin:
 const header: React.CSSProperties = { marginBottom: '32px' }
 const titleRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
 const title: React.CSSProperties = { fontSize: '32px', fontWeight: 700, marginBottom: '6px' }
-const description: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.6)', fontSize: '15px' }
 const openModalBtn: React.CSSProperties = {
     background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
     color: 'rgba(55, 53, 47, 0.55)', display: 'flex', alignItems: 'center',

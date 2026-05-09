@@ -68,7 +68,7 @@ export default function PracticeSessionPage() {
         saveDraft(subject, { currentIndex, log })
     }, [currentIndex, log, phase, subject])
 
-    // ── 設問追加 / リセット ──
+    // ── 設問追加 / 削除 ──
     const handleAddSubQuestion = () => {
         setSubQuestions(prev => [
             ...prev,
@@ -76,8 +76,11 @@ export default function PracticeSessionPage() {
         ])
     }
 
-    const handleResetSubQuestions = () => {
-        setSubQuestions([])
+    const handleRemoveSubQuestion = (localId: string) => {
+        setSubQuestions(prev => {
+            const filtered = prev.filter(q => q.localId !== localId)
+            return filtered.map((q, i) => ({ ...q, displayId: `設問${i + 1}` }))
+        })
     }
 
     // ── 回答送信 ──
@@ -201,7 +204,7 @@ export default function PracticeSessionPage() {
                 subject={subject}
                 onSubmit={handleSubmit}
                 onAddSubQuestion={handleAddSubQuestion}
-                onResetSubQuestions={handleResetSubQuestions}
+                onRemoveSubQuestion={handleRemoveSubQuestion}
             />
         </div>
     )

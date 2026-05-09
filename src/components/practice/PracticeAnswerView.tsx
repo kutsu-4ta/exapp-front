@@ -28,7 +28,7 @@ type Props = {
         answers: { answer: string; isDoubtful: boolean; note: string | null }[]
     }) => void
     onAddSubQuestion: () => void
-    onResetSubQuestions: () => void
+    onRemoveSubQuestion: (localId: string) => void
 }
 
 function makeInitial(): AnswerState {
@@ -49,7 +49,7 @@ export function PracticeAnswerView({
     subject,
     onSubmit,
     onAddSubQuestion,
-    onResetSubQuestions,
+    onRemoveSubQuestion,
 }: Props) {
     const targets = subQuestions.length > 0 ? subQuestions : [question]
 
@@ -227,6 +227,8 @@ export function PracticeAnswerView({
     }
 
     // ── 入力フェーズ ─────────────────────────────────────────────────────────
+    const hasSubs = subQuestions.length > 0
+
     return (
         <div style={wrap}>
             {question.displayId && (
@@ -235,92 +237,111 @@ export function PracticeAnswerView({
                 </div>
             )}
 
-            <div style={subBtnRow}>
-                <button style={addSubBtn} onClick={onAddSubQuestion}>
-                    ＋ 設問を追加
-                </button>
-                {subQuestions.length > 0 && (
-                    <button style={resetSubBtn} onClick={onResetSubQuestions}>
-                        × 設問をリセット
+            {/* サブ問がないときだけ「＋ 設問を追加」ボタンを上部に表示 */}
+            {!hasSubs && (
+                <div style={subBtnRow}>
+                    <button style={addSubBtn} onClick={onAddSubQuestion}>
+                        ＋ 設問を追加
                     </button>
-                )}
-            </div>
+                </div>
+            )}
 
             <div style={block}>
                 {targets.map((q, i) => {
                     const a = answers[i] ?? makeInitial()
                     return (
-                        <div key={q.localId ?? i} style={qBlock}>
-                            {subQuestions.length > 0 && (
-                                <span style={subLabel}>{q.displayId || `設問${i + 1}`}</span>
-                            )}
-
-                            {/* 選択式 / 記述式 トグル */}
-                            <div style={typeToggleRow}>
-                                <button
-                                    style={{ ...typeToggleBtn, ...(a.isDescriptive ? {} : typeToggleActive) }}
-                                    onClick={() => update(i, { isDescriptive: false })}
-                                >
-                                    選択式
-                                </button>
-                                <button
-                                    style={{ ...typeToggleBtn, ...(a.isDescriptive ? typeToggleActive : {}) }}
-                                    onClick={() => update(i, { isDescriptive: true })}
-                                >
-                                    記述式
-                                </button>
-                            </div>
-
-                            {a.isDescriptive ? (
-                                <div style={descriptiveRow}>
-                                    <textarea
-                                        style={descriptiveTextarea}
-                                        placeholder="解答を記述..."
-                                        value={a.descriptiveText}
-                                        onChange={(e) => update(i, { descriptiveText: e.target.value })}
-                                    />
+                        <div key={q.localId ?? i} style={hasSubs ? subRowOuter : qBlock}>
+                            {/* サイドボタン（サブ問のみ） */}
+                            {hasSubs && (
+                                <div style={sideControl}>
                                     <button
-                                        onClick={() => update(i, { isDoubtful: !a.isDoubtful })}
-                                        style={doubtBtnInline}
+                                        style={{ ...sideBtn, color: c.red }}
+                                        onClick={() => onRemoveSubQuestion(q.localId)}
+                                        title="削除"
                                     >
-                                        <DoubtIcon size={18} color={a.isDoubtful ? '#f2994a' : c.textFaint} />
+                                        －
+                                    </button>
+                                    <button
+                                        style={sideBtn}
+                                        onClick={onAddSubQuestion}
+                                        title="追加"
+                                    >
+                                        ＋
                                     </button>
                                 </div>
-                            ) : (
-                                <>
-                                    <div style={optionRow}>
-                                        {ANSWER_OPTIONS.map(opt => (
-                                            <button
-                                                key={opt}
-                                                style={{
-                                                    ...optionBtn,
-                                                    ...(a.selectedOption === opt ? optionActive : {}),
-                                                }}
-                                                onClick={() => update(i, { selectedOption: opt })}
-                                            >
-                                                {opt}
-                                            </button>
-                                        ))}
+                            )}
+
+                            <div style={{ ...qBlock, flex: hasSubs ? 1 : undefined, marginTop: 0 }}>
+                                {hasSubs && (
+                                    <span style={subLabel}>{q.displayId || `設問${i + 1}`}</span>
+                                )}
+
+                                {/* 選択式 / 記述式 トグル */}
+                                <div style={typeToggleRow}>
+                                    <button
+                                        style={{ ...typeToggleBtn, ...(a.isDescriptive ? {} : typeToggleActive) }}
+                                        onClick={() => update(i, { isDescriptive: false })}
+                                    >
+                                        選択式
+                                    </button>
+                                    <button
+                                        style={{ ...typeToggleBtn, ...(a.isDescriptive ? typeToggleActive : {}) }}
+                                        onClick={() => update(i, { isDescriptive: true })}
+                                    >
+                                        記述式
+                                    </button>
+                                </div>
+
+                                {a.isDescriptive ? (
+                                    <div style={descriptiveRow}>
+                                        <textarea
+                                            style={descriptiveTextarea}
+                                            placeholder="解答を記述..."
+                                            value={a.descriptiveText}
+                                            onChange={(e) => update(i, { descriptiveText: e.target.value })}
+                                        />
                                         <button
                                             onClick={() => update(i, { isDoubtful: !a.isDoubtful })}
-                                            style={doubtBtn}
+                                            style={doubtBtnInline}
                                         >
                                             <DoubtIcon size={18} color={a.isDoubtful ? '#f2994a' : c.textFaint} />
                                         </button>
                                     </div>
+                                ) : (
+                                    <>
+                                        <div style={optionRow}>
+                                            {ANSWER_OPTIONS.map(opt => (
+                                                <button
+                                                    key={opt}
+                                                    style={{
+                                                        ...optionBtn,
+                                                        ...(a.selectedOption === opt ? optionActive : {}),
+                                                    }}
+                                                    onClick={() => update(i, { selectedOption: opt })}
+                                                >
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                            <button
+                                                onClick={() => update(i, { isDoubtful: !a.isDoubtful })}
+                                                style={doubtBtn}
+                                            >
+                                                <DoubtIcon size={18} color={a.isDoubtful ? '#f2994a' : c.textFaint} />
+                                            </button>
+                                        </div>
 
-                                    {/* 選択中の選択肢のメモ（レイヤー連動） */}
-                                    {a.selectedOption && (
-                                        <textarea
-                                            key={a.selectedOption}
-                                            style={memoTextarea}
-                                            placeholder={`${a.selectedOption}のメモ...`}
-                                            value={a.memos[a.selectedOption] ?? ''}
-                                            onChange={(e) => updateMemo(i, a.selectedOption, e.target.value)}
-                                        />
-                                    )}
-                                </>
-                            )}
+                                        {a.selectedOption && (
+                                            <textarea
+                                                key={a.selectedOption}
+                                                style={memoTextarea}
+                                                placeholder={`${a.selectedOption}のメモ...`}
+                                                value={a.memos[a.selectedOption] ?? ''}
+                                                onChange={(e) => updateMemo(i, a.selectedOption, e.target.value)}
+                                            />
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     )
                 })}
@@ -361,14 +382,34 @@ const addSubBtn: React.CSSProperties = {
     color: c.textSub,
 }
 
-const resetSubBtn: React.CSSProperties = {
-    padding: '6px 10px',
-    fontSize: font.sm,
+const subRowOuter: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'flex-start',
+}
+
+const sideControl: React.CSSProperties = {
+    width: '28px',
+    marginRight: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    paddingTop: '10px',
+}
+
+const sideBtn: React.CSSProperties = {
+    width: '24px',
+    height: '24px',
     borderRadius: '6px',
-    border: `1px dashed rgba(235,87,87,0.3)`,
-    background: 'transparent',
+    border: `1px dashed ${c.border}`,
+    backgroundColor: 'transparent',
+    color: c.textSub,
+    fontSize: '14px',
+    fontWeight: 700,
     cursor: 'pointer',
-    color: c.red,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
 }
 
 const block: React.CSSProperties = {
