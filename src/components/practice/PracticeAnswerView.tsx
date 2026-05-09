@@ -12,7 +12,7 @@ import {
     okBtn, confirmRow, myAnswerText, memoReviewBlock, memoReviewItem,
     memoReviewLabel, memoReviewText, judgeRow, judgeBtn,
     correctActive, incorrectActive, rankLabel, rankBtn,
-    confirmActions, addProblemBtn, nextBtn,
+    confirmHeader, backToEditBtn, confirmActions, addProblemBtn, nextBtn,
 } from './PracticeAnswerView.styles'
 import { AddProblemModal } from '@/components/weak/AddProblemModal.tsx'
 import { addProblem } from '@/lib/api/problem.ts'
@@ -31,10 +31,17 @@ type AnswerState = {
     rank: Rank
 }
 
+type InitialAnswer = {
+    answer: string
+    isDoubtful: boolean
+    memos: Record<string, string>
+}
+
 type Props = {
     question: QuestionDraft
     subQuestions: QuestionDraft[]
     subject: string
+    initialAnswers?: InitialAnswer[]
     onSubmit: (payload: {
         answers: { answer: string; isDoubtful: boolean; note: string | null; memos: Record<string, string> }[]
     }) => void
@@ -58,6 +65,7 @@ export function PracticeAnswerView({
     question,
     subQuestions,
     subject,
+    initialAnswers,
     onSubmit,
     onAddSubQuestion,
     onRemoveSubQuestion,
@@ -65,7 +73,21 @@ export function PracticeAnswerView({
     const targets = subQuestions.length > 0 ? subQuestions : [question]
 
     const [phase, setPhase] = useState<ViewPhase>('input')
-    const [answers, setAnswers] = useState<AnswerState[]>(() => targets.map(() => makeInitial()))
+    const [answers, setAnswers] = useState<AnswerState[]>(() =>
+        targets.map((_, i) => {
+            const init = initialAnswers?.[i]
+            if (!init) return makeInitial()
+            const isDescriptive = !ANSWER_OPTIONS.includes(init.answer as typeof ANSWER_OPTIONS[number])
+            return {
+                ...makeInitial(),
+                selectedOption: isDescriptive ? '' : init.answer,
+                isDescriptive,
+                descriptiveText: isDescriptive ? init.answer : '',
+                isDoubtful: init.isDoubtful,
+                memos: init.memos,
+            }
+        })
+    )
     const [showModal, setShowModal] = useState(false)
     const [subCategories, setSubCategories] = useState<SubCategory[]>([])
     const [subCatFetched, setSubCatFetched] = useState(false)
@@ -142,11 +164,17 @@ export function PracticeAnswerView({
     if (phase === 'confirm') {
         return (
             <div style={wrap}>
-                {question.displayId && (
-                    <div style={parentHeader}>
-                        <span style={qLabel}>{question.displayId}</span>
-                    </div>
-                )}
+                <div style={confirmHeader}>
+                    <button style={backToEditBtn} onClick={() => setPhase('input')}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                        修正
+                    </button>
+                    {question.displayId && (
+                        <span style={{ ...qLabel, marginLeft: '8px' }}>{question.displayId}</span>
+                    )}
+                </div>
 
                 <div style={block}>
                     {answers.map((a, i) => {

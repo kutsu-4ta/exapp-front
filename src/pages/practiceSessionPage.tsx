@@ -57,6 +57,9 @@ export default function PracticeSessionPage() {
     const [totalElapsedMs, setTotalElapsedMs] = useState(0)
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [pendingInitAnswers, setPendingInitAnswers] = useState<
+        { answer: string; isDoubtful: boolean; memos: Record<string, string> }[] | undefined
+    >(undefined)
     const [resumedFrom] = useState(() => {
         const d = loadDraft(subject)
         return d && d.log.length > 0 ? d.currentIndex : null
@@ -102,8 +105,30 @@ export default function PracticeSessionPage() {
         const next = currentIndex + 1
         setCurrentIndex(next)
         setCurrentQuestion(makeBlankQuestion(next))
-        setSubQuestions([]) // ← 次の問題でリセット
+        setSubQuestions([])
         setQuestionStartMs(now)
+        setPendingInitAnswers(undefined)
+    }
+
+    // ── 前の問題へ戻る ──
+    const handleGoBack = () => {
+        const prev = log[log.length - 1]
+        if (!prev) return
+
+        setLog(log.slice(0, -1))
+        setCurrentIndex(prev.index)
+        setCurrentQuestion(makeBlankQuestion(prev.index))
+        setSubQuestions(
+            prev.answers.length > 1
+                ? prev.answers.map((_, i) => makeSubQuestion(prev.index, i + 1))
+                : []
+        )
+        setQuestionStartMs(Date.now())
+        setPendingInitAnswers(prev.answers.map(a => ({
+            answer: a.answer,
+            isDoubtful: a.isDoubtful,
+            memos: a.memos,
+        })))
     }
 
     // ── 終了 ──
@@ -180,6 +205,14 @@ export default function PracticeSessionPage() {
         <div style={page}>
             <div style={sessionHeader}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {log.length > 0 && (
+                        <button style={backBtn} onClick={handleGoBack} title="前の問題へ">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                            Q{currentIndex - 1}
+                        </button>
+                    )}
                     <button
                         style={subjectLink}
                         onClick={() => navigate(`/subjects/${encodeURIComponent(subject)}`)}
@@ -203,6 +236,7 @@ export default function PracticeSessionPage() {
                 question={currentQuestion}
                 subQuestions={subQuestions}
                 subject={subject}
+                initialAnswers={pendingInitAnswers}
                 onSubmit={handleSubmit}
                 onAddSubQuestion={handleAddSubQuestion}
                 onRemoveSubQuestion={handleRemoveSubQuestion}
@@ -222,6 +256,13 @@ const sessionHeader: React.CSSProperties = {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '16px',
+}
+
+const backBtn: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '2px',
+    padding: '4px 8px', borderRadius: '6px',
+    border: `1px solid ${c.border}`, background: '#fff',
+    color: c.textSub, fontSize: font.sm, fontWeight: 600, cursor: 'pointer',
 }
 
 const subjectLink: React.CSSProperties = {

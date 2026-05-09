@@ -162,6 +162,16 @@ export const rankBtn: React.CSSProperties = {
     background: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: font.sm,
 }
 
+export const confirmHeader: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', marginBottom: '4px',
+}
+
+export const backToEditBtn: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '4px',
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: font.sm, fontWeight: 600, color: c.textSub, padding: '2px 0',
+}
+
 export const confirmActions: React.CSSProperties = { display: 'flex', gap: '8px' }
 
 export const addProblemBtn: React.CSSProperties = {
