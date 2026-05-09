@@ -45,10 +45,10 @@ export default function WeakPage() {
     const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
-    // loadMore の最新クロージャを保持。Observer は再接続せずこの ref 経由で呼ぶ
-    const loadMoreRef = useRef<() => void>(() => {})
-    // バックグラウンド再フェッチが追加ロード済みデータを上書きしないためのフラグ
-    const hasLoadedMoreRef = useRef(false)
+    const cursorRef = useRef<number | null>(null)
+    const isLoadingMoreRef = useRef(false)
+    const hasMoreRef = useRef(true)
+    const hasScrolledRef = useRef(false)
 
     const [filterSubject, setFilterSubject] = useState<string>('all')
     const [filterProficiency, setFilterProficiency] = useState<Proficiency | 'all'>('all')
@@ -59,14 +59,17 @@ export default function WeakPage() {
         const cached = getCached<Problem[]>('weak-problems-initial')
         if (cached) {
             setProblems(cached)
+            cursorRef.current = cached.length > 0 ? cached[cached.length - 1].id : null
+            hasMoreRef.current = cached.length === PAGE_SIZE
             setHasMore(cached.length === PAGE_SIZE)
             setInitialLoading(false)
         }
         fetchProblems(PAGE_SIZE)
             .then((p) => {
-                // 追加ロード済みの場合はキャッシュのみ更新して表示は触らない
-                if (!hasLoadedMoreRef.current) {
+                if (!hasScrolledRef.current) {
                     setProblems(p)
+                    cursorRef.current = p.length > 0 ? p[p.length - 1].id : null
+                    hasMoreRef.current = p.length === PAGE_SIZE
                     setHasMore(p.length === PAGE_SIZE)
                 }
                 setCached('weak-problems-initial', p)
@@ -75,38 +78,37 @@ export default function WeakPage() {
             .finally(() => setInitialLoading(false))
     }, [])
 
-    // 追加ロード
+    // 追加ロード — deps なしで安定、カーソルは ref で管理
     const loadMore = useCallback(async () => {
-        if (loadingMore || !hasMore) return
-        const last = problems[problems.length - 1]
-        if (!last) return
+        if (isLoadingMoreRef.current || !hasMoreRef.current || cursorRef.current === null) return
+        isLoadingMoreRef.current = true
+        hasScrolledRef.current = true
         setLoadingMore(true)
-        hasLoadedMoreRef.current = true
         try {
-            const more = await fetchProblems(PAGE_SIZE, last.id)
+            const more = await fetchProblems(PAGE_SIZE, cursorRef.current)
+            if (more.length > 0) cursorRef.current = more[more.length - 1].id
             setProblems((prev) => [...prev, ...more])
+            hasMoreRef.current = more.length === PAGE_SIZE
             setHasMore(more.length === PAGE_SIZE)
         } catch (e) {
             console.error(e)
         } finally {
+            isLoadingMoreRef.current = false
             setLoadingMore(false)
         }
-    }, [problems, loadingMore, hasMore])
+    }, [])
 
-    // ref を常に最新の loadMore に同期
-    useEffect(() => { loadMoreRef.current = loadMore }, [loadMore])
-
-    // IntersectionObserver はマウント時に1回だけ設置し再接続しない
+    // loadMore は安定しているので Observer も1回だけ設置
     useEffect(() => {
         const el = sentinelRef.current
         if (!el) return
         const observer = new IntersectionObserver(
-            (entries) => { if (entries[0].isIntersecting) loadMoreRef.current() },
+            (entries) => { if (entries[0].isIntersecting) loadMore() },
             { threshold: 0.1 },
         )
         observer.observe(el)
         return () => observer.disconnect()
-    }, [])
+    }, [loadMore])
 
     const handleAdd = useCallback(async (input: ProblemInput) => {
         const p = await addProblem(input)
