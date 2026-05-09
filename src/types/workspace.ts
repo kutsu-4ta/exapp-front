@@ -32,7 +32,7 @@ export type StudySession = {
   minutes: number
   subject: string
   material: string
-  subCategoryId: number | null
+  subCategory: string | null
   memo: string | null
   createdAt: string
   updatedAt: string
@@ -44,7 +44,7 @@ export type StudySessionInput = {
   minutes: number
   subject: string
   material: string
-  subCategoryId?: number | null
+  subCategory?: string | null
   memo: string | null
 }
 

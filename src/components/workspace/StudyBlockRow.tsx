@@ -32,11 +32,7 @@ export function StudyBlockRow({ session, initialMinutes, initialSubject, initial
   const [minutes, setMinutes] = useState<string>(String(session?.minutes ?? initialMinutes ?? ''));
   const [subject, setSubject] = useState(session?.subject ?? initialSubject ?? '');
   const [material, setMaterial] = useState(session?.material ?? initialMaterial ?? '');
-  const [subCategoryName, setSubCategoryName] = useState<string>(
-      session?.subCategoryId
-          ? subCategories.find((sc) => sc.id === session.subCategoryId)?.name ?? ''
-          : ''
-  );
+  const [subCategoryName, setSubCategoryName] = useState<string>(session?.subCategory ?? '');
   const [memo, setMemo] = useState(session?.memo ?? '');
 
   const [saving, setSaving] = useState(false);
@@ -57,9 +53,7 @@ export function StudyBlockRow({ session, initialMinutes, initialSubject, initial
       minutes: parseInt(minutes, 10),
       subject: subject.trim(),
       material: material.trim() || '',
-      subCategoryId: subCategories.find(
-          (sc) => sc.subject === subject && sc.name === subCategoryName.trim()
-      )?.id ?? null,
+      subCategory: subCategoryName.trim() || null,
       memo: memo.trim() || null
     };
 
