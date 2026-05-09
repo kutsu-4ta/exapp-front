@@ -7,7 +7,6 @@ import { ProblemCard } from "../components/weak/ProblemCard";
 import { ProblemQuickModal } from "../components/weak/ProblemQuickModal";
 import { addProblem, fetchProblems } from "../lib/api/problem";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { FilterPill } from "../components/weak/FilterPill";
 import { AddProblemModal } from "../components/weak/AddProblemModal";
 import { fetchSubCategories } from "../lib/api/subcategory";
@@ -17,7 +16,6 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 const PAGE_SIZE = 5
 
 export default function WeakPage() {
-    const navigate = useNavigate()
     const subjects = useSettingsStore((s) => s.subjects)
     const [problems, setProblems] = useState<Problem[]>([])
     const [subCategories, setSubCategories] = useState<SubCategory[]>([])
@@ -79,8 +77,18 @@ export default function WeakPage() {
         const p = await addProblem(input)
         setProblems((prev) => [p, ...prev])
         setShowAddForm(false)
-        navigate(`/weak/${p.id}`)
-    }, [navigate])
+        setQuickProblem(p)
+    }, [])
+
+    const handleUpdate = useCallback((updated: Problem) => {
+        setProblems((prev) => prev.map((p) => p.id === updated.id ? updated : p))
+        setQuickProblem(updated)
+    }, [])
+
+    const handleDelete = useCallback((id: number) => {
+        setProblems((prev) => prev.filter((p) => p.id !== id))
+        setQuickProblem(null)
+    }, [])
 
     const grouped = useMemo(() => {
         const filtered = problems
@@ -157,10 +165,16 @@ export default function WeakPage() {
             </div>
 
             {quickProblem && (
-                <ProblemQuickModal problem={quickProblem} onClose={() => setQuickProblem(null)} />
+                <ProblemQuickModal
+                    problem={quickProblem}
+                    subCategories={subCategories}
+                    onClose={() => setQuickProblem(null)}
+                    onUpdate={handleUpdate}
+                    onDelete={handleDelete}
+                />
             )}
 
-            {!showAddForm && (
+            {!showAddForm && !quickProblem && (
                 <button style={fab} onClick={() => setShowAddForm(true)}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="12" y1="5" x2="12" y2="19" />
@@ -204,7 +218,7 @@ const badge: React.CSSProperties = {
     fontSize: font.xs, backgroundColor: 'rgba(55, 53, 47, 0.06)',
     color: c.textSub, padding: '1px 6px', borderRadius: '10px', fontWeight: 600,
 }
-const cardGrid: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '12px' }
+const cardGrid: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
 const fab: React.CSSProperties = {
     position: 'fixed', bottom: '80px', right: '20px',
     width: '48px', height: '48px', borderRadius: '24px',

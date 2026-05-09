@@ -6,103 +6,182 @@ type Props = {
   onClick?: () => void
 }
 
-const PROFICIENCY_STYLE: Record<Proficiency, { backgroundColor: string; color: string }> = {
-  '○': { backgroundColor: '#e6f6eb', color: '#19a576' },
-  '△': { backgroundColor: '#fff5e0', color: '#f2ab26' },
-  '×': { backgroundColor: 'rgba(235, 87, 87, 0.08)', color: c.red },
+const PROF_COLOR: Record<Proficiency, string> = {
+  '○': '#19a576',
+  '△': '#f2ab26',
+  '×': c.red,
 }
 
 export function ProblemCard({ problem, onClick }: Props) {
-  const profStyle = PROFICIENCY_STYLE[problem.proficiency]
+  const profColor = PROF_COLOR[problem.proficiency] ?? c.textSub
 
   return (
-    <div style={card} onClick={onClick}>
-      {/* Top row: subject chip + questionRef + proficiency badge + 良問 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <span style={subjectChip}>{problem.subject}</span>
-        <span style={{ fontSize: font.base, fontWeight: 600, color: c.text, flex: 1 }}>
-          {problem.questionRef}
-        </span>
-        <span style={{ ...badge, ...profStyle }}>{problem.proficiency}</span>
-        {problem.isGoodQuestion && (
-          <span style={{ fontSize: font.base, color: '#f2ab26' }}>★</span>
-        )}
-      </div>
-
-      {/* Failure type chips */}
-      {problem.failureTypes.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-          {problem.failureTypes.map((ft) => (
-            <span key={ft} style={failureChip}>{ft}</span>
-          ))}
+      <div style={card} onClick={onClick}>
+        {/* SNS Header Style: Subject & SubCategory */}
+        <div style={topRow}>
+          <span style={subjectLabel}>{problem.subject}</span>
+          {problem.subCategory && (
+              <span style={subCatLabel}>@{problem.subCategory}</span>
+          )}
+          <span style={dotSeparator}>·</span>
+          <span style={dateText}>{problem.solvedAt.replace(/-/g, '/')}</span>
         </div>
-      )}
 
-      {/* Defeat reason */}
-      {problem.defeatReason && (
-        <p style={{ fontSize: font.sm, color: c.red, margin: 0, fontWeight: 500 }}>
-          敗因: {problem.defeatReason}
-        </p>
-      )}
+        {/* Main Content: Note or QuestionRef */}
+        <div style={contentBody}>
+          {/* 問題番号は目立たせず、内容のプレフィックスとして配置 */}
+          <span style={questionRefInline}>Q.{problem.questionRef}</span>
+          {problem.note && <p style={noteText}>{problem.note}</p>}
+        </div>
 
-      {/* Note */}
-      {problem.note && (
-        <p style={{
-          fontSize: font.base,
-          color: c.textSub,
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          textOverflow: 'ellipsis',
-          margin: 0,
-        }}>
-          {problem.note}
-        </p>
-      )}
-
-      {/* Material + solvedAt */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {problem.material && (
-          <span style={{ fontSize: font.xs, color: c.textHint }}>{problem.material}</span>
+        {/* Failure type chips */}
+        {problem.failureTypes.length > 0 && (
+            <div style={failureRow}>
+              {problem.failureTypes.map((ft) => (
+                  <span key={ft} style={failureChip}>#{ft}</span>
+              ))}
+            </div>
         )}
-        <span style={{ fontSize: font.xs, color: c.textHint, marginLeft: 'auto' }}>
-          {problem.solvedAt.replace(/-/g, '/')}
-        </span>
+
+        {/* Defeat reason (Quote styling) */}
+        {problem.defeatReason && (
+            <div style={defeatBox}>
+              <p style={defeatText}>
+                <span style={{ fontWeight: 700, marginRight: '4px' }}>敗因:</span>
+                {problem.defeatReason}
+              </p>
+            </div>
+        )}
+
+        {/* Bottom Actions (SNS icons style) */}
+        <div style={bottomRow}>
+          <div style={statusGroup}>
+            <span style={{ ...profText, color: profColor }}>{problem.proficiency}</span>
+            {problem.isGoodQuestion && <span style={starText}>★</span>}
+          </div>
+          {problem.material && <span style={materialText}>{problem.material}</span>}
+        </div>
       </div>
-    </div>
   )
 }
 
 const card: React.CSSProperties = {
-  backgroundColor: '#fff',
-  border: `1px solid ${c.border}`,
-  borderRadius: '8px',
-  padding: '14px 16px',
+  padding: '12px 16px',
+  borderBottom: `1px solid ${c.border}`,
+  cursor: 'pointer',
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
-  cursor: 'pointer',
+  gap: '4px',
+  backgroundColor: '#fff',
+  transition: 'background-color 0.2s',
 }
 
-const subjectChip: React.CSSProperties = {
-  backgroundColor: 'rgba(55, 53, 47, 0.06)',
-  color: c.textSub,
-  borderRadius: '4px',
-  padding: '2px 8px',
-  fontSize: font.xs,
-  fontWeight: 600,
+const topRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
 }
 
-const badge: React.CSSProperties = {
-  borderRadius: '4px',
-  padding: '2px 8px',
-  fontSize: font.xs,
+const subjectLabel: React.CSSProperties = {
+  fontSize: font.base,
   fontWeight: 700,
+  color: c.text,
+}
+
+const subCatLabel: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textSub,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+}
+
+const dotSeparator: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textSub,
+  padding: '0 2px',
+}
+
+const dateText: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textSub,
+}
+
+const contentBody: React.CSSProperties = {
+  marginTop: '2px',
+}
+
+const questionRefInline: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textSub,
+  marginRight: '8px',
+  fontWeight: 500,
+}
+
+const noteText: React.CSSProperties = {
+  display: 'inline', // 問題番号の横から開始
+  fontSize: font.base,
+  color: c.text,
+  margin: 0,
+  lineHeight: 1.5,
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+}
+
+const failureRow: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '8px',
+  marginTop: '4px',
 }
 
 const failureChip: React.CSSProperties = {
+  fontSize: font.sm,
+  color: '#1d9bf0', // SNSのハッシュタグ風カラー
+}
+
+const defeatBox: React.CSSProperties = {
+  marginTop: '8px',
+  padding: '8px 12px',
+  borderRadius: '12px',
   border: `1px solid ${c.border}`,
-  borderRadius: '4px',
-  padding: '2px 8px',
+  backgroundColor: '#f8f9fa',
+}
+
+const defeatText: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.text,
+  margin: 0,
+}
+
+const bottomRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginTop: '8px',
+}
+
+const statusGroup: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+}
+
+const materialText: React.CSSProperties = {
   fontSize: font.xs,
   color: c.textSub,
+  backgroundColor: '#eee',
+  padding: '2px 6px',
+  borderRadius: '4px',
+}
+
+const starText: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#f2ab26',
+}
+
+const profText: React.CSSProperties = {
+  fontSize: '16px',
+  fontWeight: 900,
 }

@@ -11,7 +11,6 @@ import DailyLogsPage from "./pages/dailyLogsPage";
 import WorkspaceDatePage from "./pages/workspaceDatePage";
 import ExamPage from "./pages/examPage";
 import WeakPage from "./pages/weakPage";
-import ProblemDetailPage from "./pages/problemDetailPage";
 import PracticeSessionPage from "./pages/practiceSessionPage";
 import ProfilePage from "./pages/profilePage";
 import SubjectPage from "./pages/subjectPage";
@@ -78,7 +77,6 @@ function App() {
                     <Route path="/workspace/:date" element={<WorkspaceDatePage />} />
                     <Route path="/exam" element={<ExamPage />} />
                     <Route path="/weak" element={<WeakPage />} />
-                    <Route path="/weak/:id" element={<ProblemDetailPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/subjects/:name" element={<SubjectPage />} />
                     <Route path="/practice/:subject" element={<PracticeSessionPage />} />
