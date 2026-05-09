@@ -15,9 +15,10 @@ import {StudyBlockList} from "../components/workspace/StudyBlockList";
 import {useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {fetchSubCategories} from "../lib/api/subcategory";
 import type {DailyLog, SubCategory} from "../types/workspace";
-import {Suspense, useCallback, useEffect, useState} from "react";
+import {Suspense, useCallback, useEffect, useRef, useState} from "react";
 import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget.tsx";
 import {LoadingSpinner} from "@/components/common/LoadingSpinner.tsx";
+import { useTimer } from '@/context/TimerContext.tsx'
 
 function triggerTaptic(ms = 15) {
     if (navigator.vibrate) {
@@ -54,6 +55,11 @@ function WorkspaceDateContent() {
         : undefined
     const initialSubject = searchParams.get('subject') ?? undefined
     const initialMaterial = searchParams.get('material') ?? undefined
+
+    const { reset: resetTimer } = useTimer()
+    // ストップウォッチ経由の場合のみ、初回セッション保存後にリセット
+    const fromStopwatch = !!initialMinutes
+    const stopwatchResetDone = useRef(false)
 
     const [log, setLog] = useState<DailyLog | null>(null)
     const [subCategories, setSubCategories] = useState<SubCategory[]>([])
@@ -127,8 +133,12 @@ function WorkspaceDateContent() {
             ...prev,
             studySessions: [...prev.studySessions, newSession]
         } : null)
+        if (fromStopwatch && !stopwatchResetDone.current) {
+            stopwatchResetDone.current = true
+            resetTimer()
+        }
         return newSession
-    }, [])
+    }, [fromStopwatch, resetTimer])
 
     const handleUpdateSession = useCallback(async (id: number, input: any) => {
         const updated = await updateStudySession(id, input)
