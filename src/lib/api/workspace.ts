@@ -26,7 +26,7 @@ export async function fetchDailyLogs(year?: number, month?: number): Promise<Dai
 }
 
 // GET /api/daily-logs/recent?limit&before
-export async function fetchRecentDailyLogs(limit = 30, before?: string): Promise<DailyLogSummary[]> {
+export async function fetchRecentDailyLogs(limit = 5, before?: string): Promise<DailyLogSummary[]> {
   const params = new URLSearchParams({ limit: String(limit) })
   if (before) params.set('before', before)
   const res = await apiFetch(`/api/daily-logs/recent?${params}`)

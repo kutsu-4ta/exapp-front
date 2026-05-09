@@ -13,7 +13,7 @@ import { fetchSubCategories } from "../lib/api/subcategory";
 import { c, font, pageHeading } from "../styles/notion";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
-const PAGE_SIZE = 30
+const PAGE_SIZE = 5
 
 export default function WeakPage() {
     const navigate = useNavigate()
