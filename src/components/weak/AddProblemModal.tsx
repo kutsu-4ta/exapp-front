@@ -130,6 +130,20 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [], initial
     const [loadingMsgIdx, setLoadingMsgIdx] = useState(0)
     const [analysisError, setAnalysisError] = useState<string | null>(null)
 
+    // iOS Safari のスクロール漏れを防ぐため、モーダル表示中は body をロック
+    useEffect(() => {
+        const scrollY = window.scrollY
+        document.body.style.position = 'fixed'
+        document.body.style.top = `-${scrollY}px`
+        document.body.style.width = '100%'
+        return () => {
+            document.body.style.position = ''
+            document.body.style.top = ''
+            document.body.style.width = ''
+            window.scrollTo(0, scrollY)
+        }
+    }, [])
+
     useEffect(() => {
         if (!analyzing) { setLoadingMsgIdx(0); return }
         const id = setInterval(() => setLoadingMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length), 2000)
@@ -284,6 +298,8 @@ const panel: React.CSSProperties = {
     width: '100%', maxWidth: '520px', maxHeight: '85vh',
     overflowY: 'auto', boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
     position: 'relative',
+    overscrollBehavior: 'contain',
+    WebkitOverflowScrolling: 'touch',
 }
 
 const header: React.CSSProperties = {
