@@ -53,7 +53,7 @@ export default function DailyLogsPage() {
 
     // Initial list fetch
     useEffect(() => {
-        fetchRecentDailyLogs(30)
+        fetchRecentDailyLogs(5)
             .then((data) => {
                 setListLogs(data)
                 setListHasMore(data.length === 30)
@@ -69,7 +69,7 @@ export default function DailyLogsPage() {
         if (!oldest) return
         setListLoadingMore(true)
         try {
-            const data = await fetchRecentDailyLogs(30, oldest)
+            const data = await fetchRecentDailyLogs(5, oldest)
             setListLogs((prev) => [...prev, ...data])
             setListHasMore(data.length === 30)
         } catch (e) {
