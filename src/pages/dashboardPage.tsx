@@ -20,6 +20,7 @@ import {Link, useNavigate} from "react-router-dom";
 import {AIAgentWidget} from "@/components/aiAgent/aiAgentWidget.tsx";
 import { loadAllDrafts, type PracticeDraft } from "@/lib/practiceDraft.ts";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner.tsx";
+import { getCached, setCached } from "@/lib/pageCache";
 
 function buildChartData(
     year: number,
@@ -88,14 +89,39 @@ export default function DashboardPage() {
     const [goalSaving, setGoalSaving] = useState(false)
 
     useEffect(() => {
-        fetchDashboardStats().then(setStats).catch(console.error)
-        fetchProblems().then(setProblems).catch(console.error)
-        fetchDailyLog(todayString()).then(log => setTodayLog(log)).catch(console.error)
+        const todayKey = `dashboard-today-log-${todayString()}`
+        const cachedStats = getCached<DashboardStats>('dashboard-stats')
+        const cachedProblems = getCached<Problem[]>('dashboard-problems')
+        const cachedTodayLog = getCached<DailyLog>(todayKey)
+        if (cachedStats) setStats(cachedStats)
+        if (cachedProblems) setProblems(cachedProblems)
+        if (cachedTodayLog) setTodayLog(cachedTodayLog)
+
+        fetchDashboardStats()
+            .then((s) => { setStats(s); setCached('dashboard-stats', s) })
+            .catch(console.error)
+        fetchProblems()
+            .then((p) => { setProblems(p); setCached('dashboard-problems', p) })
+            .catch(console.error)
+        fetchDailyLog(todayString())
+            .then((log) => { setTodayLog(log); setCached(todayKey, log) })
+            .catch(console.error)
     }, [])
 
     useEffect(() => {
-        setChartLoading(true)
+        const cacheKey = `dashboard-monthly-${chartYear}-${chartMonth}`
+        type MonthlyCache = { logs: DailyLogSummary[]; settings: { targetMin: number; targetMax: number } }
+        const cached = getCached<MonthlyCache>(cacheKey)
         setIsEditingChartGoal(false)
+        if (cached) {
+            setChartLogs(cached.logs)
+            setChartTargetMin(cached.settings.targetMin)
+            setChartTargetMax(cached.settings.targetMax)
+            setEditMin(cached.settings.targetMin)
+            setEditMax(cached.settings.targetMax)
+        } else {
+            setChartLoading(true)
+        }
         Promise.all([
             fetchMonthlyLogs(chartYear, chartMonth),
             fetchMonthlySettings(chartYear, chartMonth),
@@ -106,6 +132,7 @@ export default function DashboardPage() {
                 setChartTargetMax(settings.targetMax)
                 setEditMin(settings.targetMin)
                 setEditMax(settings.targetMax)
+                setCached(cacheKey, { logs, settings })
             })
             .catch(console.error)
             .finally(() => setChartLoading(false))

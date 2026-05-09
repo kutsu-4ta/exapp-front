@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { fetchDailyLogs, fetchRecentDailyLogs } from '../lib/api/workspace'
 import type { DailyLogSummary } from '../types/workspace'
+import { getCached, setCached } from '../lib/pageCache'
 
 type ViewMode = 'list' | 'chart'
 
@@ -53,10 +54,17 @@ export default function DailyLogsPage() {
 
     // Initial list fetch
     useEffect(() => {
+        const cached = getCached<DailyLogSummary[]>('daily-logs-initial')
+        if (cached) {
+            setListLogs(cached)
+            setListHasMore(cached.length === 5)
+            setListInitialLoading(false)
+        }
         fetchRecentDailyLogs(5)
             .then((data) => {
                 setListLogs(data)
                 setListHasMore(data.length === 5)
+                setCached('daily-logs-initial', data)
             })
             .catch(console.error)
             .finally(() => setListInitialLoading(false))

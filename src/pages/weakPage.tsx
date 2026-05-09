@@ -5,7 +5,8 @@ import type { FailureType, ProblemInput, Proficiency, SubCategory } from "../typ
 import { useSettingsStore } from '../lib/store/settings';
 import { ProblemCard } from "../components/weak/ProblemCard";
 import { ProblemQuickModal } from "../components/weak/ProblemQuickModal";
-import { addProblem, fetchProblems } from "../lib/api/problem";
+import { addProblem, fetchProblems } from "../lib/api/problem"
+import { getCached, setCached, invalidateCache } from "../lib/pageCache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FilterPill } from "../components/weak/FilterPill";
 import { AddProblemModal } from "../components/weak/AddProblemModal";
@@ -34,11 +35,21 @@ export default function WeakPage() {
 
     // 初回ロード
     useEffect(() => {
+        const cachedProblems = getCached<Problem[]>('weak-problems-initial')
+        const cachedSubCats = getCached<SubCategory[]>('weak-subcategories')
+        if (cachedProblems && cachedSubCats) {
+            setProblems(cachedProblems)
+            setSubCategories(cachedSubCats)
+            setHasMore(cachedProblems.length === PAGE_SIZE)
+            setInitialLoading(false)
+        }
         Promise.all([fetchProblems(PAGE_SIZE), fetchSubCategories()])
             .then(([p, sc]) => {
                 setProblems(p)
                 setSubCategories(sc)
                 setHasMore(p.length === PAGE_SIZE)
+                setCached('weak-problems-initial', p)
+                setCached('weak-subcategories', sc)
             })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setInitialLoading(false))
@@ -78,6 +89,7 @@ export default function WeakPage() {
         setProblems((prev) => [p, ...prev])
         setShowAddForm(false)
         setQuickProblem(p)
+        invalidateCache('weak-problems-initial')
     }, [])
 
     const handleUpdate = useCallback((updated: Problem) => {
@@ -88,6 +100,7 @@ export default function WeakPage() {
     const handleDelete = useCallback((id: number) => {
         setProblems((prev) => prev.filter((p) => p.id !== id))
         setQuickProblem(null)
+        invalidateCache('weak-problems-initial')
     }, [])
 
     const grouped = useMemo(() => {
