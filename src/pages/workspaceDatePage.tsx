@@ -19,6 +19,22 @@ import {Suspense, useCallback, useEffect, useState} from "react";
 import {StopWatchWidget} from "@/components/dashboard/StopWatchWidget.tsx";
 import {LoadingSpinner} from "@/components/common/LoadingSpinner.tsx";
 
+function triggerTaptic(ms = 15) {
+    if (navigator.vibrate) {
+        navigator.vibrate(ms)
+        return
+    }
+    // iOS Safari: programmatic checkbox click triggers selection haptic in user-gesture context
+    try {
+        const el = document.createElement('input')
+        el.setAttribute('type', 'checkbox')
+        el.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0;'
+        document.body.appendChild(el)
+        el.click()
+        el.remove()
+    } catch { /* silent */ }
+}
+
 export default function WorkspaceDatePage() {
     return (
         <Suspense fallback={<LoadingSpinner fullPage />}>
@@ -70,7 +86,7 @@ function WorkspaceDateContent() {
 
     const handleComplete = useCallback(async () => {
         if (!date) return
-        navigator.vibrate?.(15) // Tapticフィードバック
+        triggerTaptic(15)
         setActionLoading(true)
         try {
             const updatedLog = await completeDailyLog(date)
@@ -82,7 +98,7 @@ function WorkspaceDateContent() {
 
     const handleUncomplete = useCallback(async () => {
         if (!date) return
-        navigator.vibrate?.(10)
+        triggerTaptic(10)
         setActionLoading(true)
         try {
             const updatedLog = await uncompleteDailyLog(date)

@@ -12,6 +12,13 @@ const SLOTS: { slot: TimeSlot; label: string }[] = [
   { slot: 'commute', label: '隙間' },
 ]
 
+function getCurrentTimeSlot(): TimeSlot {
+  const h = new Date().getHours()
+  if (h >= 5 && h < 11) return 'morning'
+  if (h >= 11 && h < 17) return 'lunch'
+  return 'night'
+}
+
 type Props = {
   date: string
   sessions: StudySession[]
@@ -32,9 +39,11 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, initi
 
   const hasInitial = !readonly && (initialMinutes != null || !!initialSubject)
 
+  const initialSlot = getCurrentTimeSlot()
+
   const [expandedSlots, setExpandedSlots] = useState<Set<TimeSlot>>(() => {
     const set = new Set(sessions.map((s) => s.timeSlot))
-    if (hasInitial) set.add('night')
+    if (hasInitial) set.add(initialSlot)
     return set
   })
 
@@ -42,8 +51,8 @@ export function StudyBlockList({ date, sessions, readonly, initialMinutes, initi
     if (hasInitial) {
       rowCounter.current = 1
       return [{
-        id: 'nr-night-0',
-        slot: 'night',
+        id: `nr-${initialSlot}-0`,
+        slot: initialSlot,
         defaultMinutes: initialMinutes,
         defaultSubject: initialSubject,
         defaultMaterial: initialMaterial,
