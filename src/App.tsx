@@ -1,24 +1,33 @@
 import { BrowserRouter, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 
 import { TimerProvider } from "./context/TimerContext";
 import { useSettingsStore } from './lib/store/settings';
 import { useAuthStore } from './lib/store/auth';
-
-// Pages のインポート
-import DashboardPage from "./pages/dashboardPage";
-import DailyLogsPage from "./pages/dailyLogsPage";
-import WorkspaceDatePage from "./pages/workspaceDatePage";
-import ExamPage from "./pages/examPage";
-import WeakPage from "./pages/weakPage";
-import PracticeSessionPage from "./pages/practiceSessionPage";
-import ProfilePage from "./pages/profilePage";
-import SubjectPage from "./pages/subjectPage";
-import LoginPage from "./pages/loginPage";
-import PrivacyPage from "./pages/privacyPage";
-import TermsPage from "./pages/termsPage";
+import { LoadingSpinner } from './components/common/LoadingSpinner';
 import {BottomNav} from "./shell/BottomNav";
 import {TopBar} from "@/shell/TopBar";
+
+// Pages — ルート単位で遅延ロード
+const DashboardPage      = lazy(() => import('./pages/dashboardPage'));
+const DailyLogsPage      = lazy(() => import('./pages/dailyLogsPage'));
+const WorkspaceDatePage  = lazy(() => import('./pages/workspaceDatePage'));
+const ExamPage           = lazy(() => import('./pages/examPage'));
+const WeakPage           = lazy(() => import('./pages/weakPage'));
+const PracticeSessionPage = lazy(() => import('./pages/practiceSessionPage'));
+const ProfilePage        = lazy(() => import('./pages/profilePage'));
+const SubjectPage        = lazy(() => import('./pages/subjectPage'));
+const LoginPage          = lazy(() => import('./pages/loginPage'));
+const PrivacyPage        = lazy(() => import('./pages/privacyPage'));
+const TermsPage          = lazy(() => import('./pages/termsPage'));
+
+function PageFallback() {
+    return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <LoadingSpinner size="md" />
+        </div>
+    )
+}
 
 // 未認証ならログインページへリダイレクト
 function PrivateRoute() {
@@ -63,29 +72,31 @@ function SimpleLayout() {
 function App() {
     return (
         <BrowserRouter>
-            <Routes>
-                {/* 1. 認証・規約系（ナビなし） */}
-                <Route element={<SimpleLayout />}>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/privacy" element={<PrivacyPage />} />
-                    <Route path="/terms" element={<TermsPage />} />
-                </Route>
+            <Suspense fallback={<PageFallback />}>
+                <Routes>
+                    {/* 1. 認証・規約系（ナビなし） */}
+                    <Route element={<SimpleLayout />}>
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/privacy" element={<PrivacyPage />} />
+                        <Route path="/terms" element={<TermsPage />} />
+                    </Route>
 
-                {/* 2. メイン機能（ナビあり・要認証） */}
-                <Route element={<PrivateRoute />}>
-                <Route element={<AppLayout />}>
-                    <Route path="/" element={<DashboardPage />} />
-                    <Route path="/workspace/daily-logs" element={<DailyLogsPage />} />
-                    <Route path="/workspace/:date" element={<WorkspaceDatePage />} />
-                    <Route path="/exam" element={<ExamPage />} />
-                    <Route path="/weak" element={<WeakPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/subjects/:name" element={<SubjectPage />} />
-                    <Route path="/practice/:subject" element={<PracticeSessionPage />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-                </Route>
-            </Routes>
+                    {/* 2. メイン機能（ナビあり・要認証） */}
+                    <Route element={<PrivateRoute />}>
+                    <Route element={<AppLayout />}>
+                        <Route path="/" element={<DashboardPage />} />
+                        <Route path="/workspace/daily-logs" element={<DailyLogsPage />} />
+                        <Route path="/workspace/:date" element={<WorkspaceDatePage />} />
+                        <Route path="/exam" element={<ExamPage />} />
+                        <Route path="/weak" element={<WeakPage />} />
+                        <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/subjects/:name" element={<SubjectPage />} />
+                        <Route path="/practice/:subject" element={<PracticeSessionPage />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Route>
+                    </Route>
+                </Routes>
+            </Suspense>
         </BrowserRouter>
     );
 }
