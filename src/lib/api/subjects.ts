@@ -1,4 +1,5 @@
 import { apiFetch } from '../client'
+import type { Flashcard } from '../../types/workspace'
 
 export async function fetchSubjects(): Promise<string[]> {
   const res = await apiFetch('/api/subjects')
@@ -19,4 +20,10 @@ export async function deleteSubject(name: string): Promise<void> {
     method: 'DELETE',
   })
   if (!res.ok) throw new Error('科目の削除に失敗しました')
+}
+
+export async function fetchFlashcards(subject: string): Promise<Flashcard[]> {
+  const res = await apiFetch(`/api/subjects/${encodeURIComponent(subject)}/flashcards`)
+  if (!res.ok) throw new Error(`フラッシュカードの取得に失敗しました: ${subject}`)
+  return res.json()
 }

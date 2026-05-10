@@ -5,6 +5,7 @@ import { useSettingsStore } from '../lib/store/settings';
 import { ProblemCard } from "../components/weak/ProblemCard";
 import { ProblemQuickModal } from "../components/weak/ProblemQuickModal";
 import { addProblem, fetchProblems } from "../lib/api/problem"
+import { fetchFlashcards } from "../lib/api/subjects"
 import { getCached, setCached, invalidateCache } from "../lib/pageCache"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FilterPill } from "../components/weak/FilterPill";
@@ -43,6 +44,7 @@ export default function WeakPage() {
     const [error, setError] = useState<string | null>(null)
     const [showAddForm, setShowAddForm] = useState(false)
     const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
+    const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const cursorRef = useRef<number | null>(null)
@@ -123,6 +125,39 @@ export default function WeakPage() {
         setQuickProblem(updated)
     }, [])
 
+    const handleCopyForGemini = useCallback(async () => {
+        setCopyState('loading')
+        try {
+            const targetSubjects = filterSubject === 'all'
+                ? (subjects.length > 0 ? subjects : [...new Set(problems.map((p) => p.subject))])
+                : [filterSubject]
+
+            const results = await Promise.all(
+                targetSubjects.map((s) => fetchFlashcards(s).then((cards) => ({ subject: s, cards })))
+            )
+
+            const label = filterSubject === 'all' ? '全科目' : filterSubject
+            const prompt = `以下は私の苦手問題データ（${label}）です。10問の4択クイズを作成してください。
+
+【生成ルール】
+- 表（Front）: 問題の核心となる概念・公式・判断軸を簡潔に記載
+- 裏（Back）: 解法のポイント、ミスしやすい理由、注意事項を具体的に記載
+- 復習ノート（note）がある場合はその内容を活かす
+- 習熟度が△・×の問題を優先して質の高いカードを作成
+- 出力形式は、必ず専用のクイズアプリ形式（JSON）で出力してください。
+
+【フラッシュカードデータ】
+${JSON.stringify(results, null, 2)}`
+
+            await navigator.clipboard.writeText(prompt)
+            setCopyState('done')
+        } catch {
+            setCopyState('error')
+        } finally {
+            setTimeout(() => setCopyState('idle'), 2000)
+        }
+    }, [filterSubject, subjects, problems])
+
     const handleDelete = useCallback((id: number) => {
         setProblems((prev) => prev.filter((p) => p.id !== id))
         setQuickProblem(null)
@@ -146,9 +181,52 @@ export default function WeakPage() {
     return (
         <div style={container}>
             <div style={stickyHeader}>
-                <div style={headerContent}>
-                    <h1 style={pageHeading}>弱点管理</h1>
-                    <div style={controls}>
+                <div style={{ ...headerContent, flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
+                    {/* 1段目: タイトルとメインアクション */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <h1 style={{ ...pageHeading, marginBottom: 0 }}>弱点管理</h1>
+                        <button
+                            style={copyBtn(copyState)}
+                            onClick={handleCopyForGemini}
+                            disabled={copyState === 'loading'}
+                            title="Gemini用プロンプトをコピー"
+                        >
+                            {copyState === 'loading' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 0.8s linear infinite' }}>
+                                    <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                                    <path d="M12 2a10 10 0 0 1 10 10" />
+                                </svg>
+                            )}
+                            {copyState === 'done' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            )}
+                            {copyState === 'error' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            )}
+                            {copyState === 'idle' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </svg>
+                            )}
+                            <span style={{ fontSize: '11px' }}>
+                {copyState === 'done' ? 'コピー済' : copyState === 'error' ? 'エラー' : 'Gemini'}
+            </span>
+                        </button>
+                    </div>
+
+                    {/* 2段目: フィルタコントロール */}
+                    <div style={{
+                        ...controls,
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        gap: '12px'
+                    }}>
                         <select style={select} value={filterProficiency} onChange={(e) => setFilterProficiency(e.target.value as Proficiency | 'all')}>
                             <option value="all">習熟度: すべて</option>
                             {PROFICIENCY_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
@@ -241,7 +319,18 @@ const headerContent: React.CSSProperties = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     maxWidth: '720px', margin: '0 auto 12px',
 }
-const controls: React.CSSProperties = { display: 'flex', gap: '8px' }
+const controls: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center' }
+
+const copyBtn = (state: 'idle' | 'loading' | 'done' | 'error'): React.CSSProperties => ({
+    display: 'flex', alignItems: 'center', gap: '4px',
+    padding: '4px 8px', fontSize: '12px', borderRadius: '4px',
+    border: `1px solid ${state === 'done' ? 'rgba(55,131,84,0.4)' : state === 'error' ? 'rgba(211,61,61,0.4)' : 'rgba(55, 53, 47, 0.16)'}`,
+    backgroundColor: state === 'done' ? 'rgba(55,131,84,0.08)' : state === 'error' ? 'rgba(211,61,61,0.08)' : 'transparent',
+    color: state === 'done' ? 'rgb(55,131,84)' : state === 'error' ? 'rgb(211,61,61)' : '#6366f1',
+    cursor: state === 'loading' ? 'default' : 'pointer',
+    transition: 'all 0.15s',
+    whiteSpace: 'nowrap' as const,
+})
 const select: React.CSSProperties = {
     padding: '4px 8px', fontSize: '12px', borderRadius: '4px',
     border: `1px solid rgba(55, 53, 47, 0.16)`, backgroundColor: 'transparent',

@@ -77,6 +77,8 @@ input, textarea, select {
   100% { opacity: 1; }
 }
 
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* スプライトアニメーション用キーフレーム（translateY を steps() で駒送り） */
 @keyframes sprite-sm { to { transform: translateY(-64px);  } }
 @keyframes sprite-md { to { transform: translateY(-96px);  } }

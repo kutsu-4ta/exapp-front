@@ -96,6 +96,22 @@ export function daysAgo(dateStr: string): number {
 
 // ── Problem / Weak-point types ───────────────────────────────────────────────
 
+export type Flashcard = {
+  id: number
+  front: {
+    questionRef: string
+    subCategory: string | null
+    material: string | null
+    solvedAt: string
+  }
+  back: {
+    note: string | null
+    proficiency: string
+    failureTypes: string[]
+    isGoodQuestion: boolean
+  }
+}
+
 export const PROFICIENCY_VALUES = ['○', '△', '×'] as const
 export type Proficiency = (typeof PROFICIENCY_VALUES)[number]
 
