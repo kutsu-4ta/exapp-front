@@ -45,6 +45,7 @@ export default function WeakPage() {
     const [showAddForm, setShowAddForm] = useState(false)
     const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
     const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+    const [quizCount, setQuizCount] = useState(10)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const cursorRef = useRef<number | null>(null)
@@ -129,10 +130,10 @@ export default function WeakPage() {
         setCopyState('loading')
         try {
             const subject = filterSubject === 'all' ? undefined : filterSubject
-            const cards = await fetchFlashcards(subject)
+            const cards = await fetchFlashcards(subject, quizCount)
 
             const label = filterSubject === 'all' ? '全科目' : filterSubject
-            const prompt = `以下は私の苦手問題データ（${label}）です。10問の4択クイズを作成してください。
+            const prompt = `以下は私の苦手問題データ（${label}）です。${quizCount}問の4択クイズを作成してください。
 
 【生成ルール】
 - 表（Front）: 問題の核心となる概念・公式・判断軸を簡潔に記載
@@ -151,7 +152,7 @@ ${JSON.stringify(cards, null, 2)}`
         } finally {
             setTimeout(() => setCopyState('idle'), 2000)
         }
-    }, [filterSubject])
+    }, [filterSubject, quizCount])
 
     const handleDelete = useCallback((id: number) => {
         setProblems((prev) => prev.filter((p) => p.id !== id))
@@ -180,6 +181,20 @@ ${JSON.stringify(cards, null, 2)}`
                     {/* 1段目: タイトルとメインアクション */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <h1 style={{ ...pageHeading, marginBottom: 0 }}>弱点管理</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <input
+                                type="number"
+                                min={1}
+                                max={50}
+                                value={quizCount}
+                                onChange={(e) => {
+                                    const v = Math.max(1, Math.min(50, Number(e.target.value)))
+                                    setQuizCount(isNaN(v) ? 10 : v)
+                                }}
+                                style={countInput}
+                                title="クイズの問題数（1〜50）"
+                            />
+                            <span style={{ fontSize: '11px', color: c.textSub, whiteSpace: 'nowrap' }}>問</span>
                         <button
                             style={copyBtn(copyState)}
                             onClick={handleCopyForGemini}
@@ -212,6 +227,7 @@ ${JSON.stringify(cards, null, 2)}`
                 {copyState === 'done' ? 'コピー済' : copyState === 'error' ? 'エラー' : 'Gemini'}
             </span>
                         </button>
+                        </div>
                     </div>
 
                     {/* 2段目: フィルタコントロール */}
@@ -315,6 +331,12 @@ const headerContent: React.CSSProperties = {
     maxWidth: '720px', margin: '0 auto 12px',
 }
 const controls: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center' }
+
+const countInput: React.CSSProperties = {
+    width: '44px', padding: '4px 6px', fontSize: '12px', borderRadius: '4px',
+    border: '1px solid rgba(55, 53, 47, 0.16)', backgroundColor: 'transparent',
+    color: '#6366f1', outline: 'none', textAlign: 'center',
+}
 
 const copyBtn = (state: 'idle' | 'loading' | 'done' | 'error'): React.CSSProperties => ({
     display: 'flex', alignItems: 'center', gap: '4px',
