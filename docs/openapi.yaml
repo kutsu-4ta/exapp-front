@@ -635,6 +635,34 @@ paths:
         '404':
           description: 科目が見つからない
 
+  /flashcards:
+    get:
+      summary: フラッシュカード一覧を取得
+      tags: [Subjects]
+      description: |
+        苦手問題をフラッシュカード形式で返す。`subject` を指定した場合はその科目のみ、
+        省略した場合は全科目を返す。
+        `solved_at` 降順・`created_at` 降順・`id` 降順でソート。
+      parameters:
+        - name: subject
+          in: query
+          required: false
+          schema: { type: string }
+          description: 科目名（省略時は全科目）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Flashcard' }
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /subjects/{subject}/flashcards:
     parameters:
       - name: subject

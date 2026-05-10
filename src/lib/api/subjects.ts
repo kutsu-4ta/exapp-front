@@ -22,8 +22,9 @@ export async function deleteSubject(name: string): Promise<void> {
   if (!res.ok) throw new Error('科目の削除に失敗しました')
 }
 
-export async function fetchFlashcards(subject: string): Promise<Flashcard[]> {
-  const res = await apiFetch(`/api/subjects/${encodeURIComponent(subject)}/flashcards`)
-  if (!res.ok) throw new Error(`フラッシュカードの取得に失敗しました: ${subject}`)
+export async function fetchFlashcards(subject?: string): Promise<Flashcard[]> {
+  const qs = subject ? `?subject=${encodeURIComponent(subject)}` : ''
+  const res = await apiFetch(`/api/flashcards${qs}`)
+  if (!res.ok) throw new Error('フラッシュカードの取得に失敗しました')
   return res.json()
 }

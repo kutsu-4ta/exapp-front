@@ -128,13 +128,8 @@ export default function WeakPage() {
     const handleCopyForGemini = useCallback(async () => {
         setCopyState('loading')
         try {
-            const targetSubjects = filterSubject === 'all'
-                ? (subjects.length > 0 ? subjects : [...new Set(problems.map((p) => p.subject))])
-                : [filterSubject]
-
-            const results = await Promise.all(
-                targetSubjects.map((s) => fetchFlashcards(s).then((cards) => ({ subject: s, cards })))
-            )
+            const subject = filterSubject === 'all' ? undefined : filterSubject
+            const cards = await fetchFlashcards(subject)
 
             const label = filterSubject === 'all' ? '全科目' : filterSubject
             const prompt = `以下は私の苦手問題データ（${label}）です。10問の4択クイズを作成してください。
@@ -147,7 +142,7 @@ export default function WeakPage() {
 - 出力形式は、必ず専用のクイズアプリ形式（JSON）で出力してください。
 
 【フラッシュカードデータ】
-${JSON.stringify(results, null, 2)}`
+${JSON.stringify(cards, null, 2)}`
 
             await navigator.clipboard.writeText(prompt)
             setCopyState('done')
@@ -156,7 +151,7 @@ ${JSON.stringify(results, null, 2)}`
         } finally {
             setTimeout(() => setCopyState('idle'), 2000)
         }
-    }, [filterSubject, subjects, problems])
+    }, [filterSubject])
 
     const handleDelete = useCallback((id: number) => {
         setProblems((prev) => prev.filter((p) => p.id !== id))
