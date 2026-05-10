@@ -1051,7 +1051,12 @@ paths:
           in: query
           required: false
           schema: { type: integer, minimum: 1 }
-          description: 取得件数（省略時は全件）。`solved_at` 降順・`created_at` 降順で先頭から取得。
+          description: 取得件数（省略時は全件）。`solved_at` 降順・`created_at` 降順・`id` 降順で先頭から取得。
+        - name: after
+          in: query
+          required: false
+          schema: { type: integer }
+          description: カーソルとなる問題 ID。指定した ID の問題より後（ソート順で下）の問題を返す。
       responses:
         '200':
           description: OK
