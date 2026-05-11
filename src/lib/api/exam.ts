@@ -60,8 +60,12 @@ export async function completeExamSession(
   return res.json()
 }
 
-export async function fetchSubjectStats(subject: string): Promise<ExamSubjectStats> {
-  const res = await apiFetch(`/api/exam-subjects/${encodeURIComponent(subject)}/stats`)
+export async function fetchSubjectStats(subject: string, year?: number, month?: number): Promise<ExamSubjectStats> {
+  const params = new URLSearchParams()
+  if (year !== undefined) params.set('year', String(year))
+  if (month !== undefined) params.set('month', String(month))
+  const qs = params.toString()
+  const res = await apiFetch(`/api/exam-subjects/${encodeURIComponent(subject)}/stats${qs ? `?${qs}` : ''}`)
   if (!res.ok) throw new Error('Failed to fetch subject stats')
   return res.json()
 }

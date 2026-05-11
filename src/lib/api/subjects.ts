@@ -1,5 +1,5 @@
 import { apiFetch } from '../client'
-import type { Flashcard } from '../../types/workspace'
+import type { Flashcard, SubjectSettings, SubjectMonthlyGoal } from '../../types/workspace'
 
 export async function fetchSubjects(): Promise<string[]> {
   const res = await apiFetch('/api/subjects')
@@ -20,6 +20,36 @@ export async function deleteSubject(name: string): Promise<void> {
     method: 'DELETE',
   })
   if (!res.ok) throw new Error('科目の削除に失敗しました')
+}
+
+export async function fetchSubjectSettings(name: string): Promise<SubjectSettings> {
+  const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}/settings`)
+  if (!res.ok) throw new Error('科目設定の取得に失敗しました')
+  return res.json()
+}
+
+export async function saveSubjectSettings(name: string, settings: SubjectSettings): Promise<SubjectSettings> {
+  const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}/settings`, {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
+  if (!res.ok) throw new Error('科目設定の保存に失敗しました')
+  return res.json()
+}
+
+export async function fetchSubjectMonthlyGoal(name: string, year: number, month: number): Promise<SubjectMonthlyGoal> {
+  const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}/monthly-goal/${year}/${month}`)
+  if (!res.ok) throw new Error('月別方針の取得に失敗しました')
+  return res.json()
+}
+
+export async function saveSubjectMonthlyGoal(name: string, year: number, month: number, goal: string | null): Promise<SubjectMonthlyGoal> {
+  const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}/monthly-goal/${year}/${month}`, {
+    method: 'PUT',
+    body: JSON.stringify({ goal }),
+  })
+  if (!res.ok) throw new Error('月別方針の保存に失敗しました')
+  return res.json()
 }
 
 export async function fetchFlashcards(subject?: string, count?: number): Promise<Flashcard[]> {

@@ -1,3 +1,13 @@
+export type SubjectSettings = {
+  finalTarget: string | null
+}
+
+export type SubjectMonthlyGoal = {
+  year: number
+  month: number
+  goal: string | null
+}
+
 export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 
 export type AlertSettings = {
