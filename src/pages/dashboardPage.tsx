@@ -1,8 +1,8 @@
-import {daysAgo, FAILURE_TYPE_VALUES, formatHours, todayString} from "../types/workspace";
+import {daysAgo, formatHours, todayString} from "../types/workspace";
 import { useSettingsStore } from '../lib/store/settings';
-import type {ChartDataPoint, DashboardStats, DailyLog, DailyLogSummary, Problem} from "../types/workspace";
-import {fetchProblems} from "../lib/api/problem";
+import type {ChartDataPoint, DashboardStats, DailyLog, DailyLogSummary} from "../types/workspace";
 import {useEffect, useMemo, useState} from "react";
+import { fetchGeminiContext } from "@/lib/api/gemini.ts";
 import {
     fetchAIAdvice,
     fetchDashboardStats,
@@ -70,7 +70,6 @@ export default function DashboardPage() {
     )
 
     const [stats, setStats] = useState<DashboardStats | null>(null)
-    const [problems, setProblems] = useState<Problem[]>([])
     const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
 
     // Chart month navigation
@@ -90,17 +89,12 @@ export default function DashboardPage() {
     useEffect(() => {
         const todayKey = `dashboard-today-log-${todayString()}`
         const cachedStats = getCached<DashboardStats>('dashboard-stats')
-        const cachedProblems = getCached<Problem[]>('dashboard-problems')
         const cachedTodayLog = getCached<DailyLog>(todayKey)
         if (cachedStats) setStats(cachedStats)
-        if (cachedProblems) setProblems(cachedProblems)
         if (cachedTodayLog) setTodayLog(cachedTodayLog)
 
         fetchDashboardStats()
             .then((s) => { setStats(s); setCached('dashboard-stats', s) })
-            .catch(console.error)
-        fetchProblems()
-            .then((p) => { setProblems(p); setCached('dashboard-problems', p) })
             .catch(console.error)
         fetchDailyLog(todayString())
             .then((log) => { setTodayLog(log); setCached(todayKey, log) })
@@ -202,13 +196,15 @@ export default function DashboardPage() {
     }, [todayLog])
 
     const [statsCopied, setStatsCopied] = useState(false)
+    const [statsCopying, setStatsCopying] = useState(false)
 
-    const buildStatsPrompt = () => {
+    const buildStatsPrompt = (ctx: Awaited<ReturnType<typeof fetchGeminiContext>>) => {
+        const d = ctx.dashboard
         const lines = ['【学習状況サマリー】']
-        lines.push(`累計: ${formatHours(stats?.allTotalMinutes ?? 0)} (${stats?.allTotalDays ?? 0}日)`)
-        lines.push(`今月: ${formatHours(stats?.thisMonthMinutes ?? 0)} (${stats?.thisMonthDays ?? 0}日)`)
-        lines.push(`連続: ${stats?.currentStreak ?? 0}日`)
-        lines.push(`今週: ${formatHours(stats?.thisWeekTotalMinutes ?? 0)}`)
+        lines.push(`累計: ${formatHours(d.allTotalMinutes)} (${d.allTotalDays}日)`)
+        lines.push(`今月: ${formatHours(d.thisMonthMinutes)} (${d.thisMonthDays}日)`)
+        lines.push(`連続: ${d.currentStreak}日`)
+        lines.push(`今週: ${formatHours(d.thisWeekTotalMinutes)}`)
         lines.push('')
         lines.push(`【本日 ${todayString().replace(/-/g, '/')}】`)
         if (todaySubjects.length > 0) {
@@ -218,36 +214,37 @@ export default function DashboardPage() {
             lines.push('まだ学習していません')
         }
         lines.push('')
-        lines.push('【科目別 最終学習日】')
-        subjectTouched.forEach(({ subject, lastDate }) => {
+        lines.push(`【科目別詳細 (${ctx.year}年${ctx.month}月)】`)
+        for (const s of ctx.subjects) {
+            lines.push(`■ ${s.subject}`)
+            if (s.finalTarget) lines.push(`  最終目標: ${s.finalTarget}`)
+            if (s.monthlyGoal) lines.push(`  今月の目標: ${s.monthlyGoal}`)
+            lines.push(`  学習時間: ${formatHours(s.studyMinutes)}`)
+            lines.push(`  問題数: ${s.problemCount}問`)
+            const lastDate = d.lastTouchedBySubject.find(e => e.subject === s.subject)?.lastdate ?? null
             lines.push(lastDate
-                ? `・${subject}: ${lastDate.replace(/-/g, '/')} (${daysAgo(lastDate)}日前)`
-                : `・${subject}: 未学習`)
-        })
-        const activeFt = FAILURE_TYPE_VALUES
-            .map(ft => ({ type: ft, count: problems.filter(p => p.failureTypes.includes(ft)).length }))
-            .filter(f => f.count > 0)
-        if (activeFt.length > 0) {
-            lines.push('')
-            lines.push('【ミスの傾向】')
-            activeFt.forEach(f => lines.push(`・${f.type}: ${f.count}問`))
+                ? `  最終学習: ${lastDate.replace(/-/g, '/')} (${daysAgo(lastDate)}日前)`
+                : `  最終学習: 未学習`)
+            if (s.failureStats.length > 0) {
+                lines.push(`  ミスの傾向:`)
+                s.failureStats.forEach(f => lines.push(`    ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`))
+            }
         }
         lines.push('')
-        lines.push('以上のデータをもとに、学習改善のアドバイスをしてください。')
         return lines.join('\n')
     }
 
     const handleCopyStats = async () => {
+        if (statsCopying) return
+        setStatsCopying(true)
         try {
-            await navigator.clipboard.writeText(buildStatsPrompt())
+            const ctx = await fetchGeminiContext(chartYear, chartMonth)
+            await navigator.clipboard.writeText(buildStatsPrompt(ctx))
             setStatsCopied(true)
             setTimeout(() => setStatsCopied(false), 2500)
-        } catch { /* silent */ }
-    }
-
-    const handleGeminiStats = async () => {
-        try { await navigator.clipboard.writeText(buildStatsPrompt()) } catch { /* silent */ }
-        window.open('https://gemini.google.com/app', '_blank')
+        } catch { /* silent */ } finally {
+            setStatsCopying(false)
+        }
     }
 
     return (
@@ -455,22 +452,14 @@ export default function DashboardPage() {
                 <div className="flex gap-2 mt-10 pt-8 border-t border-[var(--nt-border)]">
                     <button
                         onClick={handleCopyStats}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[var(--nt-border)] bg-[rgba(55,53,47,0.03)] text-[rgba(55,53,47,0.5)] text-[13px] font-semibold cursor-pointer"
+                        disabled={statsCopying}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[var(--nt-border)] bg-[rgba(55,53,47,0.03)] text-[rgba(55,53,47,0.5)] text-[13px] font-semibold cursor-pointer disabled:opacity-50"
                     >
                         {statsCopied
                             ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                             : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>
                         }
-                        <span>{statsCopied ? 'コピー済み' : 'コピー'}</span>
-                    </button>
-                    <button
-                        onClick={handleGeminiStats}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[var(--nt-blue-border)] bg-[var(--nt-blue-bg)] text-n-blue text-[13px] font-semibold cursor-pointer"
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z"/>
-                        </svg>
-                        <span>Gemini</span>
+                        <span>{statsCopied ? 'コピー済み' : statsCopying ? '取得中...' : 'ステータスをコピー'}</span>
                     </button>
                 </div>
 

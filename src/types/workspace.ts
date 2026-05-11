@@ -179,6 +179,24 @@ export type ProblemInput = {
   solvedAt: string
 }
 
+// ── Gemini context ───────────────────────────────────────────────────────────
+
+export type GeminiContextSubject = {
+  subject: string
+  finalTarget: string | null
+  monthlyGoal: string | null
+  studyMinutes: number
+  problemCount: number
+  failureStats: { type: string; count: number; ratio: number }[]
+}
+
+export type GeminiContext = {
+  year: number
+  month: number
+  dashboard: DashboardStats
+  subjects: GeminiContextSubject[]
+}
+
 // ── Dashboard stats ──────────────────────────────────────────────────────────
 
 export type DashboardStats = {
