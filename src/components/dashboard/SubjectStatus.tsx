@@ -62,22 +62,24 @@ export function SubjectStatus({
                 {mode === 'status' && subjectTouched.map((entry) => {
                     const label = getStatusLabel(entry.lastDate)
                     return (
-                        <button
+                        <div
                             key={entry.subject}
-                            className="flex items-center justify-between min-h-[44px] w-full px-1 py-2 border-b border-[var(--nt-border-xs)] cursor-pointer hover:bg-[var(--nt-hover)] active:bg-[var(--nt-pressed)] transition-colors rounded text-left bg-transparent"
-                            onClick={() => navigate(`/practice/${encodeURIComponent(entry.subject)}`)}
+                            className="flex items-center justify-between min-h-[44px] w-full px-1 py-1.5 border-b border-[var(--nt-border-xs)]"
                         >
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <button
+                                className="flex items-center gap-2.5 min-w-0 flex-1 text-left bg-transparent border-none cursor-pointer py-0.5 rounded hover:bg-[var(--nt-hover)] transition-colors"
+                                onClick={() => navigate(`/subjects/${encodeURIComponent(entry.subject)}`)}
+                            >
                                 <BookIcon />
                                 <span className="text-[14px] font-medium text-n-text truncate leading-none">
                                     {entry.subject}
                                 </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 ml-3 shrink-0">
+                            </button>
+                            <div className="flex items-center gap-2 ml-3 shrink-0">
                                 <StatusBadge label={label} />
-                                <ChevronIcon />
+                                <PracticeBtn subject={entry.subject} navigate={navigate} />
                             </div>
-                        </button>
+                        </div>
                     )
                 })}
 
@@ -85,14 +87,16 @@ export function SubjectStatus({
                     const minutes = minuteMap[entry.subject] ?? 0
                     const pct = Math.round((minutes / maxMinutes) * 100)
                     return (
-                        <button
+                        <div
                             key={entry.subject}
-                            className="flex items-center min-h-[44px] w-full px-1 py-2 border-b border-[var(--nt-border-xs)] cursor-pointer hover:bg-[var(--nt-hover)] active:bg-[var(--nt-pressed)] transition-colors rounded text-left bg-transparent gap-3"
-                            onClick={() => navigate(`/practice/${encodeURIComponent(entry.subject)}`)}
+                            className="flex items-center min-h-[44px] w-full px-1 py-1.5 border-b border-[var(--nt-border-xs)] gap-3"
                         >
-                            <span className="text-[13px] font-medium text-n-text shrink-0 w-[72px] truncate">
+                            <button
+                                className="text-[13px] font-medium text-n-text shrink-0 w-[72px] truncate text-left bg-transparent border-none cursor-pointer hover:underline"
+                                onClick={() => navigate(`/subjects/${encodeURIComponent(entry.subject)}`)}
+                            >
                                 {entry.subject}
-                            </span>
+                            </button>
                             <div className="flex-1 h-[5px] bg-[rgba(55,53,47,0.07)] rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-n-blue rounded-full transition-all duration-300"
@@ -103,7 +107,8 @@ export function SubjectStatus({
                                 style={{ color: 'rgba(55,53,47,0.45)', minWidth: '44px', textAlign: 'right' }}>
                                 {formatHours(minutes)}
                             </span>
-                        </button>
+                            <PracticeBtn subject={entry.subject} navigate={navigate} />
+                        </div>
                     )
                 })}
             </div>
@@ -178,13 +183,18 @@ function BookIcon() {
     )
 }
 
-function ChevronIcon() {
+function PracticeBtn({ subject, navigate }: { subject: string; navigate: ReturnType<typeof useNavigate> }) {
     return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="var(--nt-text-faint)" strokeWidth="2.5"
-            strokeLinecap="round" strokeLinejoin="round"
+        <button
+            onClick={() => navigate(`/practice/${encodeURIComponent(subject)}`)}
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md border text-[11px] font-semibold cursor-pointer transition-colors hover:bg-[var(--nt-hover)]"
+            style={{ color: 'rgba(55,53,47,0.5)', borderColor: 'rgba(55,53,47,0.12)', backgroundColor: 'transparent' }}
+            title="演習を開始"
         >
-            <polyline points="9 18 15 12 9 6" />
-        </svg>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21" />
+            </svg>
+            演習
+        </button>
     )
 }
