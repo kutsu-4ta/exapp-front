@@ -18,8 +18,12 @@ import {StatCard} from "../components/dashboard/StatCard";
 import {Link, useNavigate} from "react-router-dom";
 import {AIAgentWidget} from "@/components/aiAgent/aiAgentWidget.tsx";
 import { loadAllDrafts, type PracticeDraft } from "@/lib/practiceDraft.ts";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner.tsx";
 import { getCached, setCached } from "@/lib/pageCache";
+
+// --- スケルトン用コンポーネント ---
+const Skeleton = ({ className }: { className?: string }) => (
+    <div className={`animate-pulse bg-[rgba(55,53,47,0.06)] rounded ${className}`} />
+);
 
 function buildChartData(
     year: number,
@@ -71,6 +75,7 @@ export default function DashboardPage() {
 
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
+    const [isInitialLoading, setIsInitialLoading] = useState(true)
 
     // Chart month navigation
     const [chartYear, setChartYear] = useState(now.getFullYear())
@@ -90,15 +95,24 @@ export default function DashboardPage() {
         const todayKey = `dashboard-today-log-${todayString()}`
         const cachedStats = getCached<DashboardStats>('dashboard-stats')
         const cachedTodayLog = getCached<DailyLog>(todayKey)
+
         if (cachedStats) setStats(cachedStats)
         if (cachedTodayLog) setTodayLog(cachedTodayLog)
 
-        fetchDashboardStats()
-            .then((s) => { setStats(s); setCached('dashboard-stats', s) })
+        // キャッシュがある場合でも初期ローディング状態は一度解除する
+        if (cachedStats && cachedTodayLog) setIsInitialLoading(false)
+
+        Promise.all([
+            fetchDashboardStats(),
+            fetchDailyLog(todayString())
+        ]).then(([s, log]) => {
+            setStats(s);
+            setCached('dashboard-stats', s);
+            setTodayLog(log);
+            setCached(todayKey, log);
+        })
             .catch(console.error)
-        fetchDailyLog(todayString())
-            .then((log) => { setTodayLog(log); setCached(todayKey, log) })
-            .catch(console.error)
+            .finally(() => setIsInitialLoading(false))
     }, [])
 
     useEffect(() => {
@@ -112,6 +126,7 @@ export default function DashboardPage() {
             setChartTargetMax(cached.settings.targetMax)
             setEditMin(cached.settings.targetMin)
             setEditMax(cached.settings.targetMax)
+            setChartLoading(false)
         } else {
             setChartLoading(true)
         }
@@ -163,8 +178,8 @@ export default function DashboardPage() {
     const isCurrentMonth = chartYear === now.getFullYear() && chartMonth === now.getMonth() + 1
 
     const transformedChartData = useMemo(() =>
-        buildChartData(chartYear, chartMonth, chartLogs, chartTargetMin, chartTargetMax, todayString())
-    , [chartYear, chartMonth, chartLogs, chartTargetMin, chartTargetMax])
+            buildChartData(chartYear, chartMonth, chartLogs, chartTargetMin, chartTargetMax, todayString())
+        , [chartYear, chartMonth, chartLogs, chartTargetMin, chartTargetMax])
 
     const subjectTouched = useMemo(() => {
         const raw = stats?.lastTouchedBySubject
@@ -180,10 +195,9 @@ export default function DashboardPage() {
     }, [stats, subjects])
 
     const warningSubjects = useMemo(() =>
-        subjectTouched.filter(({ lastDate }) => !lastDate || daysAgo(lastDate) >= 7)
-    , [subjectTouched])
+            subjectTouched.filter(({ lastDate }) => !lastDate || daysAgo(lastDate) >= 7)
+        , [subjectTouched])
 
-    // 今日の科目別合計分数
     const todaySubjects = useMemo(() => {
         if (!todayLog?.studySessions.length) return []
         const map = new Map<string, number>()
@@ -252,47 +266,61 @@ export default function DashboardPage() {
             <div className="max-w-[800px] mx-auto px-5 pt-10 pb-[120px]">
 
                 {/* TODAY + ワークスペースCTA 統合カード */}
-                <Link
-                    to={`/workspace/${todayString()}`}
-                    className="block mb-6 rounded-xl border border-[var(--nt-blue-border)] bg-white no-underline overflow-hidden transition-transform active:scale-[0.99]"
-                >
-                    {/* 本文エリア */}
-                    <div className="px-5 pt-4 pb-3">
-                        <div className="text-[10px] font-bold tracking-widest text-n-blue uppercase mb-3">
-                            TODAY &nbsp;·&nbsp; {todayString().replace(/-/g, '/')}
-                        </div>
-                        {todaySubjects.length > 0 ? (
-                            <div className="flex flex-col gap-2">
-                                {todaySubjects.map(({ subject, minutes }) => (
-                                    <div key={subject} className="flex items-center justify-between">
-                                        <span className="text-[14px] font-medium text-n-text">{subject}</span>
-                                        <span className="text-[14px] font-semibold text-[rgba(55,53,47,0.45)] tabular-nums">{minutes}分</span>
-                                    </div>
-                                ))}
+                {isInitialLoading ? (
+                    <div className="mb-6 rounded-xl border border-[rgba(55,53,47,0.06)] overflow-hidden">
+                        <div className="px-5 pt-4 pb-3 space-y-3">
+                            <Skeleton className="h-3 w-24" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-5 w-full" />
+                                <Skeleton className="h-5 w-3/4" />
                             </div>
-                        ) : (
-                            <button
-                                onClick={(e) => { e.preventDefault(); navigate('/morning-bugfix') }}
-                                className="flex items-center gap-2 text-[13px] font-semibold text-n-blue bg-[var(--nt-blue-bg)] border border-[var(--nt-blue-border)] rounded-lg px-3.5 py-2.5 cursor-pointer"
-                            >
-                                morning_bugfixを開始する
-                            </button>
-                        )}
-                    </div>
-                    {/* フッター: 合計 + ワークスペースリンク */}
-                    <div className="flex items-center justify-between px-5 py-3 bg-[var(--nt-blue-bg)] border-t border-[var(--nt-blue-border)]">
-                        <span className="text-[15px] font-bold text-n-text tabular-nums">
-                            {todaySubjects.length > 0 ? formatHours(todayLog!.totalMinutes) : '0h'}
-                        </span>
-                        <div className="flex items-center gap-1.5 text-n-blue text-[12px] font-semibold">
-                            <span>ワークスペースを開く</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"/>
-                                <polyline points="12 5 19 12 12 19"/>
-                            </svg>
+                        </div>
+                        <div className="px-5 py-3 bg-[rgba(55,53,47,0.02)] border-t border-[rgba(55,53,47,0.06)] flex justify-between">
+                            <Skeleton className="h-5 w-12" />
+                            <Skeleton className="h-4 w-32" />
                         </div>
                     </div>
-                </Link>
+                ) : (
+                    <Link
+                        to={`/workspace/${todayString()}`}
+                        className="block mb-6 rounded-xl border border-[var(--nt-blue-border)] bg-white no-underline overflow-hidden transition-transform active:scale-[0.99]"
+                    >
+                        <div className="px-5 pt-4 pb-3">
+                            <div className="text-[10px] font-bold tracking-widest text-n-blue uppercase mb-3">
+                                TODAY &nbsp;·&nbsp; {todayString().replace(/-/g, '/')}
+                            </div>
+                            {todaySubjects.length > 0 ? (
+                                <div className="flex flex-col gap-2">
+                                    {todaySubjects.map(({ subject, minutes }) => (
+                                        <div key={subject} className="flex items-center justify-between">
+                                            <span className="text-[14px] font-medium text-n-text">{subject}</span>
+                                            <span className="text-[14px] font-semibold text-[rgba(55,53,47,0.45)] tabular-nums">{minutes}分</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={(e) => { e.preventDefault(); navigate('/morning-bugfix') }}
+                                    className="flex items-center gap-2 text-[13px] font-semibold text-n-blue bg-[var(--nt-blue-bg)] border border-[var(--nt-blue-border)] rounded-lg px-3.5 py-2.5 cursor-pointer"
+                                >
+                                    morning_bugfixを開始する
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-between px-5 py-3 bg-[var(--nt-blue-bg)] border-t border-[var(--nt-blue-border)]">
+                            <span className="text-[15px] font-bold text-n-text tabular-nums">
+                                {todaySubjects.length > 0 ? formatHours(todayLog!.totalMinutes) : '0h'}
+                            </span>
+                            <div className="flex items-center gap-1.5 text-n-blue text-[12px] font-semibold">
+                                <span>ワークスペースを開く</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                    <polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </Link>
+                )}
 
                 {practiceDrafts.length > 0 && (
                     <div className="mb-4 p-3.5 rounded-xl border border-[var(--nt-blue-border)] bg-[var(--nt-blue-bg)]">
@@ -325,28 +353,35 @@ export default function DashboardPage() {
 
                 {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
 
-                {/* AI Advisor */}
-                <div className="mb-6">
-                    <AIAgentWidget onGetAdvice={fetchAIAdvice}/>
-                </div>
-
                 {/* 統計カード */}
                 <div className="grid grid-cols-3 gap-3 mb-6">
-                    <StatCard
-                        label="All Total"
-                        value={formatHours(stats?.allTotalMinutes ?? 0)}
-                        sub={`${stats?.allTotalDays ?? 0}d Active`}
-                    />
-                    <StatCard
-                        label="Monthly"
-                        value={formatHours(stats?.thisMonthMinutes ?? 0)}
-                        sub={`${stats?.thisMonthDays ?? 0}d Active`}
-                    />
-                    <StatCard
-                        label="Streak"
-                        value={`${stats?.currentStreak ?? 0}d`}
-                        sub={`週 ${formatHours(stats?.thisWeekTotalMinutes ?? 0)}`}
-                    />
+                    {isInitialLoading ? (
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="p-4 rounded-xl border border-[rgba(55,53,47,0.06)] space-y-2">
+                                <Skeleton className="h-3 w-12" />
+                                <Skeleton className="h-6 w-16" />
+                                <Skeleton className="h-3 w-20" />
+                            </div>
+                        ))
+                    ) : (
+                        <>
+                            <StatCard
+                                label="All Total"
+                                value={formatHours(stats?.allTotalMinutes ?? 0)}
+                                sub={`${stats?.allTotalDays ?? 0}d Active`}
+                            />
+                            <StatCard
+                                label="Monthly"
+                                value={formatHours(stats?.thisMonthMinutes ?? 0)}
+                                sub={`${stats?.thisMonthDays ?? 0}d Active`}
+                            />
+                            <StatCard
+                                label="Streak"
+                                value={`${stats?.currentStreak ?? 0}d`}
+                                sub={`週 ${formatHours(stats?.thisWeekTotalMinutes ?? 0)}`}
+                            />
+                        </>
+                    )}
                 </div>
 
                 {/* バーンダウンチャート */}
@@ -389,7 +424,6 @@ export default function DashboardPage() {
                                 </button>
                             </div>
 
-                            {/* 目標設定ボタン */}
                             <button
                                 onClick={handleOpenGoalEditor}
                                 className="absolute right-1 top-1 flex items-center justify-center w-7 h-7 rounded text-[rgba(55,53,47,0.25)] hover:text-[rgba(55,53,47,0.5)] hover:bg-[var(--nt-pressed)] transition-colors border-none bg-transparent cursor-pointer"
@@ -403,7 +437,6 @@ export default function DashboardPage() {
                             </button>
                         </div>
 
-                        {/* 目標インラインエディタ */}
                         {isEditingChartGoal && (
                             <div className="flex justify-center items-center gap-1.5 px-2 py-2 mb-3 bg-[var(--nt-surface)] border border-[rgba(55,53,47,0.06)] rounded-md">
                                 <span className="text-[10px] font-bold text-[rgba(55,53,47,0.3)] mr-1">GOAL:</span>
@@ -440,24 +473,42 @@ export default function DashboardPage() {
                         )}
 
                         {chartLoading
-                            ? <div className="flex items-center justify-center" style={{ height: 'clamp(200px, 35vw, 280px)' }}><LoadingSpinner /></div>
+                            ? <div className="flex items-center justify-center bg-[rgba(55,53,47,0.01)] rounded" style={{ height: 'clamp(200px, 35vw, 280px)' }}>
+                                <div className="w-full h-full p-4 flex flex-col justify-between">
+                                    <Skeleton className="h-full w-full" />
+                                </div>
+                            </div>
                             : <DashboardChart data={transformedChartData} targetMin={chartTargetMin} targetMax={chartTargetMax} />
                         }
                     </div>
                 </section>
 
-                <SubjectStatus
-                    subjectTouched={subjectTouched}
-                    subjectMinutes={stats?.subjectMinutes ?? []}
-                    allSubjectMinutes={stats?.allSubjectMinutes ?? []}
-                    todaySubjectMinutes={todaySubjects}
-                />
+                {isInitialLoading ? (
+                    <div className="mb-10 space-y-4">
+                        <Skeleton className="h-4 w-32" />
+                        <div className="grid grid-cols-1 gap-2">
+                            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+                        </div>
+                    </div>
+                ) : (
+                    <SubjectStatus
+                        subjectTouched={subjectTouched}
+                        subjectMinutes={stats?.subjectMinutes ?? []}
+                        allSubjectMinutes={stats?.allSubjectMinutes ?? []}
+                        todaySubjectMinutes={todaySubjects}
+                    />
+                )}
+
+                {/* AI Advisor */}
+                <div className="mb-6">
+                    <AIAgentWidget onGetAdvice={fetchAIAdvice}/>
+                </div>
 
                 {/* 指標コピー / Gemini */}
                 <div className="flex gap-2 mt-10 pt-8 border-t border-[var(--nt-border)]">
                     <button
                         onClick={handleCopyStats}
-                        disabled={statsCopying}
+                        disabled={statsCopying || isInitialLoading}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[var(--nt-border)] bg-[rgba(55,53,47,0.03)] text-[rgba(55,53,47,0.5)] text-[13px] font-semibold cursor-pointer disabled:opacity-50"
                     >
                         {statsCopied
