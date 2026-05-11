@@ -130,22 +130,26 @@ export default function WeakPage() {
         setCopyState('loading')
         try {
             const subject = filterSubject === 'all' ? undefined : filterSubject
-            const cards = await fetchFlashcards(subject, quizCount)
-
             const label = filterSubject === 'all' ? '全科目' : filterSubject
-            const prompt = `以下は私の苦手問題データ（${label}）です。${quizCount}問の4択クイズを作成してください。
+            const count = quizCount
 
-【生成ルール】
-- 表（Front）: 問題の核心となる概念・公式・判断軸を簡潔に記載
-- 裏（Back）: 解法のポイント、ミスしやすい理由、注意事項を具体的に記載
-- 復習ノート（note）がある場合はその内容を活かす
-- 習熟度が△・×の問題を優先して質の高いカードを作成
-- 出力形式は、必ず専用のクイズアプリ形式（JSON）で出力してください。
+            const buildText = (cards: Awaited<ReturnType<typeof fetchFlashcards>>) =>
+                `以下は私の苦手問題データ（${label}）です。${count}問の4択クイズを作成してください。\n\n【生成ルール】\n- 表（Front）: 問題の核心となる概念・公式・判断軸を簡潔に記載\n- 裏（Back）: 解法のポイント、ミスしやすい理由、注意事項を具体的に記載\n- 復習ノート（note）がある場合はその内容を活かす\n- 習熟度が△・×の問題を優先して質の高いカードを作成\n- 出力形式は、必ず専用のクイズアプリ形式（JSON）で出力してください。\n\n【フラッシュカードデータ】\n${JSON.stringify(cards, null, 2)}`
 
-【フラッシュカードデータ】
-${JSON.stringify(cards, null, 2)}`
-
-            await navigator.clipboard.writeText(prompt)
+            // iOS Safariはawait後にclipboard.writeTextを呼ぶとユーザージェスチャーコンテキストが失われる。
+            // ClipboardItemにPromiseを渡すことで、ジェスチャーを保持したまま非同期コピーが可能。
+            if (typeof ClipboardItem !== 'undefined') {
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/plain': fetchFlashcards(subject, count).then(
+                            cards => new Blob([buildText(cards)], { type: 'text/plain' })
+                        )
+                    })
+                ])
+            } else {
+                const cards = await fetchFlashcards(subject, count)
+                await navigator.clipboard.writeText(buildText(cards))
+            }
             setCopyState('done')
         } catch {
             setCopyState('error')
