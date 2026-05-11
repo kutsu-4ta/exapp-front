@@ -13,7 +13,6 @@ import {
 } from "../lib/api/workspace";
 import {SubjectStatus} from "../components/dashboard/SubjectStatus";
 import {DashboardChart} from "../components/dashboard/DashboardChart";
-import {FailureAnalysisSection} from "../components/dashboard/FailureAnalysisSection";
 import {AlertWidget} from "../components/dashboard/AlertWidget";
 import {StatCard} from "../components/dashboard/StatCard";
 import {Link, useNavigate} from "react-router-dom";
@@ -451,7 +450,6 @@ export default function DashboardPage() {
                     allSubjectMinutes={stats?.allSubjectMinutes ?? []}
                     todaySubjectMinutes={todaySubjects}
                 />
-                <FailureAnalysisSection problems={problems} subjects={subjects} />
 
                 {/* 指標コピー / Gemini */}
                 <div className="flex gap-2 mt-10 pt-8 border-t border-[var(--nt-border)]">

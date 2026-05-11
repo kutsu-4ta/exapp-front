@@ -294,7 +294,7 @@ export default function SubjectPage() {
                     <span style={{ fontSize: '15px', fontWeight: 700, color: PROF_COLORS[card.back.proficiency] ?? c.text }}>
                       {card.back.proficiency}
                     </span>
-                    <span style={todayCardRef}>{card.front.questionRef}</span>
+                    <span style={todayCardRef}>{card.front.material} {card.front.questionRef}</span>
                     {card.front.subCategory && (
                       <span style={todayCardSub}>{card.front.subCategory}</span>
                     )}
