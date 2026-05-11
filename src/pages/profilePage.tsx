@@ -7,6 +7,12 @@ import { renameMaterial, deleteMaterial } from '../lib/api/materials'
 import { updateAlertSettings } from '../lib/api/alertSettings'
 import { backBtn, c, font, pageHeading } from '../styles/notion'
 import { fetchUserProfile, updateUserProfile } from '@/lib/api/profile'
+import {
+    fetchGeminiSettings,
+    updateGeminiSettings,
+    type GeminiModel,
+    GEMINI_MODEL_OPTIONS,
+} from '@/lib/api/gemini'
 
 export default function ProfilePage() {
     const navigate = useNavigate()
@@ -37,6 +43,12 @@ export default function ProfilePage() {
     const [tokenSaved, setTokenSaved] = useState(false)
     const [tokenError, setTokenError] = useState<string | null>(null)
     const [isTokenRegistered, setIsTokenRegistered] = useState(user?.geminiTokenSet ?? false)
+
+    // ── Gemini Model settings ────────────────────────────────────────────────
+    const [geminiModel, setGeminiModel] = useState<GeminiModel | null>(null)
+    const [modelLoading, setModelLoading] = useState(false)
+    const [modelSaved, setModelSaved] = useState(false)
+    const [modelError, setModelError] = useState<string | null>(null)
 
     // ── Material editing ─────────────────────────────────────────────────────
     const [editingMaterial, setEditingMaterial] = useState<string | null>(null)
@@ -77,6 +89,9 @@ export default function ProfilePage() {
 
         loadProfile();
         loadAlertSettings();
+        fetchGeminiSettings()
+            .then((s) => { if (s.geminiModel) setGeminiModel(s.geminiModel) })
+            .catch(() => {})
     }, []);
 
     useEffect(() => {
@@ -134,6 +149,23 @@ export default function ProfilePage() {
             setTokenError(e instanceof Error ? e.message : 'トークンの保存に失敗しました')
         } finally {
             setTokenLoading(false)
+        }
+    }
+
+    // ── Gemini Model handler ─────────────────────────────────────────────────
+    const handleModelSave = async () => {
+        if (!geminiModel) return
+        setModelLoading(true)
+        setModelError(null)
+        setModelSaved(false)
+        try {
+            await updateGeminiSettings(geminiModel)
+            setModelSaved(true)
+            setTimeout(() => setModelSaved(false), 2000)
+        } catch (e) {
+            setModelError(e instanceof Error ? e.message : '保存に失敗しました')
+        } finally {
+            setModelLoading(false)
         }
     }
 
@@ -268,11 +300,62 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* APIキー設定 (独立) */}
+                {/* 高度な設定 */}
                 <div style={sectionHeadingWrap}>
                     <span style={sectionHeading}>高度な設定</span>
                 </div>
                 <div style={settingsBlock}>
+                    {/* モデル選択 */}
+                    <p style={settingsSubLabel}>使用モデル</p>
+                    <p style={settingsNote}>AIアドバイス・朝の復習・画像解析で使用するGeminiモデルを選択します。</p>
+
+                    {modelError && <p style={errorText}>{modelError}</p>}
+
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                        {GEMINI_MODEL_OPTIONS.map((opt) => {
+                            const selected = geminiModel === opt.value
+                            return (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setGeminiModel(opt.value)}
+                                    disabled={modelLoading}
+                                    style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        border: '1px solid',
+                                        fontSize: '12px',
+                                        fontWeight: selected ? 700 : 500,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s',
+                                        backgroundColor: selected ? 'rgba(35,131,226,0.08)' : 'transparent',
+                                        borderColor: selected ? 'rgba(35,131,226,0.35)' : 'rgba(55,53,47,0.12)',
+                                        color: selected ? '#2383e2' : 'rgba(55,53,47,0.55)',
+                                    }}
+                                >
+                                    {opt.label}
+                                </button>
+                            )
+                        })}
+                    </div>
+                    {geminiModel && (
+                        <p style={{ fontSize: '11px', color: 'rgba(55,53,47,0.35)', marginBottom: '12px', fontFamily: 'monospace' }}>
+                            {geminiModel}
+                        </p>
+                    )}
+                    <div style={alertSaveRow}>
+                        <button
+                            onClick={handleModelSave}
+                            disabled={modelLoading || !geminiModel}
+                            style={{ ...saveBtn, backgroundColor: geminiModel ? '#2383e2' : 'rgba(55,53,47,0.2)' }}
+                        >
+                            {modelLoading ? '保存中...' : 'モデルを保存'}
+                        </button>
+                        {modelSaved && <span style={savedText}>保存しました</span>}
+                    </div>
+
+                    <div style={{ height: '1px', backgroundColor: 'rgba(55,53,47,0.07)', margin: '20px 0' }} />
+
+                    {/* APIキー */}
                     <p style={settingsSubLabel}>Gemini APIキー</p>
                     <p style={settingsNote}>独自のAPIキーを使用することで、より高度な解析機能を利用できます。</p>
 

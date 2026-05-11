@@ -6,3 +6,26 @@ export async function fetchGeminiContext(year: number, month: number): Promise<G
     if (!res.ok) throw new Error(`fetchGeminiContext: ${res.status}`)
     return res.json()
 }
+
+export type GeminiModel = 'gemini-2.5-flash' | 'gemini-3-flash' | 'gemini-2.5-flash-lite'
+
+export const GEMINI_MODEL_OPTIONS: { value: GeminiModel; label: string }[] = [
+    { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash' },
+    { value: 'gemini-3-flash',         label: 'Gemini 3 Flash' },
+    { value: 'gemini-2.5-flash-lite',  label: 'Gemini 2.5 Flash Lite' },
+]
+
+export async function fetchGeminiSettings(): Promise<{ geminiModel: GeminiModel | null }> {
+    const res = await apiFetch('/api/gemini/settings')
+    if (!res.ok) throw new Error('Gemini設定の取得に失敗しました')
+    return res.json()
+}
+
+export async function updateGeminiSettings(model: GeminiModel): Promise<{ geminiModel: GeminiModel }> {
+    const res = await apiFetch('/api/gemini/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ geminiModel: model }),
+    })
+    if (!res.ok) throw new Error('Gemini設定の更新に失敗しました')
+    return res.json()
+}
