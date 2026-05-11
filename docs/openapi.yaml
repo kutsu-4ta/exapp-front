@@ -402,6 +402,42 @@ components:
           items:
             $ref: '#/components/schemas/GeminiContextSubject'
 
+    MorningQuizItem:
+      type: object
+      required: [id, subject, problem_context, quiz]
+      properties:
+        id:           { type: integer }
+        subject:      { type: string }
+        sub_category: { type: string, nullable: true }
+        problem_context:
+          type: object
+          properties:
+            original_ref: { type: string, nullable: true }
+            user_memo:    { type: string, nullable: true }
+        quiz:
+          type: object
+          nullable: true
+          properties:
+            question:      { type: string }
+            options:       { type: array, items: { type: string } }
+            correct_index: { type: integer, minimum: 0, maximum: 3 }
+            explanation:   { type: string }
+        last_touched_at: { type: string, format: date, nullable: true }
+
+    MorningBugfixSession:
+      type: object
+      required: [session_id, meta, questions]
+      properties:
+        session_id: { type: string, example: 'morning_bugfix_20260512' }
+        meta:
+          type: object
+          properties:
+            total_questions: { type: integer }
+            strategy:        { type: string, example: 'definition_focused' }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/MorningQuizItem' }
+
     Error:
       type: object
       required: [message]
@@ -1906,6 +1942,146 @@ paths:
                       - { type: '計算ミス', count: 3,  ratio: 0.15 }
         '401':
           description: 未認証
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ── Morning Bugfix ───────────────────────────────────────────────────────────
+
+  /morning-bugfix:
+    get:
+      summary: 朝の定義ミス復習セッションを取得
+      tags: [AI]
+      description: |
+        昨日触れた「定義ミス」の苦手問題を優先的に抽出し、Geminiで定義理解クイズを生成して返す。
+
+        **問題選出フォールバック（合計5問）:**
+        1. `last_touched_at == 昨日` かつ `failure_types` に `定義ミス` を含む（RANDOM）
+        2. 直近7日以内の定義ミス（昨日を除く）で補填（RANDOM）
+        3. それでも不足する場合、全期間の定義ミスを習熟度の低い順（×→△→○）で補填
+
+        `date` パラメータを指定すると、その日を「今日」とみなして昨日を計算する（テスト用）。
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema: { type: string, format: date }
+          description: '基準日（省略時: サーバー今日）'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MorningBugfixSession' }
+        '401':
+          description: 未認証
+
+  # ── Morning Quiz ─────────────────────────────────────────────────────────────
+
+  /morning-quiz:
+    get:
+      summary: 朝の復習クイズ（5問）を取得
+      tags: [AI]
+      description: |
+        ユーザーの苦手問題から5問を選択し、各問題を4択クイズ形式に変換して返す。
+        問題の選択ロジックは `/subjects/{subject}/review-problems` と同様（lastTouchedAt 古い順）。
+        クイズの問題文・選択肢・正解・解説は Gemini で生成する。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session_id, questions]
+                properties:
+                  session_id:
+                    type: string
+                    format: uuid
+                    description: 回答セッションを識別するID（完了時に使用）
+                  questions:
+                    type: array
+                    minItems: 1
+                    maxItems: 5
+                    items:
+                      type: object
+                      required: [id, subject, sub_category, problem_context, quiz]
+                      properties:
+                        id:          { type: string, description: '問題ID（UUIDまたは問題DB上のID文字列）' }
+                        subject:     { $ref: '#/components/schemas/Subject' }
+                        sub_category: { type: string, description: '小分類名' }
+                        problem_context:
+                          type: object
+                          required: [original_ref, user_memo]
+                          properties:
+                            original_ref: { type: string, description: '元の問題番号（例: R05 第12問）' }
+                            user_memo:    { type: string, description: 'ユーザーが登録したノート・メモ' }
+                        quiz:
+                          type: object
+                          required: [question, options, correct_index, explanation]
+                          properties:
+                            question:      { type: string, description: 'Geminiが生成した4択問題文' }
+                            options:
+                              type: array
+                              minItems: 4
+                              maxItems: 4
+                              items: { type: string }
+                              description: '4つの選択肢（ア〜エに対応）'
+                            correct_index: { type: integer, minimum: 0, maximum: 3, description: '正解の選択肢インデックス（0始まり）' }
+                            explanation:   { type: string, description: '正解の根拠・解説文' }
+        '401':
+          description: 未認証
+        '503':
+          description: Gemini API 呼び出し失敗
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /morning-quiz/sessions:
+    post:
+      summary: 朝の復習クイズ結果を保存
+      tags: [AI]
+      description: |
+        クイズセッションの回答結果を保存し、当日のWorkspaceに学習記録（StudySession）を自動生成する。
+        - subject: `朝の復習`
+        - material: `morning_bugfix`
+        - minutes: `elapsed_ms` を分単位（切り上げ）に変換した値
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, answers, elapsed_ms]
+              properties:
+                session_id: { type: string, format: uuid }
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    required: [question_id, selected_index]
+                    properties:
+                      question_id:    { type: string }
+                      selected_index: { type: integer, minimum: 0, maximum: 3 }
+                elapsed_ms: { type: integer, minimum: 0, description: '全問解答にかかった時間（ミリ秒）' }
+      responses:
+        '201':
+          description: 保存成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [minutes, correct_count, total_count]
+                properties:
+                  minutes:       { type: integer, description: '記録された学習時間（分）' }
+                  correct_count: { type: integer, description: '正解数' }
+                  total_count:   { type: integer, description: '出題数' }
+        '401':
+          description: 未認証
+        '404':
+          description: session_id が存在しない
+        '422':
+          description: バリデーションエラー
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

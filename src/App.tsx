@@ -14,8 +14,9 @@ const DailyLogsPage      = lazy(() => import('./pages/dailyLogsPage'));
 const WorkspaceDatePage  = lazy(() => import('./pages/workspaceDatePage'));
 const ExamPage           = lazy(() => import('./pages/examPage'));
 const WeakPage           = lazy(() => import('./pages/weakPage'));
-const PracticeSessionPage = lazy(() => import('./pages/practiceSessionPage'));
-const ProfilePage        = lazy(() => import('./pages/profilePage'));
+const PracticeSessionPage  = lazy(() => import('./pages/practiceSessionPage'));
+const MorningBugfixPage   = lazy(() => import('./pages/morningBugfixPage'));
+const ProfilePage         = lazy(() => import('./pages/profilePage'));
 const SubjectPage        = lazy(() => import('./pages/subjectPage'));
 const LoginPage          = lazy(() => import('./pages/loginPage'));
 const PrivacyPage        = lazy(() => import('./pages/privacyPage'));
@@ -92,6 +93,7 @@ function App() {
                         <Route path="/profile" element={<ProfilePage />} />
                         <Route path="/subjects/:name" element={<SubjectPage />} />
                         <Route path="/practice/:subject" element={<PracticeSessionPage />} />
+                        <Route path="/morning-bugfix" element={<MorningBugfixPage />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                     </Route>
