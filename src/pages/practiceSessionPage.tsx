@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { QuestionDraft } from '../types/exam'
+import type { Flashcard, Problem, ProblemInput } from '../types/workspace'
 import { PracticeAnswerView } from '@/components/practice/PracticeAnswerView.tsx'
+import { TodayCardModal } from '@/components/practice/TodayCardModal.tsx'
 import { savePracticeSession } from '@/lib/api/practice.ts'
+import { fetchProblem, updateProblem } from '@/lib/api/problem.ts'
 import { c, font } from '@/styles/notion.ts'
 import { type AnsweredRecord, clearDraft, loadDraft, saveDraft } from '@/lib/practiceDraft.ts'
 
@@ -44,16 +47,25 @@ export default function PracticeSessionPage() {
     const { subject: enc } = useParams<{ subject: string }>()
     const subject = decodeURIComponent(enc ?? '')
     const navigate = useNavigate()
+    const location = useLocation()
+
+    // Today mode: started from subject page "今日の5問"
+    const todayMode: boolean = location.state?.mode === 'today'
+    const todayCards: Flashcard[] = location.state?.todayCards ?? []
 
     const [phase, setPhase] = useState<Phase>('active')
-    const [currentIndex, setCurrentIndex] = useState(() => loadDraft(subject)?.currentIndex ?? 1)
+    const [currentIndex, setCurrentIndex] = useState(() =>
+        todayMode ? 1 : (loadDraft(subject)?.currentIndex ?? 1)
+    )
     const [currentQuestion, setCurrentQuestion] = useState<QuestionDraft>(() =>
-        makeBlankQuestion(loadDraft(subject)?.currentIndex ?? 1)
+        makeBlankQuestion(todayMode ? 1 : (loadDraft(subject)?.currentIndex ?? 1))
     )
     const [subQuestions, setSubQuestions] = useState<QuestionDraft[]>([])
 
     const [questionStartMs, setQuestionStartMs] = useState(Date.now())
-    const [log, setLog] = useState<AnsweredRecord[]>(() => loadDraft(subject)?.log ?? [])
+    const [log, setLog] = useState<AnsweredRecord[]>(() =>
+        todayMode ? [] : (loadDraft(subject)?.log ?? [])
+    )
     const [totalElapsedMs, setTotalElapsedMs] = useState(0)
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
@@ -61,15 +73,22 @@ export default function PracticeSessionPage() {
         { answer: string; isDoubtful: boolean; memos: Record<string, string> }[] | undefined
     >(undefined)
     const [resumedFrom] = useState(() => {
+        if (todayMode) return null
         const d = loadDraft(subject)
         return d && d.log.length > 0 ? d.currentIndex : null
     })
 
-    // 回答するたびにドラフトを保存
+    // Today mode: review modal state
+    const [reviewProblem, setReviewProblem] = useState<Problem | null>(null)
+    const [pendingNextIndex, setPendingNextIndex] = useState<number | null>(null)
+    const [pendingLog, setPendingLog] = useState<AnsweredRecord[] | null>(null)
+    const [pendingStartMs, setPendingStartMs] = useState<number | null>(null)
+
+    // ドラフト保存（today モードでは使わない）
     useEffect(() => {
-        if (phase !== 'active') return
+        if (phase !== 'active' || todayMode) return
         saveDraft(subject, { currentIndex, log })
-    }, [currentIndex, log, phase, subject])
+    }, [currentIndex, log, phase, subject, todayMode])
 
     // ── 設問追加 / 削除 ──
     const handleAddSubQuestion = () => {
@@ -86,28 +105,59 @@ export default function PracticeSessionPage() {
         })
     }
 
+    // ── 前進（次問へ / 完了） ──
+    const performAdvance = (nextIdx: number, theLog: AnsweredRecord[], startMs: number) => {
+        setReviewProblem(null)
+        setPendingNextIndex(null)
+        setPendingLog(null)
+        setPendingStartMs(null)
+
+        if (todayMode && nextIdx > todayCards.length) {
+            const logTotal = theLog.reduce((s, r) => s + r.elapsedMs, 0)
+            setTotalElapsedMs(logTotal)
+            setPhase('complete')
+            return
+        }
+
+        setCurrentIndex(nextIdx)
+        setCurrentQuestion(makeBlankQuestion(nextIdx))
+        setSubQuestions([])
+        setQuestionStartMs(startMs)
+        setPendingInitAnswers(undefined)
+    }
+
     // ── 回答送信 ──
     const handleSubmit = (payload: {
         answers: { answer: string; isDoubtful: boolean; note: string | null; memos: Record<string, string> }[]
     }) => {
         const now = Date.now()
         const elapsed = now - questionStartMs
+        const newRecord = { index: currentIndex, answers: payload.answers, elapsedMs: elapsed }
+        const newLog = [...log, newRecord]
+        const nextIdx = currentIndex + 1
 
-        setLog(prev => [
-            ...prev,
-            {
-                index: currentIndex,
-                answers: payload.answers,
-                elapsedMs: elapsed,
-            },
-        ])
+        setLog(newLog)
 
-        const next = currentIndex + 1
-        setCurrentIndex(next)
-        setCurrentQuestion(makeBlankQuestion(next))
-        setSubQuestions([])
-        setQuestionStartMs(now)
-        setPendingInitAnswers(undefined)
+        if (todayMode && currentIndex <= todayCards.length) {
+            // Show review modal before advancing
+            const card = todayCards[currentIndex - 1]
+            setPendingNextIndex(nextIdx)
+            setPendingLog(newLog)
+            setPendingStartMs(now)
+            fetchProblem(card.id)
+                .then((p) => setReviewProblem(p))
+                .catch(() => performAdvance(nextIdx, newLog, now))
+        } else {
+            performAdvance(nextIdx, newLog, now)
+        }
+    }
+
+    // ── Today モード: モーダル確認 ──
+    const handleModalConfirm = async (input: ProblemInput) => {
+        if (reviewProblem) {
+            await updateProblem(reviewProblem.id, input)
+        }
+        performAdvance(pendingNextIndex!, pendingLog!, pendingStartMs ?? Date.now())
     }
 
     // ── 前の問題へ戻る ──
@@ -205,7 +255,7 @@ export default function PracticeSessionPage() {
         <div style={page}>
             <div style={sessionHeader}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {log.length > 0 && (
+                    {!todayMode && log.length > 0 && !reviewProblem && (
                         <button style={backBtn} onClick={handleGoBack} title="前の問題へ">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="15 18 9 12 15 6"/>
@@ -222,14 +272,27 @@ export default function PracticeSessionPage() {
                             <polyline points="9 18 15 12 9 6"/>
                         </svg>
                     </button>
+                    {todayMode && (
+                        <span style={todayBadge}>今日の5問</span>
+                    )}
                     {resumedFrom !== null && (
                         <span style={resumeBadge}>Q{resumedFrom}から再開</span>
                     )}
                 </div>
-                <button style={finishBtn} onClick={handleFinish}>
-                    終了する
-                </button>
+                {todayMode ? (
+                    <span style={todayProgress}>{log.length}/{todayCards.length}</span>
+                ) : (
+                    <button style={finishBtn} onClick={handleFinish}>
+                        終了する
+                    </button>
+                )}
             </div>
+
+            {todayMode && todayCards[currentIndex - 1] && (
+                <div style={todayCardRef}>
+                    {todayCards[currentIndex - 1].front.questionRef}
+                </div>
+            )}
 
             <PracticeAnswerView
                 key={currentQuestion.localId}
@@ -241,6 +304,15 @@ export default function PracticeSessionPage() {
                 onAddSubQuestion={handleAddSubQuestion}
                 onRemoveSubQuestion={handleRemoveSubQuestion}
             />
+
+            {reviewProblem && (
+                <TodayCardModal
+                    problem={reviewProblem}
+                    cardIndex={log.length}
+                    totalCards={todayCards.length}
+                    onConfirm={handleModalConfirm}
+                />
+            )}
         </div>
     )
 }
@@ -285,6 +357,32 @@ const resumeBadge: React.CSSProperties = {
     border: '1px solid rgba(35,131,226,0.2)',
     borderRadius: '4px',
     padding: '2px 7px',
+}
+
+const todayBadge: React.CSSProperties = {
+    fontSize: font.xs,
+    fontWeight: 700,
+    color: '#27ae60',
+    background: 'rgba(39,174,96,0.1)',
+    border: '1px solid rgba(39,174,96,0.2)',
+    borderRadius: '4px',
+    padding: '2px 7px',
+}
+
+const todayProgress: React.CSSProperties = {
+    fontSize: font.base,
+    fontWeight: 700,
+    color: c.text,
+    letterSpacing: '-0.01em',
+}
+
+const todayCardRef: React.CSSProperties = {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'rgba(55,53,47,0.5)',
+    padding: '6px 0 12px',
+    borderBottom: `1px solid rgba(55,53,47,0.06)`,
+    marginBottom: '16px',
 }
 
 const finishBtn: React.CSSProperties = {

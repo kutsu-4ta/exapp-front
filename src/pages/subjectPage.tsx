@@ -51,6 +51,16 @@ export default function SubjectPage() {
     }
   }, [subjects, subjectName, navigate])
 
+  // ── Today's 5 cards (all-time, not month-filtered) ───────────────────────
+  const [todayCards, setTodayCards] = useState<Flashcard[]>([])
+  const [todayCardsLoading, setTodayCardsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchFlashcards(subjectName, 5)
+      .then((cards) => { setTodayCards(cards); setTodayCardsLoading(false) })
+      .catch(() => setTodayCardsLoading(false))
+  }, [subjectName])
+
   // ── Month navigation ─────────────────────────────────────────────────────
   const now = new Date()
   const [viewYear, setViewYear] = useState(now.getFullYear())
@@ -267,6 +277,45 @@ export default function SubjectPage() {
             )}
             {renameError && <p style={errorText}>{renameError}</p>}
           </div>
+
+          {/* TODAY'S 5 */}
+          <div style={sectionHeadingWrap}>
+            <span style={sectionHeading}>TODAY'S 5</span>
+          </div>
+          {todayCardsLoading ? (
+            <p style={loadingText}>読み込み中...</p>
+          ) : todayCards.length === 0 ? (
+            <p style={emptyText}>弱点がありません</p>
+          ) : (
+            <div style={{ ...block, padding: '12px 20px' }}>
+              {todayCards.map((card, i) => (
+                <div key={card.id}>
+                  <div style={todayCardRow}>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: PROF_COLORS[card.back.proficiency] ?? c.text }}>
+                      {card.back.proficiency}
+                    </span>
+                    <span style={todayCardRef}>{card.front.questionRef}</span>
+                    {card.front.subCategory && (
+                      <span style={todayCardSub}>{card.front.subCategory}</span>
+                    )}
+                  </div>
+                  {i < todayCards.length - 1 && <div style={divider} />}
+                </div>
+              ))}
+              <button
+                style={startTodayBtn}
+                onClick={() => navigate(
+                  `/practice/${encodeURIComponent(subjectName)}`,
+                  { state: { todayCards, mode: 'today' } }
+                )}
+              >
+                演習を開始
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: '6px' }}>
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          )}
 
           {/* 1. STRATEGY (Final Target at top) */}
           <div style={sectionHeadingWrap}>
@@ -538,6 +587,17 @@ const heading: React.CSSProperties = {
 const titleInput: React.CSSProperties = {
   fontSize: '32px', fontWeight: 700, letterSpacing: '-0.02em', width: '100%', border: 'none',
   borderBottom: `1px solid ${c.blue}`, outline: 'none', backgroundColor: 'transparent', color: c.text,
+}
+
+// TODAY'S 5
+const todayCardRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0' }
+const todayCardRef: React.CSSProperties = { fontSize: '14px', fontWeight: 600, color: c.text, flex: 1 }
+const todayCardSub: React.CSSProperties = { fontSize: '11px', color: 'rgba(55,53,47,0.4)', backgroundColor: 'rgba(55,53,47,0.05)', borderRadius: '4px', padding: '2px 6px', flexShrink: 0 }
+const startTodayBtn: React.CSSProperties = {
+  width: '100%', marginTop: '12px', padding: '12px',
+  backgroundColor: c.text, color: '#fff', border: 'none', borderRadius: '8px',
+  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
 
 const monthNav: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }

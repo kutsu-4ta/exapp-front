@@ -141,6 +141,7 @@ export type Problem = {
   failureTypes: FailureType[]
   isGoodQuestion: boolean
   solvedAt: string // YYYY-MM-DD
+  lastTouchedAt: string | null // ISO datetime, updated on review
   createdAt: string
   updatedAt: string
 }
