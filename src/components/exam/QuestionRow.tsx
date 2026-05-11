@@ -8,8 +8,12 @@ import {
     sideControl, sideBtn, layoutContainer, qNumberHeader, controlsContent,
     qNumberParent, qNumberSub, addSubQBtn, answerGroup,
     typeToggleRow, typeToggleBtn, typeToggleActive,
-    optionRow, optionBtn, optionActive, memoTextarea,
-    descriptiveRow, descriptiveTextarea, doubtBtn, doubtBtnInline,
+    alphabetToggleBtn, alphabetToggleBtnActive, alphabetToggleBtnDisabled,
+    optionLineRow, optionBtn, optionActive, optionExcluded,
+    excludeBtn, excludeBtnActive, optionMemoInput,
+    doubtRow, doubtBtnInline, generalMemoTextarea,
+    descriptiveTextarea,
+    doubtBtn,
     scoringGroup, scoringRow, myAnswerDisplay, scoringBtnGroup,
     statusBtn, activeCorrect, activeIncorrect, scoringMeta,
     metaGroup, miniLabel, rankBadge, pointInput, timeValue, noteInput,
@@ -118,19 +122,38 @@ export function QuestionRow({
 
 // ── 解答入力コントロール ───────────────────────────────────────────────────────
 
+const ALPHA_MAP: Record<string, string> = {
+  'ア': 'a', 'イ': 'b', 'ウ': 'c', 'エ': 'd', 'オ': 'e',
+}
+
 function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Partial<QuestionDraft>) => void }) {
   const [isDescriptive, setIsDescriptive] = useState(
     () => q.myAnswer !== '' && !ANSWER_OPTIONS.includes(q.myAnswer as typeof ANSWER_OPTIONS[number])
   )
+  const [isAlphabet, setIsAlphabet] = useState(false)
+
+  const memos = q.memos ?? {}
+  const excludedOptions = q.excludedOptions ?? []
 
   const handleModeSwitch = (descriptive: boolean) => {
     setIsDescriptive(descriptive)
-    onUpdate({ myAnswer: '', note: null })
+    onUpdate({ myAnswer: '', note: null, memos: {}, excludedOptions: [] })
   }
+
+  const toggleExclude = (opt: string) => {
+    const already = excludedOptions.includes(opt)
+    onUpdate({
+      excludedOptions: already
+        ? excludedOptions.filter(o => o !== opt)
+        : [...excludedOptions, opt],
+    })
+  }
+
+  const label = (opt: string) => isAlphabet ? (ALPHA_MAP[opt] ?? opt) : opt
 
   return (
     <div style={answerGroup}>
-      {/* 選択式 / 記述式 トグル */}
+      {/* トグル行: [選択式][記述式][a↔ア] */}
       <div style={typeToggleRow}>
         <button
           style={{ ...typeToggleBtn, ...(isDescriptive ? {} : typeToggleActive) }}
@@ -144,10 +167,26 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
         >
           記述式
         </button>
+        <button
+          style={{
+            ...alphabetToggleBtn,
+            ...(isAlphabet ? alphabetToggleBtnActive : {}),
+            ...(isDescriptive ? alphabetToggleBtnDisabled : {}),
+          }}
+          onClick={() => { if (!isDescriptive) setIsAlphabet(v => !v) }}
+          disabled={isDescriptive}
+          title="ア→a / a→ア 切り替え"
+        >
+          a↔ア
+        </button>
       </div>
 
       {isDescriptive ? (
-        <div style={descriptiveRow}>
+        /* 記述式: DoubtIcon + textarea */
+        <div style={doubtRow}>
+          <button onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })} style={doubtBtnInline}>
+            <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
+          </button>
           <textarea
             style={descriptiveTextarea}
             placeholder="解答を記述..."
@@ -159,40 +198,64 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
               e.target.style.height = e.target.scrollHeight + 'px'
             }}
           />
-          <button onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })} style={doubtBtnInline}>
-            <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
-          </button>
         </div>
       ) : (
+        /* 選択式: 各選択肢行 + DoubtIcon + 共通メモ */
         <>
-          <div style={optionRow}>
-            {ANSWER_OPTIONS.map(opt => (
-              <button
-                key={opt}
-                style={{
-                  ...optionBtn,
-                  ...(q.myAnswer === opt ? optionActive : {}),
-                }}
-                onClick={() => onUpdate({ myAnswer: opt })}
-              >
-                {opt}
-              </button>
-            ))}
-            <button onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })} style={doubtBtn}>
+          {ANSWER_OPTIONS.map(opt => {
+            const isSelected = q.myAnswer === opt
+            const isExcluded = excludedOptions.includes(opt)
+            return (
+              <div key={opt} style={optionLineRow}>
+                {/* 記号ボタン */}
+                <button
+                  style={{
+                    ...optionBtn,
+                    ...(isSelected ? optionActive : {}),
+                    ...(isExcluded && !isSelected ? optionExcluded : {}),
+                  }}
+                  onClick={() => onUpdate({ myAnswer: isSelected ? '' : opt })}
+                >
+                  <span style={isExcluded && !isSelected ? { textDecoration: 'line-through' } : {}}>
+                    {label(opt)}
+                  </span>
+                </button>
+
+                {/* 斜線ボタン */}
+                <button
+                  style={{ ...excludeBtn, ...(isExcluded ? excludeBtnActive : {}) }}
+                  onClick={() => toggleExclude(opt)}
+                  title="消去法"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+
+                {/* メモ入力 */}
+                <input
+                  type="text"
+                  style={optionMemoInput}
+                  placeholder={`${label(opt)}のメモ`}
+                  value={memos[opt] ?? ''}
+                  onChange={(e) => onUpdate({ memos: { ...memos, [opt]: e.target.value } })}
+                />
+              </div>
+            )
+          })}
+
+          {/* DoubtIcon + 共通メモ */}
+          <div style={doubtRow}>
+            <button onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })} style={doubtBtnInline}>
               <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
             </button>
-          </div>
-
-          {/* 選択中の選択肢のメモ */}
-          {q.myAnswer && ANSWER_OPTIONS.includes(q.myAnswer as typeof ANSWER_OPTIONS[number]) && (
             <textarea
-              key={q.myAnswer}
-              style={memoTextarea}
-              placeholder={`${q.myAnswer} のメモ...`}
+              style={generalMemoTextarea}
+              placeholder="メモ（選択肢に依存しない）"
               value={q.note ?? ''}
               onChange={(e) => onUpdate({ note: e.target.value })}
             />
-          )}
+          </div>
         </>
       )}
     </div>

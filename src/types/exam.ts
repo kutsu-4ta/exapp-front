@@ -99,4 +99,6 @@ export type QuestionDraft = {
   point: number
   note: string | null
   answeredTimeMs?: number
+  memos?: Record<string, string>
+  excludedOptions?: string[]
 }
