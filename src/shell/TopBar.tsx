@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../lib/store/auth'
 import { useTimer } from '../context/TimerContext'
 import { StopWatchWidget } from '../components/dashboard/StopWatchWidget'
+import { AiTrafficIndicator } from '../components/common/AiTrafficIndicator'
 
 // TopBar の高さ（ダイアログの top 座標と合わせる）
 const TOPBAR_HEIGHT = 38
@@ -78,6 +79,8 @@ export function TopBar() {
                             tsumiki
                         </span>
                     </Link>
+
+                    <AiTrafficIndicator />
 
                     {/* タイマーチップ：タップでダイアログを開閉 */}
                     <button
