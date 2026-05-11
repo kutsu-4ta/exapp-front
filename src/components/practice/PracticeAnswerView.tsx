@@ -7,8 +7,11 @@ import {
     wrap, parentHeader, qLabel, subBtnRow, addSubBtn,
     subRowOuter, sideControl, sideBtn, block, qBlock, subLabel,
     typeToggleRow, typeToggleBtn, typeToggleActive,
-    optionRow, optionBtn, optionActive, optionDisabled,
-    doubtBtn, doubtBtnInline, memoTextarea, descriptiveRow, descriptiveTextarea,
+    alphabetToggleBtn, alphabetToggleBtnActive, alphabetToggleBtnDisabled,
+    optionLineRow, optionBtn, optionActive, optionExcluded, optionDisabled, optionRow,
+    excludeBtn, excludeBtnActive, optionMemoInput,
+    doubtRow, doubtBtn, doubtBtnInline, generalMemoTextarea,
+    descriptiveTextarea,
     okBtn, confirmRow, myAnswerText, memoReviewBlock, memoReviewItem,
     memoReviewLabel, memoReviewText, judgeRow, judgeBtn,
     correctActive, incorrectActive, rankLabel, rankBtn,
@@ -22,13 +25,16 @@ import { useSettingsStore } from '@/lib/store/settings.ts'
 type ViewPhase = 'input' | 'confirm'
 
 type AnswerState = {
-    selectedOption: string            // '' | 'ア' | ...
-    memos: Record<string, string>     // per-choice memo
+    selectedOption: string
+    memos: Record<string, string>
     isDescriptive: boolean
     descriptiveText: string
     isDoubtful: boolean
     isCorrect: boolean | null
     rank: Rank
+    isAlphabet: boolean
+    excludedOptions: string[]
+    generalMemo: string
 }
 
 type InitialAnswer = {
@@ -49,6 +55,14 @@ type Props = {
     onRemoveSubQuestion: (localId: string) => void
 }
 
+const ALPHA_MAP: Record<string, string> = {
+    'ア': 'a', 'イ': 'b', 'ウ': 'c', 'エ': 'd', 'オ': 'e',
+}
+
+function displayLabel(opt: string, isAlphabet: boolean) {
+    return isAlphabet ? (ALPHA_MAP[opt] ?? opt) : opt
+}
+
 function makeInitial(): AnswerState {
     return {
         selectedOption: '',
@@ -58,6 +72,9 @@ function makeInitial(): AnswerState {
         isDoubtful: false,
         isCorrect: null,
         rank: 'B',
+        isAlphabet: false,
+        excludedOptions: [],
+        generalMemo: '',
     }
 }
 
@@ -91,13 +108,10 @@ export function PracticeAnswerView({
     const [showModal, setShowModal] = useState(false)
     const subCategories = useSettingsStore((s) => s.subCategories)
 
-    // 設問が追加/削除されたとき
     useEffect(() => {
         setAnswers(prev => {
             if (prev.length === targets.length) return prev
-            // 設問が全削除されて単体に戻った → 回答リセット
             if (subQuestions.length === 0) return [makeInitial()]
-            // 追加
             if (prev.length < targets.length) {
                 const extra = Array(targets.length - prev.length).fill(null).map(() => makeInitial())
                 return [...prev, ...extra]
@@ -115,7 +129,18 @@ export function PracticeAnswerView({
             : a
         ))
 
-    const handleConfirm = () => setPhase('confirm')
+    const toggleExclude = (i: number, opt: string) => {
+        setAnswers(prev => prev.map((a, idx) => {
+            if (idx !== i) return a
+            const already = a.excludedOptions.includes(opt)
+            return {
+                ...a,
+                excludedOptions: already
+                    ? a.excludedOptions.filter(o => o !== opt)
+                    : [...a.excludedOptions, opt],
+            }
+        }))
+    }
 
     const handleNext = () => {
         onSubmit({
@@ -124,7 +149,7 @@ export function PracticeAnswerView({
                 isDoubtful: a.isDoubtful,
                 note: a.isDescriptive
                     ? (a.descriptiveText || null)
-                    : (a.memos[a.selectedOption] ?? null),
+                    : (a.generalMemo || a.memos[a.selectedOption] || null),
                 memos: a.isDescriptive ? {} : a.memos,
             })),
         })
@@ -138,16 +163,16 @@ export function PracticeAnswerView({
             if (a.isDescriptive) {
                 return a.descriptiveText.trim() ? `${prefix}${a.descriptiveText.trim()}` : null
             }
+            const lines: string[] = []
+            if (a.generalMemo.trim()) lines.push(a.generalMemo.trim())
             const entries = Object.entries(a.memos).filter(([, v]) => v.trim())
-            if (entries.length === 0) return null
-            return `${prefix}${entries.map(([opt, text]) => `${opt}: ${text}`).join('\n')}`
+            if (entries.length > 0) lines.push(entries.map(([opt, text]) => `${opt}: ${text}`).join('\n'))
+            if (lines.length === 0) return null
+            return `${prefix}${lines.join('\n')}`
         }).filter(Boolean)
         return parts.join('\n\n')
     }
 
-    const handleOpenModal = () => setShowModal(true)
-
-    // 新規作成API
     const handleAddProblem = async (input: ProblemInput) => {
         await addProblem(input)
         setShowModal(false)
@@ -180,24 +205,32 @@ export function PracticeAnswerView({
                                     <span style={subLabel}>{q?.displayId || `設問${i + 1}`}</span>
                                 )}
 
-                                {/* 回答表示 */}
                                 <div style={confirmRow}>
                                     {a.isDescriptive ? (
                                         <div style={myAnswerText}>{a.descriptiveText || '（記述なし）'}</div>
                                     ) : (
                                         <div style={optionRow}>
-                                            {ANSWER_OPTIONS.map(opt => (
-                                                <button
-                                                    key={opt}
-                                                    style={{
-                                                        ...optionBtn,
-                                                        ...(a.selectedOption === opt ? optionActive : optionDisabled),
-                                                    }}
-                                                    disabled
-                                                >
-                                                    {opt}
-                                                </button>
-                                            ))}
+                                            {ANSWER_OPTIONS.map(opt => {
+                                                const isSelected = a.selectedOption === opt
+                                                const isExcluded = a.excludedOptions.includes(opt)
+                                                return (
+                                                    <button
+                                                        key={opt}
+                                                        style={{
+                                                            ...optionBtn,
+                                                            ...(isSelected ? optionActive : {}),
+                                                            ...(!isSelected && isExcluded ? optionExcluded : {}),
+                                                            ...(!isSelected && !isExcluded ? optionDisabled : {}),
+                                                            cursor: 'default',
+                                                        }}
+                                                        disabled
+                                                    >
+                                                        <span style={isExcluded && !isSelected ? { textDecoration: 'line-through' } : {}}>
+                                                            {displayLabel(opt, a.isAlphabet)}
+                                                        </span>
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
                                     )}
                                     <button
@@ -208,19 +241,22 @@ export function PracticeAnswerView({
                                     </button>
                                 </div>
 
-                                {/* メモ表示 */}
-                                {memoEntries.length > 0 && (
+                                {(a.generalMemo.trim() || memoEntries.length > 0) && (
                                     <div style={memoReviewBlock}>
+                                        {a.generalMemo.trim() && (
+                                            <div style={memoReviewItem}>
+                                                <span style={memoReviewText}>{a.generalMemo}</span>
+                                            </div>
+                                        )}
                                         {memoEntries.map(([opt, text]) => (
                                             <div key={opt} style={memoReviewItem}>
-                                                <span style={memoReviewLabel}>{opt}</span>
+                                                <span style={memoReviewLabel}>{displayLabel(opt, a.isAlphabet)}</span>
                                                 <span style={memoReviewText}>{text}</span>
                                             </div>
                                         ))}
                                     </div>
                                 )}
 
-                                {/* 自己採点 */}
                                 <div style={judgeRow}>
                                     <button
                                         style={{ ...judgeBtn, ...(a.isCorrect === true ? correctActive : {}) }}
@@ -251,7 +287,7 @@ export function PracticeAnswerView({
                 </div>
 
                 <div style={confirmActions}>
-                    <button style={addProblemBtn} onClick={handleOpenModal}>
+                    <button style={addProblemBtn} onClick={() => setShowModal(true)}>
                         Problemへ追加
                     </button>
                     <button style={nextBtn} onClick={handleNext}>
@@ -286,7 +322,6 @@ export function PracticeAnswerView({
                 </div>
             )}
 
-            {/* サブ問がないときだけ「＋ 設問を追加」ボタンを上部に表示 */}
             {!hasSubs && (
                 <div style={subBtnRow}>
                     <button style={addSubBtn} onClick={onAddSubQuestion}>
@@ -300,7 +335,6 @@ export function PracticeAnswerView({
                     const a = answers[i] ?? makeInitial()
                     return (
                         <div key={q.localId ?? i} style={hasSubs ? subRowOuter : qBlock}>
-                            {/* サイドボタン（サブ問のみ） */}
                             {hasSubs && (
                                 <div style={sideControl}>
                                     <button
@@ -325,7 +359,7 @@ export function PracticeAnswerView({
                                     <span style={subLabel}>{q.displayId || `設問${i + 1}`}</span>
                                 )}
 
-                                {/* 選択式 / 記述式 トグル */}
+                                {/* トグル行: [選択式][記述式][a↔ア] */}
                                 <div style={typeToggleRow}>
                                     <button
                                         style={{ ...typeToggleBtn, ...(a.isDescriptive ? {} : typeToggleActive) }}
@@ -339,55 +373,102 @@ export function PracticeAnswerView({
                                     >
                                         記述式
                                     </button>
+                                    <button
+                                        style={{
+                                            ...alphabetToggleBtn,
+                                            ...(a.isAlphabet ? alphabetToggleBtnActive : {}),
+                                            ...(a.isDescriptive ? alphabetToggleBtnDisabled : {}),
+                                        }}
+                                        onClick={() => { if (!a.isDescriptive) update(i, { isAlphabet: !a.isAlphabet }) }}
+                                        disabled={a.isDescriptive}
+                                        title="ア→a / a→ア 切り替え"
+                                    >
+                                        a↔ア
+                                    </button>
                                 </div>
 
                                 {a.isDescriptive ? (
-                                    <div style={descriptiveRow}>
-                                        <textarea
-                                            style={descriptiveTextarea}
-                                            placeholder="解答を記述..."
-                                            value={a.descriptiveText}
-                                            onChange={(e) => update(i, { descriptiveText: e.target.value })}
-                                        />
+                                    /* 記述式: DoubtIcon + textarea */
+                                    <div style={doubtRow}>
                                         <button
                                             onClick={() => update(i, { isDoubtful: !a.isDoubtful })}
                                             style={doubtBtnInline}
                                         >
                                             <DoubtIcon size={18} color={a.isDoubtful ? '#f2994a' : c.textFaint} />
                                         </button>
+                                        <textarea
+                                            style={descriptiveTextarea}
+                                            placeholder="解答を記述..."
+                                            value={a.descriptiveText}
+                                            onChange={(e) => update(i, { descriptiveText: e.target.value })}
+                                        />
                                     </div>
                                 ) : (
+                                    /* 選択式: 各選択肢行 + DoubtIcon */
                                     <>
-                                        <div style={optionRow}>
-                                            {ANSWER_OPTIONS.map(opt => (
-                                                <button
-                                                    key={opt}
-                                                    style={{
-                                                        ...optionBtn,
-                                                        ...(a.selectedOption === opt ? optionActive : {}),
-                                                    }}
-                                                    onClick={() => update(i, { selectedOption: opt })}
-                                                >
-                                                    {opt}
-                                                </button>
-                                            ))}
+                                        {ANSWER_OPTIONS.map(opt => {
+                                            const label = displayLabel(opt, a.isAlphabet)
+                                            const isSelected = a.selectedOption === opt
+                                            const isExcluded = a.excludedOptions.includes(opt)
+                                            return (
+                                                <div key={opt} style={optionLineRow}>
+                                                    {/* 記号ボタン */}
+                                                    <button
+                                                        style={{
+                                                            ...optionBtn,
+                                                            ...(isSelected ? optionActive : {}),
+                                                            ...(isExcluded && !isSelected ? optionExcluded : {}),
+                                                        }}
+                                                        onClick={() => update(i, {
+                                                            selectedOption: isSelected ? '' : opt,
+                                                        })}
+                                                    >
+                                                        <span style={isExcluded && !isSelected ? { textDecoration: 'line-through' } : {}}>
+                                                            {label}
+                                                        </span>
+                                                    </button>
+
+                                                    {/* 斜線ボタン */}
+                                                    <button
+                                                        style={{
+                                                            ...excludeBtn,
+                                                            ...(isExcluded ? excludeBtnActive : {}),
+                                                        }}
+                                                        onClick={() => toggleExclude(i, opt)}
+                                                        title="消去法"
+                                                    >
+                                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                                            <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                                        </svg>
+                                                    </button>
+
+                                                    {/* メモ入力 */}
+                                                    <input
+                                                        type="text"
+                                                        style={optionMemoInput}
+                                                        placeholder={`${label}のメモ`}
+                                                        value={a.memos[opt] ?? ''}
+                                                        onChange={(e) => updateMemo(i, opt, e.target.value)}
+                                                    />
+                                                </div>
+                                            )
+                                        })}
+
+                                        {/* DoubtIcon + 共通メモ */}
+                                        <div style={doubtRow}>
                                             <button
                                                 onClick={() => update(i, { isDoubtful: !a.isDoubtful })}
-                                                style={doubtBtn}
+                                                style={doubtBtnInline}
                                             >
                                                 <DoubtIcon size={18} color={a.isDoubtful ? '#f2994a' : c.textFaint} />
                                             </button>
-                                        </div>
-
-                                        {a.selectedOption && (
                                             <textarea
-                                                key={a.selectedOption}
-                                                style={memoTextarea}
-                                                placeholder={`${a.selectedOption}のメモ...`}
-                                                value={a.memos[a.selectedOption] ?? ''}
-                                                onChange={(e) => updateMemo(i, a.selectedOption, e.target.value)}
+                                                style={generalMemoTextarea}
+                                                placeholder="メモ（選択肢に依存しない）"
+                                                value={a.generalMemo}
+                                                onChange={(e) => update(i, { generalMemo: e.target.value })}
                                             />
-                                        )}
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -396,10 +477,9 @@ export function PracticeAnswerView({
                 })}
             </div>
 
-            <button style={okBtn} onClick={handleConfirm}>
+            <button style={okBtn} onClick={() => setPhase('confirm')}>
                 OK
             </button>
         </div>
     )
 }
-

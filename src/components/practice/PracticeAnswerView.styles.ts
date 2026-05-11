@@ -47,7 +47,11 @@ export const subLabel: React.CSSProperties = {
     fontSize: font.sm, fontWeight: 700, color: c.textSub,
 }
 
-export const typeToggleRow: React.CSSProperties = { display: 'flex', gap: '4px' }
+// ── トグル行 ─────────────────────────────────────────────────────────────────
+
+export const typeToggleRow: React.CSSProperties = {
+    display: 'flex', gap: '4px', alignItems: 'center',
+}
 
 export const typeToggleBtn: React.CSSProperties = {
     padding: '3px 10px', fontSize: font.xs, fontWeight: 600,
@@ -59,7 +63,26 @@ export const typeToggleActive: React.CSSProperties = {
     background: c.text, color: '#fff', border: `1px solid ${c.text}`,
 }
 
-export const optionRow: React.CSSProperties = {
+export const alphabetToggleBtn: React.CSSProperties = {
+    marginLeft: 'auto', padding: '3px 8px', fontSize: font.xs,
+    fontWeight: 600, borderRadius: '4px',
+    border: `1px solid ${c.border}`, background: 'transparent',
+    cursor: 'pointer', color: c.textSub, whiteSpace: 'nowrap',
+    letterSpacing: '0.02em',
+}
+
+export const alphabetToggleBtnActive: React.CSSProperties = {
+    border: `1px solid #6366f1`, color: '#6366f1',
+    background: 'rgba(99,102,241,0.06)',
+}
+
+export const alphabetToggleBtnDisabled: React.CSSProperties = {
+    opacity: 0.3, cursor: 'default',
+}
+
+// ── 選択式 — 選択肢リスト ─────────────────────────────────────────────────────
+
+export const optionLineRow: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: '6px',
 }
 
@@ -67,32 +90,62 @@ export const optionBtn: React.CSSProperties = {
     width: '32px', height: '32px', borderRadius: '6px',
     border: `1px solid ${c.border}`, background: '#fff',
     fontWeight: 700, cursor: 'pointer', fontSize: font.sm,
+    flexShrink: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
 
 export const optionActive: React.CSSProperties = {
     background: c.text, color: '#fff', border: `1px solid ${c.text}`,
 }
 
+export const optionExcluded: React.CSSProperties = {
+    opacity: 0.45,
+}
+
 export const optionDisabled: React.CSSProperties = { opacity: 0.3, cursor: 'default' }
 
+export const excludeBtn: React.CSSProperties = {
+    width: '28px', height: '28px', borderRadius: '4px',
+    border: `1px solid ${c.border}`, background: 'transparent',
+    cursor: 'pointer', color: c.textSub,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+}
+
+export const excludeBtnActive: React.CSSProperties = {
+    border: `1px solid ${c.red}`, color: c.red,
+    background: 'rgba(235,87,87,0.06)',
+}
+
+export const optionMemoInput: React.CSSProperties = {
+    flex: 1, height: '30px', padding: '4px 8px',
+    borderRadius: '4px', border: `1px solid ${c.border}`,
+    fontSize: font.xs, boxSizing: 'border-box', background: '#fff',
+    minWidth: 0, outline: 'none',
+}
+
+// ── 疑問・記述行 ──────────────────────────────────────────────────────────────
+
+export const doubtRow: React.CSSProperties = {
+    display: 'flex', alignItems: 'flex-start', gap: '8px',
+    paddingTop: '2px',
+}
+
+export const generalMemoTextarea: React.CSSProperties = {
+    flex: 1, minHeight: '34px', padding: '6px 8px',
+    borderRadius: '6px', border: `1px solid ${c.border}`,
+    fontSize: font.sm, resize: 'vertical', boxSizing: 'border-box',
+    background: '#fff', lineHeight: 1.5,
+}
+
 export const doubtBtn: React.CSSProperties = {
-    marginLeft: 'auto', border: 'none', background: 'transparent',
-    cursor: 'pointer', padding: '4px',
+    border: 'none', background: 'transparent',
+    cursor: 'pointer', padding: '4px', flexShrink: 0,
 }
 
 export const doubtBtnInline: React.CSSProperties = {
     border: 'none', background: 'transparent', cursor: 'pointer',
     padding: '4px', flexShrink: 0,
-}
-
-export const memoTextarea: React.CSSProperties = {
-    width: '100%', minHeight: '52px', padding: '8px 10px',
-    borderRadius: '6px', border: `1px solid ${c.border}`,
-    fontSize: font.sm, resize: 'vertical', boxSizing: 'border-box', background: '#fff',
-}
-
-export const descriptiveRow: React.CSSProperties = {
-    display: 'flex', alignItems: 'flex-start', gap: '8px',
 }
 
 export const descriptiveTextarea: React.CSSProperties = {
@@ -101,14 +154,22 @@ export const descriptiveTextarea: React.CSSProperties = {
     resize: 'vertical', boxSizing: 'border-box',
 }
 
+// ── OK ボタン ────────────────────────────────────────────────────────────────
+
 export const okBtn: React.CSSProperties = {
     width: '100%', padding: '14px', borderRadius: '8px',
     border: 'none', background: c.text, color: '#fff',
     fontWeight: 700, cursor: 'pointer', fontSize: font.base,
 }
 
+// ── 確認フェーズ ──────────────────────────────────────────────────────────────
+
 export const confirmRow: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: '8px',
+}
+
+export const optionRow: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '6px',
 }
 
 export const myAnswerText: React.CSSProperties = {
