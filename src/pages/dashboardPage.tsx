@@ -337,7 +337,7 @@ export default function DashboardPage() {
                                     onClick={(e) => { e.preventDefault(); navigate('/morning-bugfix') }}
                                     className="flex items-center gap-2 text-[13px] font-semibold text-n-blue bg-[var(--nt-blue-bg)] border border-[var(--nt-blue-border)] rounded-lg px-3.5 py-2.5 cursor-pointer"
                                 >
-                                    morning_bugfixを開始する
+                                    MorningBugfix
                                 </button>
                             )}
                         </div>

@@ -119,7 +119,7 @@ export default function FlashBugfixPage() {
             await addStudySession({
                 dailyLogDate: todayString(),
                 subject: subjectName,
-                material: 'flash_bugfix',
+                material: 'FlashBugfix',
                 subCategory: null,
                 minutes: totalMinutes,
                 timeSlot,

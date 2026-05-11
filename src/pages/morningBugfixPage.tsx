@@ -125,7 +125,7 @@ export default function MorningBugfixPage() {
                     return addStudySession({
                         dailyLogDate: todayString(),
                         subject,
-                        material: 'morning_bugfix',
+                        material: 'MorningBugfix',
                         subCategory: first.question.sub_category || null,
                         minutes: minutesPerSubject,
                         timeSlot,
