@@ -209,6 +209,18 @@ export default function DashboardPage() {
             .sort((a, b) => b.minutes - a.minutes)
     }, [todayLog])
 
+    // アラート表示制御用
+    const [showAlert, setShowAlert] = useState(false);
+
+    // ローディング完了を監視してフラグを立てる
+    useEffect(() => {
+        if (!isInitialLoading && warningSubjects.length > 0) {
+            // 読み込み完了後、少し遅らせてピコンと出す
+            const timer = setTimeout(() => setShowAlert(true), 200);
+            return () => clearTimeout(timer);
+        }
+    }, [isInitialLoading, warningSubjects.length]);
+
     const [statsCopied, setStatsCopied] = useState(false)
     const [statsCopying, setStatsCopying] = useState(false)
 
@@ -351,7 +363,12 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {warningSubjects.length > 0 && <AlertWidget warningSubjects={warningSubjects} />}
+                {/* アラート */}
+                {showAlert && (
+                    <div className="animate-pop">
+                        <AlertWidget warningSubjects={warningSubjects} />
+                    </div>
+                )}
 
                 {/* 統計カード */}
                 <div className="grid grid-cols-3 gap-3 mb-6">

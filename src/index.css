@@ -83,3 +83,19 @@ input, textarea, select {
 @keyframes sprite-sm { to { transform: translateY(-64px);  } }
 @keyframes sprite-md { to { transform: translateY(-96px);  } }
 @keyframes sprite-lg { to { transform: translateY(-144px); } }
+
+/* アラートウィジェット表示用アニメーション */
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-pop {
+  animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
