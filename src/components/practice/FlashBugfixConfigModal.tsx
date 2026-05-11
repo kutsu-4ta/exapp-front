@@ -15,7 +15,6 @@ interface Props {
 
 export function FlashBugfixConfigModal({subjectName, subCategories,onClose, onStart}: Props) {
     const [failureTypes, setFailureTypes] = useState<string[]>(FAILURE_TYPES.map(ft => ft))
-    // const [failureTypes, setFailureTypes] = useState<string[]>()
     const [subCategoryIds, setSubCategoryIds] = useState<number[]>(subCategories.map(sc => sc.id))
 
     const [touchedOrder, setTouchedOrder] = useState<'recent' | 'old' | null>(null)
