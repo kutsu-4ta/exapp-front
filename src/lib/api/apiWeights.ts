@@ -12,7 +12,7 @@ type WeightMap = Record<string, number>
 
 // 3つのGeminiモデルはエンドポイントコストが同等
 const GEMINI_WEIGHTS: WeightMap = {
-  '/api/gemini/context':  HIGH,
+  '/api/ai/analysis':  HIGH,
   '/api/ai/advice':       MIDDLE,
   '/api/morning-bugfix':  MIDDLE,
   '/api/ai/problems':     MIDDLE,
@@ -23,7 +23,7 @@ export const API_WEIGHTS: Record<AiModel, WeightMap> = {
   'gemini-3-flash':        GEMINI_WEIGHTS,
   'gemini-2.5-flash-lite': GEMINI_WEIGHTS,
   'claude-sonnet': {
-    '/api/gemini/context':  800,
+    '/api/ai/analysis':  800,
     '/api/ai/advice':       150,
     '/api/morning-bugfix':  150,
     '/api/ai/problems':     150,
