@@ -82,7 +82,7 @@ export default function MorningBugfixPage() {
             }
         }
         init()
-    }, [])
+    }, [setIsActive, setTime])
 
     const total = session?.questions.length ?? 5
     const currentQ = session?.questions[currentIdx]
@@ -254,8 +254,8 @@ export default function MorningBugfixPage() {
                                 ...progressSegment,
                                 backgroundColor:
                                     i < results.length ? c.blue
-                                    : i === currentIdx ? 'rgba(35,131,226,0.3)'
-                                    : 'rgba(55,53,47,0.08)',
+                                        : i === currentIdx ? 'rgba(35,131,226,0.3)'
+                                            : 'rgba(55,53,47,0.08)',
                             }}
                         />
                     ))}
@@ -277,13 +277,27 @@ export default function MorningBugfixPage() {
                     {quiz.options.map((opt, i) => {
                         const isSelected = i === selected
                         const isCorrectOpt = i === quiz.correct_index
-                        let bg = '#fff'
-                        let border = 'rgba(55,53,47,0.12)'
-                        let color = c.text
+
+                        // 明示的に string 型として宣言することで、リテラル型の代入エラーを回避
+                        let bg: string = '#fff'
+                        let border: string = 'rgba(55,53,47,0.12)'
+                        let color: string = c.text
+
                         if (revealed) {
-                            if (isCorrectOpt) { bg = 'rgba(39,174,96,0.08)'; border = 'rgba(39,174,96,0.4)'; color = '#19a576' }
-                            else if (isSelected) { bg = 'rgba(235,87,87,0.07)'; border = 'rgba(235,87,87,0.35)'; color = '#eb5757' }
-                            else { color = 'rgba(55,53,47,0.3)'; border = 'rgba(55,53,47,0.07)' }
+                            if (isCorrectOpt) {
+                                bg = 'rgba(39,174,96,0.08)'
+                                border = 'rgba(39,174,96,0.4)'
+                                color = '#19a576'
+                            }
+                            else if (isSelected) {
+                                bg = 'rgba(235,87,87,0.07)'
+                                border = 'rgba(235,87,87,0.35)'
+                                color = '#eb5757'
+                            }
+                            else {
+                                color = 'rgba(55,53,47,0.3)'
+                                border = 'rgba(55,53,47,0.07)'
+                            }
                         }
                         return (
                             <button
@@ -292,7 +306,12 @@ export default function MorningBugfixPage() {
                                 disabled={revealed}
                                 style={{ ...optionBtn, backgroundColor: bg, borderColor: border, color }}
                             >
-                                <span style={{ ...optionLabelBadge, borderColor: revealed && isCorrectOpt ? '#19a576' : 'currentColor', backgroundColor: revealed && isCorrectOpt ? '#19a576' : 'transparent', color: revealed && isCorrectOpt ? '#fff' : 'currentColor' }}>
+                                <span style={{
+                                    ...optionLabelBadge,
+                                    borderColor: revealed && isCorrectOpt ? '#19a576' : 'currentColor',
+                                    backgroundColor: revealed && isCorrectOpt ? '#19a576' : 'transparent',
+                                    color: revealed && isCorrectOpt ? '#fff' : 'currentColor'
+                                }}>
                                     {OPTION_LABELS[i]}
                                 </span>
                                 <span style={{ fontSize: font.base, lineHeight: 1.5 }}>{opt}</span>
