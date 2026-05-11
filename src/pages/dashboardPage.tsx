@@ -232,6 +232,15 @@ export default function DashboardPage() {
         lines.push(`連続: ${d.currentStreak}日`)
         lines.push(`今週: ${formatHours(d.thisWeekTotalMinutes)}`)
         lines.push('')
+        const p = ctx.profile
+        if (p.occupation || p.goal || p.weakAreas || p.strongAreas) {
+            lines.push('【プロフィール】')
+            if (p.occupation)  lines.push(`  職業: ${p.occupation}`)
+            if (p.goal)        lines.push(`  学習目標: ${p.goal}`)
+            if (p.weakAreas)   lines.push(`  苦手分野: ${p.weakAreas}`)
+            if (p.strongAreas) lines.push(`  得意分野: ${p.strongAreas}`)
+            lines.push('')
+        }
         lines.push(`【本日 ${todayString().replace(/-/g, '/')}】`)
         if (todaySubjects.length > 0) {
             lines.push(`合計: ${todayLog!.totalMinutes}分`)
@@ -240,6 +249,14 @@ export default function DashboardPage() {
             lines.push('まだ学習していません')
         }
         lines.push('')
+        if (ctx.recentDailyLogs.length > 0) {
+            lines.push('【直近7日間】')
+            ctx.recentDailyLogs.forEach(log => {
+                const label = `${log.date.replace(/-/g, '/')}: ${log.studyMinutes}分`
+                lines.push(log.reflection ? `  ${label} — ${log.reflection}` : `  ${label}`)
+            })
+            lines.push('')
+        }
         lines.push(`【科目別詳細 (${ctx.year}年${ctx.month}月)】`)
         for (const s of ctx.subjects) {
             lines.push(`■ ${s.subject}`)
@@ -254,6 +271,11 @@ export default function DashboardPage() {
             if (s.failureStats.length > 0) {
                 lines.push(`  ミスの傾向:`)
                 s.failureStats.forEach(f => lines.push(`    ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`))
+            }
+            if (s.recentExamScore) {
+                const { examYear, score, completedAt } = s.recentExamScore
+                const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''
+                lines.push(`  直近過去問: ${examYear}年度 ${score}点${dateStr}`)
             }
         }
         lines.push('')

@@ -196,12 +196,30 @@ export type GeminiContextSubject = {
   studyMinutes: number
   problemCount: number
   failureStats: { type: string; count: number; ratio: number }[]
+  recentExamScore: {
+    examYear: number
+    score: number
+    completedAt: string | null
+  } | null
+}
+
+export type GeminiContextDailyLog = {
+  date: string
+  studyMinutes: number
+  reflection: string | null
 }
 
 export type GeminiContext = {
   year: number
   month: number
+  profile: {
+    occupation: string | null
+    goal: string | null
+    weakAreas: string | null
+    strongAreas: string | null
+  }
   dashboard: DashboardStats
+  recentDailyLogs: GeminiContextDailyLog[]
   subjects: GeminiContextSubject[]
 }
 
