@@ -1,5 +1,5 @@
 import { apiFetch } from '../client'
-import type { Flashcard, SubjectSettings, SubjectMonthlyGoal } from '../../types/workspace'
+import type { Flashcard, SubjectSettings, SubjectMonthlyGoal, SubjectActivityDay } from '../../types/workspace'
 
 export async function fetchSubjects(): Promise<string[]> {
   const res = await apiFetch('/api/subjects')
@@ -49,6 +49,12 @@ export async function saveSubjectMonthlyGoal(name: string, year: number, month: 
     body: JSON.stringify({ goal }),
   })
   if (!res.ok) throw new Error('月別方針の保存に失敗しました')
+  return res.json()
+}
+
+export async function fetchSubjectActivity(name: string, year: number, month: number): Promise<SubjectActivityDay[]> {
+  const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}/activity?year=${year}&month=${month}`)
+  if (!res.ok) throw new Error('アクティビティの取得に失敗しました')
   return res.json()
 }
 

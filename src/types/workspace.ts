@@ -179,6 +179,14 @@ export type ProblemInput = {
   solvedAt: string
 }
 
+// ── Subject activity ─────────────────────────────────────────────────────────
+
+export type SubjectActivityDay = {
+  date: string
+  studyMinutes: number
+  problemCount: number
+}
+
 // ── Gemini context ───────────────────────────────────────────────────────────
 
 export type GeminiContextSubject = {

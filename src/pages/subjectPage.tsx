@@ -5,14 +5,15 @@ import {
   renameSubject, deleteSubject,
   fetchSubjectSettings, saveSubjectSettings,
   fetchSubjectMonthlyGoal, saveSubjectMonthlyGoal,
-  fetchFlashcards,
+  fetchFlashcards, fetchSubjectActivity,
 } from '../lib/api/subjects'
 import { fetchSubjectStats } from '../lib/api/exam'
 import { addSubCategory, updateSubCategory, deleteSubCategory } from '../lib/api/subcategory'
-import type { SubCategory, SubjectSettings, Flashcard } from '../types/workspace'
+import type { SubCategory, SubjectSettings, Flashcard, SubjectActivityDay } from '../types/workspace'
 import type { ExamSubjectStats } from '../types/exam'
 import { RANKS } from '../types/exam'
 import { backBtn, c } from '../styles/notion'
+import { SubjectActivityChart } from '../components/subject/SubjectActivityChart'
 
 const FAILURE_COLORS: Record<string, string> = {
   '定義ミス': '#2383e2',
@@ -51,7 +52,7 @@ export default function SubjectPage() {
     }
   }, [subjects, subjectName, navigate])
 
-  // ── Today's 5 cards (all-time, not month-filtered) ───────────────────────
+  // ── Today's five cards (all-time, not month-filtered) ───────────────────────
   const [todayCards, setTodayCards] = useState<Flashcard[]>([])
   const [todayCardsLoading, setTodayCardsLoading] = useState(true)
 
@@ -86,10 +87,14 @@ export default function SubjectPage() {
   const [goalLoading, setGoalLoading] = useState(false)
   const [goalSaving, setGoalSaving] = useState(false)
 
-  // ── Status (Current data for the viewed month) ───────────────────────────
+  // ── Static stats (not month-specific) ───────────────────────────────────
   const [examStats, setExamStats] = useState<ExamSubjectStats | null>(null)
   const [flashcards, setFlashcards] = useState<Flashcard[]>([])
-  const [statusLoading, setStatusLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
+
+  // ── Activity chart (month-specific) ──────────────────────────────────────
+  const [activityData, setActivityData] = useState<SubjectActivityDay[]>([])
+  const [activityLoading, setActivityLoading] = useState(true)
 
   // Load persistent settings once
   useEffect(() => {
@@ -98,25 +103,31 @@ export default function SubjectPage() {
         .catch(() => setSettingsLoaded(true))
   }, [subjectName])
 
-  // Reload month-specific data
+  // Load non-month-specific data once
+  useEffect(() => {
+    setStatsLoading(true)
+    Promise.all([
+      fetchSubjectStats(subjectName).catch(() => null),
+      fetchFlashcards(subjectName, 500).catch(() => []),
+    ]).then(([stats, cards]) => {
+      setExamStats(stats as ExamSubjectStats | null)
+      setFlashcards(cards as Flashcard[])
+      setStatsLoading(false)
+    })
+  }, [subjectName])
+
+  // Reload month-specific data (goal + activity chart)
   useEffect(() => {
     setGoalLoading(true)
-    setStatusLoading(true)
+    setActivityLoading(true)
 
     fetchSubjectMonthlyGoal(subjectName, viewYear, viewMonth)
         .then((g) => { setMonthlyGoal(g.goal ?? ''); setGoalLoading(false) })
         .catch(() => { setMonthlyGoal(''); setGoalLoading(false) })
 
-    Promise.all([
-      fetchSubjectStats(subjectName, viewYear, viewMonth).catch(() => null),
-      fetchFlashcards(subjectName, 500).catch(() => []),
-    ]).then(([stats, cards]) => {
-      setExamStats(stats as ExamSubjectStats | null)
-      const prefix = `${viewYear}-${String(viewMonth).padStart(2, '0')}`
-      const filtered = (cards as Flashcard[]).filter((f) => f.front.solvedAt.startsWith(prefix))
-      setFlashcards(filtered)
-      setStatusLoading(false)
-    })
+    fetchSubjectActivity(subjectName, viewYear, viewMonth)
+        .then((d) => { setActivityData(d); setActivityLoading(false) })
+        .catch(() => { setActivityData([]); setActivityLoading(false) })
   }, [subjectName, viewYear, viewMonth])
 
   const handleSettingsSave = async () => {
@@ -230,7 +241,7 @@ export default function SubjectPage() {
     } finally { setDeleteLoading(false) }
   }
 
-  // ── Derived Stats ────────────────────────────────────────────────────────
+  // ── Derived Stats (all-time, not month-filtered) ─────────────────────────
   const profCounts = { '○': 0, '△': 0, '×': 0 }
   flashcards.forEach((f) => {
     const p = f.back.proficiency
@@ -278,9 +289,9 @@ export default function SubjectPage() {
             {renameError && <p style={errorText}>{renameError}</p>}
           </div>
 
-          {/* TODAY'S 5 */}
+          {/* TODAY'S FIVE */}
           <div style={sectionHeadingWrap}>
-            <span style={sectionHeading}>TODAY'S 5</span>
+            <span style={sectionHeading}>TODAY'S FIVE</span>
           </div>
           {todayCardsLoading ? (
             <p style={loadingText}>読み込み中...</p>
@@ -370,12 +381,23 @@ export default function SubjectPage() {
             </div>
           </div>
 
-          {/* 2. CURRENT STATUS */}
-          <div style={sectionHeadingWrap}>
-            <span style={sectionHeading}>CURRENT STATUS ({viewMonth}月分)</span>
+          {/* Activity Chart */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ ...sectionHeadingWrap, marginBottom: '12px' }}>
+              <span style={sectionHeading}>ACTIVITY</span>
+              <span style={{ ...sectionHeading, marginLeft: 'auto', display: 'flex', gap: '12px' }}>
+                <span style={{ color: '#2383e2' }}>─ 学習時間</span>
+                <span style={{ color: 'rgba(235,87,87,0.6)' }}>▌ 問題追加</span>
+              </span>
+            </div>
+            {activityLoading ? (
+                <p style={loadingText}>読み込み中...</p>
+            ) : (
+                <SubjectActivityChart data={activityData} year={viewYear} month={viewMonth} />
+            )}
           </div>
 
-          {statusLoading ? (
+          {statsLoading ? (
               <p style={loadingText}>読み込み中...</p>
           ) : (
               <>
