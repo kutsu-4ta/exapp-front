@@ -603,6 +603,7 @@ const itemRow: React.CSSProperties = { display: 'flex', alignItems: 'center', ju
 const itemName: React.CSSProperties = { fontSize: '13px', fontWeight: 500 }
 const itemActions: React.CSSProperties = { display: 'flex', gap: '4px' }
 const iconBtn: React.CSSProperties = { background: 'none', border: 'none', fontSize: '11px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.4)', cursor: 'pointer' }
+const editRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }
 const smallEditInput: React.CSSProperties = { flex: 1, border: `1px solid ${c.blue}`, borderRadius: '4px', padding: '4px 8px', fontSize: '13px', outline: 'none' }
 const addRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', borderTop: '1px solid rgba(55,53,47,0.05)', paddingTop: '12px' }
 const addInput: React.CSSProperties = { flex: 1, border: 'none', padding: '6px 0', fontSize: '13px', outline: 'none', backgroundColor: 'transparent' }
