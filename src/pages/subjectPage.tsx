@@ -14,6 +14,8 @@ import type { ExamSubjectStats } from '../types/exam'
 import { RANKS } from '../types/exam'
 import { backBtn, c } from '../styles/notion'
 import { SubjectActivityChart } from '../components/subject/SubjectActivityChart'
+import { FlashBugfixConfigModal } from '../components/practice/FlashBugfixConfigModal'
+import type { FlashBugfixConfig } from '../lib/api/morningQuiz'
 
 const FAILURE_COLORS: Record<string, string> = {
   '定義ミス': '#2383e2',
@@ -228,6 +230,13 @@ export default function SubjectPage() {
   }
 
   // ── Delete Subject ────────────────────────────────────────────────────────
+  const [showFlashConfig, setShowFlashConfig] = useState(false)
+
+  const handleFlashStart = (config: FlashBugfixConfig) => {
+    setShowFlashConfig(false)
+    navigate(`/subjects/${encodeURIComponent(subjectName)}/flash-bugfix`, { state: { config } })
+  }
+
   const [deleteConfirming, setDeleteConfirming] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
@@ -450,7 +459,17 @@ export default function SubjectPage() {
                     </div>
                 )}
 
-                <p style={{ ...subSectionLabel, marginTop: '24px' }}>弱点分析</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', marginBottom: '8px' }}>
+                    <p style={{ ...subSectionLabel, marginTop: 0, marginBottom: 0 }}>弱点分析</p>
+                    {flashcards.length > 0 && (
+                        <button
+                            style={flashBugfixBtn}
+                            onClick={() => setShowFlashConfig(true)}
+                        >
+                            ⚡ Flash Bugfix
+                        </button>
+                    )}
+                </div>
                 {flashcards.length === 0 ? (
                     <p style={emptyText}>この月の弱点登録はありません</p>
                 ) : (
@@ -580,9 +599,18 @@ export default function SubjectPage() {
               </div>
             </div>
           </details>
+
+          {showFlashConfig && (
+              <FlashBugfixConfigModal
+                  subjectName={subjectName}
+                  subCategories={items}
+                  onClose={() => setShowFlashConfig(false)}
+                  onStart={handleFlashStart}
+              />
+          )}
         </div>
       </div>
-  )
+  ) // ここで return の括弧を閉じる
 }
 
 // ── Sub-components & Styles ──────────────────────────────────────────────────
@@ -702,3 +730,4 @@ const addBtn: React.CSSProperties = { padding: '4px 10px', backgroundColor: 'rgb
 const cancelBtn: React.CSSProperties = { padding: '4px 10px', backgroundColor: 'transparent', border: `1px solid rgba(55, 53, 47, 0.1)`, borderRadius: '4px', fontSize: '11px', color: 'rgba(55, 53, 47, 0.5)', cursor: 'pointer' }
 const destructiveBtn: React.CSSProperties = { padding: '4px 10px', backgroundColor: c.red, color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }
 const dangerBtn: React.CSSProperties = { padding: '8px 14px', backgroundColor: 'transparent', color: 'rgba(235, 87, 87, 0.6)', border: `1px solid rgba(235, 87, 87, 0.2)`, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }
+const flashBugfixBtn: React.CSSProperties = { padding: '5px 10px', backgroundColor: 'rgba(35,131,226,0.07)', color: c.blue, border: `1px solid rgba(35,131,226,0.2)`, borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }

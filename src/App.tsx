@@ -16,6 +16,7 @@ const ExamPage           = lazy(() => import('./pages/examPage'));
 const WeakPage           = lazy(() => import('./pages/weakPage'));
 const PracticeSessionPage  = lazy(() => import('./pages/practiceSessionPage'));
 const MorningBugfixPage   = lazy(() => import('./pages/morningBugfixPage'));
+const FlashBugfixPage     = lazy(() => import('./pages/flashBugfixPage'));
 const ProfilePage         = lazy(() => import('./pages/profilePage'));
 const SubjectPage        = lazy(() => import('./pages/subjectPage'));
 const LoginPage          = lazy(() => import('./pages/loginPage'));
@@ -94,6 +95,7 @@ function App() {
                         <Route path="/subjects/:name" element={<SubjectPage />} />
                         <Route path="/practice/:subject" element={<PracticeSessionPage />} />
                         <Route path="/morning-bugfix" element={<MorningBugfixPage />} />
+                        <Route path="/subjects/:name/flash-bugfix" element={<FlashBugfixPage />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                     </Route>

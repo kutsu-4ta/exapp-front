@@ -32,6 +32,31 @@ export async function fetchMorningQuiz(): Promise<MorningQuizSession> {
   return res.json()
 }
 
+export type FlashBugfixConfig = {
+  failureTypes: string[]
+  subCategoryIds: number[]
+  touchedOrder: 'recent' | 'old' | null
+  limit: number
+  proficiency: string[]
+}
+
+export async function fetchFlashBugfix(subject: string, config: FlashBugfixConfig): Promise<MorningQuizSession> {
+  const q = new URLSearchParams({ subject })
+  config.failureTypes.forEach((ft) => q.append('failureTypes[]', ft))
+  config.subCategoryIds.forEach((id) => q.append('subCategoryIds[]', String(id)))
+  config.proficiency.forEach((p) => q.append('proficiency[]', p))
+
+  // 単一の値のみ set を使用
+  if (config.touchedOrder) {
+    q.set('touchedOrder', config.touchedOrder)
+  }
+  q.set('limit', String(config.limit))
+
+  const res = await apiFetch(`/api/morning-bugfix?${q}`)
+  if (!res.ok) throw new Error('クイズの取得に失敗しました')
+  return res.json()
+}
+
 export async function completeMorningQuiz(
   sessionId: string,
   answers: MorningQuizAnswer[],
