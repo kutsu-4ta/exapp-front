@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useApiTrafficStore } from '../../lib/store/apiTraffic'
+import { MODEL_DISPLAY_NAMES } from '../../lib/api/apiWeights'
 
 function rpdColor(pct: number): string {
     if (pct >= 100) return '#eb5757'
@@ -10,19 +11,24 @@ function rpdColor(pct: number): string {
 }
 
 export function AiTrafficIndicator() {
-    const history       = useApiTrafficStore((s) => s.history)
-    const rpdLimit      = useApiTrafficStore((s) => s.rpdLimit)
-    const rpmLimit      = useApiTrafficStore((s) => s.rpmLimit)
-    const activeModel   = useApiTrafficStore((s) => s.activeModel)
-    const todayCount    = useApiTrafficStore((s) => s.todayCount)
+    const histories        = useApiTrafficStore((s) => s.histories)
+    const activeModel      = useApiTrafficStore((s) => s.activeModel)
+    const rpdLimit         = useApiTrafficStore((s) => s.rpdLimit)
+    const rpmLimit         = useApiTrafficStore((s) => s.rpmLimit)
+    const todayCount       = useApiTrafficStore((s) => s.todayCount)
     const lastMinuteCount  = useApiTrafficStore((s) => s.lastMinuteCount)
-    const rpmRecoveryMs = useApiTrafficStore((s) => s.rpmRecoveryMs)
-    const pruneHistory  = useApiTrafficStore((s) => s.pruneHistory)
+    const rpmRecoveryMs    = useApiTrafficStore((s) => s.rpmRecoveryMs)
+    const pruneHistory     = useApiTrafficStore((s) => s.pruneHistory)
 
     const [, setTick] = useState(0)
     const [hovering, setHovering] = useState(false)
 
-    // 毎秒tickしてRPMカウントダウンとバーを更新する
+    // activeModelが変わるたびにtickをリセット（古いモデルのカウントダウンが残らないよう）
+    useEffect(() => {
+        setTick(0)
+    }, [activeModel])
+
+    // 毎秒tickしてRPMカウントダウンとバーを更新
     useEffect(() => {
         const id = setInterval(() => {
             pruneHistory()
@@ -31,14 +37,16 @@ export function AiTrafficIndicator() {
         return () => clearInterval(id)
     }, [pruneHistory])
 
-    const today   = todayCount()
-    const lastMin = lastMinuteCount()
-    const rpdPct  = Math.min(100, (today / rpdLimit) * 100)
-    const rpmPct  = Math.min(100, (lastMin / rpmLimit) * 100)
-    const rpmMs   = rpmRecoveryMs()
+    const today    = todayCount()
+    const lastMin  = lastMinuteCount()
+    const rpdPct   = Math.min(100, (today / rpdLimit) * 100)
+    const rpmPct   = Math.min(100, (lastMin / rpmLimit) * 100)
+    const rpmMs    = rpmRecoveryMs()
     const rpmLimited = lastMin >= rpmLimit
     const rpdLimited = today >= rpdLimit
     const isLimited  = rpmLimited || rpdLimited
+
+    const modelLabel = MODEL_DISPLAY_NAMES[activeModel] ?? activeModel
 
     const chipColor = isLimited
         ? '#eb5757'
@@ -81,7 +89,6 @@ export function AiTrafficIndicator() {
                     AI
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    {/* カウント */}
                     <span style={{
                         fontSize: '11px',
                         fontFamily: 'ia-writer-mono, "SF Mono", monospace',
@@ -115,7 +122,11 @@ export function AiTrafficIndicator() {
             {/* ── Tooltip ── */}
             {hovering && (
                 <div style={tooltipBox}>
-                    <p style={tooltipHeading}>AI Resource</p>
+                    {/* モデルヘッダー */}
+                    <div style={modelHeader}>
+                        <span style={tooltipHeading}>AI Resource</span>
+                        <span style={modelBadge}>{modelLabel}</span>
+                    </div>
 
                     {/* RPDゲージ */}
                     <div style={{ marginBottom: '10px' }}>
@@ -137,6 +148,9 @@ export function AiTrafficIndicator() {
                         )}
                         {!rpdLimited && today > 0 && (
                             <p style={hintText}>残り {rpdLimit - today} 回</p>
+                        )}
+                        {today === 0 && (
+                            <p style={hintText}>{rpdLimit} 回 / 日</p>
                         )}
                     </div>
 
@@ -168,10 +182,40 @@ export function AiTrafficIndicator() {
                         {!rpmLimited && lastMin > 0 && (
                             <p style={hintText}>残り {rpmLimit - lastMin} 回 / 分</p>
                         )}
+                        {lastMin === 0 && (
+                            <p style={hintText}>{rpmLimit} 回 / 分</p>
+                        )}
                     </div>
 
-                    <div style={{ ...divider, marginTop: '10px' }} />
-                    <p style={modelLabel}>{activeModel}</p>
+                    {/* 他モデルの利用状況（使用履歴があるモデルのみ） */}
+                    {Object.entries(histories).some(
+                        ([m, h]) => m !== activeModel && (h?.length ?? 0) > 0
+                    ) && (
+                        <>
+                            <div style={{ ...divider, marginTop: '10px' }} />
+                            <p style={{ ...tooltipHeading, marginTop: '8px', marginBottom: '6px' }}>
+                                Other models today
+                            </p>
+                            {(Object.entries(histories) as [string, number[]][])
+                                .filter(([m, h]) => m !== activeModel && h.length > 0)
+                                .map(([m, h]) => {
+                                    const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+                                    const cnt = h.filter(t => t >= midnight.getTime()).length
+                                    if (cnt === 0) return null
+                                    return (
+                                        <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '3px' }}>
+                                            <span style={{ fontSize: '10px', color: 'rgba(55,53,47,0.35)' }}>
+                                                {MODEL_DISPLAY_NAMES[m as keyof typeof MODEL_DISPLAY_NAMES] ?? m}
+                                            </span>
+                                            <span style={{ fontSize: '10px', fontFamily: 'monospace', color: 'rgba(55,53,47,0.4)' }}>
+                                                {cnt}
+                                            </span>
+                                        </div>
+                                    )
+                                })
+                            }
+                        </>
+                    )}
                 </div>
             )}
         </div>
@@ -190,8 +234,14 @@ const tooltipBox: React.CSSProperties = {
     padding: '12px 14px',
     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
     zIndex: 2000,
-    width: '200px',
+    width: '210px',
     pointerEvents: 'none',
+}
+const modelHeader: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
 }
 const tooltipHeading: React.CSSProperties = {
     fontSize: '10px',
@@ -199,7 +249,19 @@ const tooltipHeading: React.CSSProperties = {
     color: 'rgba(55,53,47,0.3)',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
-    marginBottom: '10px',
+}
+const modelBadge: React.CSSProperties = {
+    fontSize: '10px',
+    fontWeight: 600,
+    color: '#2383e2',
+    backgroundColor: 'rgba(35,131,226,0.08)',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    fontFamily: 'ia-writer-mono, "SF Mono", monospace',
+    maxWidth: '120px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
 }
 const gaugeHeader: React.CSSProperties = {
     display: 'flex',
@@ -249,11 +311,4 @@ const hintText: React.CSSProperties = {
 const divider: React.CSSProperties = {
     height: '1px',
     backgroundColor: 'rgba(55,53,47,0.06)',
-}
-const modelLabel: React.CSSProperties = {
-    fontSize: '10px',
-    color: 'rgba(55,53,47,0.22)',
-    textAlign: 'right',
-    marginTop: '6px',
-    fontFamily: 'ia-writer-mono, "SF Mono", monospace',
 }

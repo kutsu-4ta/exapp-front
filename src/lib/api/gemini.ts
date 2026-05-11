@@ -1,19 +1,20 @@
 import { apiFetch } from '../client'
 import type { GeminiContext } from '../../types/workspace'
+import type { GeminiModel } from './apiWeights'
 
-export async function fetchGeminiContext(year: number, month: number): Promise<GeminiContext> {
-    const res = await apiFetch(`/api/gemini/context?year=${year}&month=${month}`)
-    if (!res.ok) throw new Error(`fetchGeminiContext: ${res.status}`)
-    return res.json()
-}
-
-export type GeminiModel = 'gemini-2.5-flash' | 'gemini-3-flash' | 'gemini-2.5-flash-lite'
+export type { GeminiModel }
 
 export const GEMINI_MODEL_OPTIONS: { value: GeminiModel; label: string }[] = [
     { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash' },
     { value: 'gemini-3-flash',         label: 'Gemini 3 Flash' },
     { value: 'gemini-2.5-flash-lite',  label: 'Gemini 2.5 Flash Lite' },
 ]
+
+export async function fetchGeminiContext(year: number, month: number): Promise<GeminiContext> {
+    const res = await apiFetch(`/api/gemini/context?year=${year}&month=${month}`)
+    if (!res.ok) throw new Error(`fetchGeminiContext: ${res.status}`)
+    return res.json()
+}
 
 export async function fetchGeminiSettings(): Promise<{ geminiModel: GeminiModel | null }> {
     const res = await apiFetch('/api/gemini/settings')

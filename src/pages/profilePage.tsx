@@ -13,6 +13,8 @@ import {
     type GeminiModel,
     GEMINI_MODEL_OPTIONS,
 } from '@/lib/api/gemini'
+import { useApiTrafficStore } from '@/lib/store/apiTraffic'
+import type { AiModel } from '@/lib/api/apiWeights'
 
 export default function ProfilePage() {
     const navigate = useNavigate()
@@ -43,6 +45,8 @@ export default function ProfilePage() {
     const [tokenSaved, setTokenSaved] = useState(false)
     const [tokenError, setTokenError] = useState<string | null>(null)
     const [isTokenRegistered, setIsTokenRegistered] = useState(user?.geminiTokenSet ?? false)
+
+    const setActiveModel = useApiTrafficStore((s) => s.setActiveModel)
 
     // ── Gemini Model settings ────────────────────────────────────────────────
     const [geminiModel, setGeminiModel] = useState<GeminiModel | null>(null)
@@ -90,7 +94,12 @@ export default function ProfilePage() {
         loadProfile();
         loadAlertSettings();
         fetchGeminiSettings()
-            .then((s) => { if (s.geminiModel) setGeminiModel(s.geminiModel) })
+            .then((s) => {
+                if (s.geminiModel) {
+                    setGeminiModel(s.geminiModel)
+                    setActiveModel(s.geminiModel as AiModel)
+                }
+            })
             .catch(() => {})
     }, []);
 
@@ -160,6 +169,7 @@ export default function ProfilePage() {
         setModelSaved(false)
         try {
             await updateGeminiSettings(geminiModel)
+            setActiveModel(geminiModel as AiModel)
             setModelSaved(true)
             setTimeout(() => setModelSaved(false), 2000)
         } catch (e) {

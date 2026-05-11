@@ -8,8 +8,8 @@ function todayMidnightMs(): number {
 }
 
 interface ApiTrafficState {
-  /** タイムスタンプ（ms）のリスト。今日分のAIリクエストのみ保持。 */
-  history: number[]
+  /** モデルごとのタイムスタンプ履歴。今日分のみ保持。 */
+  histories: Partial<Record<AiModel, number[]>>
   rpdLimit: number
   rpmLimit: number
   activeModel: AiModel
@@ -24,11 +24,13 @@ interface ApiTrafficState {
   rpmRecoveryMs: () => number | null
 }
 
+const DEFAULT_MODEL: AiModel = 'gemini-2.5-flash-lite'
+
 export const useApiTrafficStore = create<ApiTrafficState>()((set, get) => ({
-  history: [],
-  rpdLimit: MODEL_LIMITS['gemini-flash-lite'].rpdLimit,
-  rpmLimit: MODEL_LIMITS['gemini-flash-lite'].rpmLimit,
-  activeModel: 'gemini-flash-lite',
+  histories: {},
+  rpdLimit: MODEL_LIMITS[DEFAULT_MODEL].rpdLimit,
+  rpmLimit: MODEL_LIMITS[DEFAULT_MODEL].rpmLimit,
+  activeModel: DEFAULT_MODEL,
 
   setActiveModel: (model) => {
     const { rpdLimit, rpmLimit } = MODEL_LIMITS[model]
@@ -39,26 +41,41 @@ export const useApiTrafficStore = create<ApiTrafficState>()((set, get) => ({
     const { activeModel } = get()
     if (getWeight(endpoint, activeModel) <= TINY) return
     const now = Date.now()
+    const midnight = todayMidnightMs()
     set((s) => ({
-      history: [...s.history.filter(t => t >= todayMidnightMs()), now],
+      histories: {
+        ...s.histories,
+        [activeModel]: [
+          ...(s.histories[activeModel] ?? []).filter(t => t >= midnight),
+          now,
+        ],
+      },
     }))
   },
 
   pruneHistory: () => {
+    const { activeModel, histories } = get()
     const midnight = todayMidnightMs()
-    const { history } = get()
-    // 今日より前のエントリがなければ何もしない（不要なset回避）
-    if (!history.some(t => t < midnight)) return
-    set((s) => ({ history: s.history.filter(t => t >= midnight) }))
+    const hist = histories[activeModel] ?? []
+    if (!hist.some(t => t < midnight)) return
+    set((s) => ({
+      histories: {
+        ...s.histories,
+        [activeModel]: hist.filter(t => t >= midnight),
+      },
+    }))
   },
 
   todayCount: () => {
-    return get().history.filter(t => t >= todayMidnightMs()).length
+    const { activeModel, histories } = get()
+    const midnight = todayMidnightMs()
+    return (histories[activeModel] ?? []).filter(t => t >= midnight).length
   },
 
   lastMinuteCount: () => {
+    const { activeModel, histories } = get()
     const cutoff = Date.now() - 60_000
-    return get().history.filter(t => t >= cutoff).length
+    return (histories[activeModel] ?? []).filter(t => t >= cutoff).length
   },
 
   canRequest: (endpoint) => {
@@ -70,9 +87,10 @@ export const useApiTrafficStore = create<ApiTrafficState>()((set, get) => ({
   },
 
   rpmRecoveryMs: () => {
-    const { history, rpmLimit } = get()
+    const { activeModel, histories, rpmLimit } = get()
     const now = Date.now()
-    const rpmWindow = history.filter(t => t >= now - 60_000)
+    const hist = histories[activeModel] ?? []
+    const rpmWindow = hist.filter(t => t >= now - 60_000)
     if (rpmWindow.length < rpmLimit) return null
     const oldest = Math.min(...rpmWindow)
     return Math.max(0, oldest + 60_000 - now)
