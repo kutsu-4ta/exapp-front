@@ -133,8 +133,29 @@ export default function WeakPage() {
             const label = filterSubject === 'all' ? '全科目' : filterSubject
             const count = quizCount
 
-            const buildText = (cards: Awaited<ReturnType<typeof fetchFlashcards>>) =>
-                `以下は私の苦手問題データ（${label}）です。${count}問の4択クイズを作成してください。\n\n【生成ルール】\n- 表（Front）: 問題の核心となる概念・公式・判断軸を簡潔に記載\n- 裏（Back）: 解法のポイント、ミスしやすい理由、注意事項を具体的に記載\n- 復習ノート（note）がある場合はその内容を活かす\n- 習熟度が△・×の問題を優先して質の高いカードを作成\n- 出力形式は、必ず専用のクイズアプリ形式（JSON）で出力してください。\n\n【フラッシュカードデータ】\n${JSON.stringify(cards, null, 2)}`
+            const buildStats = (cards: Awaited<ReturnType<typeof fetchFlashcards>>) => {
+                const weak = cards.filter(c => c.back.proficiency === '△' || c.back.proficiency === '×')
+                const bySubject = new Map<string, { '定義ミス': number; '解法ミス': number; '計算ミス': number; total: number }>()
+                for (const c of weak) {
+                    if (!bySubject.has(c.subject)) bySubject.set(c.subject, { '定義ミス': 0, '解法ミス': 0, '計算ミス': 0, total: 0 })
+                    const s = bySubject.get(c.subject)!
+                    for (const ft of c.back.failureTypes) {
+                        if (ft === '定義ミス' || ft === '解法ミス' || ft === '計算ミス') { s[ft]++; s.total++ }
+                    }
+                }
+                return [...bySubject.entries()].map(([subj, s]) => ({
+                    subject: subj,
+                    total: s.total,
+                    定義ミス: s.total > 0 ? `${((s['定義ミス'] / s.total) * 100).toFixed(0)}%` : '0%',
+                    解法ミス: s.total > 0 ? `${((s['解法ミス'] / s.total) * 100).toFixed(0)}%` : '0%',
+                    計算ミス: s.total > 0 ? `${((s['計算ミス'] / s.total) * 100).toFixed(0)}%` : '0%',
+                }))
+            }
+
+            const buildText = (cards: Awaited<ReturnType<typeof fetchFlashcards>>) => {
+                const stats = buildStats(cards)
+                return `以下は私の苦手問題データ（${label}）です。${count}問の4択クイズを作成してください。\n\n【生成ルール】\n- 表（Front）: 問題の核心となる概念・公式・判断軸を簡潔に記載\n- 裏（Back）: 解法のポイント、ミスしやすい理由、注意事項を具体的に記載\n- 復習ノート（note）がある場合はその内容を活かす\n- 習熟度が△・×の問題を優先して質の高いカードを作成\n- 出力形式は、必ず専用のクイズアプリ形式（JSON）で出力してください。\n\n【科目別ミス割合（習熟度△・×のみ）】\n${JSON.stringify(stats, null, 2)}\n\n【フラッシュカードデータ】\n${JSON.stringify(cards, null, 2)}`
+            }
 
             // iOS Safariはawait後にclipboard.writeTextを呼ぶとユーザージェスチャーコンテキストが失われる。
             // ClipboardItemにPromiseを渡すことで、ジェスチャーを保持したまま非同期コピーが可能。

@@ -98,6 +98,7 @@ export function daysAgo(dateStr: string): number {
 
 export type Flashcard = {
   id: number
+  subject: string
   front: {
     questionRef: string
     subCategory: string | null
