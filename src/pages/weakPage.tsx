@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FilterPill } from "../components/weak/FilterPill";
 import { AddProblemModal } from "../components/weak/AddProblemModal";
 import { c, font, pageHeading } from "../styles/notion";
-import { LoadingSpinner } from "../components/common/LoadingSpinner";
+
 
 function SkeletonCard() {
     return (
@@ -32,93 +32,57 @@ function SkeletonCard() {
     )
 }
 
-const PAGE_SIZE = 5
 
 export default function WeakPage() {
     const subjects = useSettingsStore((s) => s.subjects)
     const subCategories = useSettingsStore((s) => s.subCategories)
     const [problems, setProblems] = useState<Problem[]>([])
     const [initialLoading, setInitialLoading] = useState(true)
-    const [loadingMore, setLoadingMore] = useState(false)
-    const [hasMore, setHasMore] = useState(true)
+    const [filterLoading, setFilterLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [showAddForm, setShowAddForm] = useState(false)
     const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
     const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
     const [quizCount, setQuizCount] = useState(10)
 
-    const sentinelRef = useRef<HTMLDivElement>(null)
-    const cursorRef = useRef<number | null>(null)
-    const isLoadingMoreRef = useRef(false)
-    const hasMoreRef = useRef(true)
-    const hasScrolledRef = useRef(false)
+    const didMountRef = useRef(false)
 
     const [filterSubject, setFilterSubject] = useState<string>('all')
+    const [filterQuery, setFilterQuery] = useState<string>('')
     const [filterProficiency, setFilterProficiency] = useState<Proficiency | 'all'>('all')
     const [filterFailureType, setFilterFailureType] = useState<FailureType | 'all'>('all')
 
     // 初回ロード
     useEffect(() => {
-        const cached = getCached<Problem[]>('weak-problems-initial')
-        if (cached) {
-            setProblems(cached)
-            cursorRef.current = cached.length > 0 ? cached[cached.length - 1].id : null
-            hasMoreRef.current = cached.length === PAGE_SIZE
-            setHasMore(cached.length === PAGE_SIZE)
-            setInitialLoading(false)
-        }
-        fetchProblems(PAGE_SIZE)
-            .then((p) => {
-                if (!hasScrolledRef.current) {
-                    setProblems(p)
-                    cursorRef.current = p.length > 0 ? p[p.length - 1].id : null
-                    hasMoreRef.current = p.length === PAGE_SIZE
-                    setHasMore(p.length === PAGE_SIZE)
-                }
-                setCached('weak-problems-initial', p)
-            })
+        const cached = getCached<Problem[]>('weak-problems')
+        if (cached) { setProblems(cached); setInitialLoading(false) }
+        fetchProblems()
+            .then((p) => { setProblems(p); setCached('weak-problems', p) })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setInitialLoading(false))
     }, [])
 
-    // 追加ロード — deps なしで安定、カーソルは ref で管理
-    const loadMore = useCallback(async () => {
-        if (isLoadingMoreRef.current || !hasMoreRef.current || cursorRef.current === null) return
-        isLoadingMoreRef.current = true
-        hasScrolledRef.current = true
-        setLoadingMore(true)
-        try {
-            const more = await fetchProblems(PAGE_SIZE, cursorRef.current)
-            if (more.length > 0) cursorRef.current = more[more.length - 1].id
-            setProblems((prev) => [...prev, ...more])
-            hasMoreRef.current = more.length === PAGE_SIZE
-            setHasMore(more.length === PAGE_SIZE)
-        } catch (e) {
-            console.error(e)
-        } finally {
-            isLoadingMoreRef.current = false
-            setLoadingMore(false)
-        }
-    }, [])
-
-    // loadMore は安定しているので Observer も1回だけ設置
+    // フィルター変化時の再フェッチ（debounce 250ms）
     useEffect(() => {
-        const el = sentinelRef.current
-        if (!el) return
-        const observer = new IntersectionObserver(
-            (entries) => { if (entries[0].isIntersecting) loadMore() },
-            { threshold: 0.1 },
-        )
-        observer.observe(el)
-        return () => observer.disconnect()
-    }, [loadMore])
+        if (!didMountRef.current) { didMountRef.current = true; return }
+        const subjects = filterSubject === 'all' ? undefined : [filterSubject]
+        const q = filterQuery.trim() || undefined
+        setFilterLoading(true)
+        const timer = setTimeout(() => {
+            fetchProblems({ subjects, q })
+                .then(setProblems)
+                .catch(console.error)
+                .finally(() => setFilterLoading(false))
+        }, 250)
+        return () => clearTimeout(timer)
+    }, [filterSubject, filterQuery])
 
     const handleAdd = useCallback(async (input: ProblemInput) => {
         const p = await addProblem(input)
         setProblems((prev) => [p, ...prev])
         setShowAddForm(false)
         setQuickProblem(p)
-        invalidateCache('weak-problems-initial')
+        invalidateCache('weak-problems')
     }, [])
 
     const handleUpdate = useCallback((updated: Problem) => {
@@ -182,7 +146,7 @@ export default function WeakPage() {
     const handleDelete = useCallback((id: number) => {
         setProblems((prev) => prev.filter((p) => p.id !== id))
         setQuickProblem(null)
-        invalidateCache('weak-problems-initial')
+        invalidateCache('weak-problems')
     }, [])
 
     const grouped = useMemo(() => {
@@ -197,7 +161,7 @@ export default function WeakPage() {
             subject: s,
             items: filtered.filter((p) => p.subject === s),
         })).filter((g) => g.items.length > 0)
-    }, [problems, filterSubject, filterProficiency, filterFailureType, subjects])
+    }, [problems, filterSubject, filterQuery, filterProficiency, filterFailureType, subjects])
 
     return (
         <div style={container}>
@@ -261,8 +225,26 @@ export default function WeakPage() {
                         width: '100%',
                         display: 'flex',
                         justifyContent: 'flex-start',
-                        gap: '12px'
+                        gap: '8px'
                     }}>
+                        <div style={searchWrap}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'rgba(55,53,47,0.4)', flexShrink: 0 }}>
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input
+                                type="search"
+                                placeholder="キーワード検索"
+                                value={filterQuery}
+                                onChange={(e) => setFilterQuery(e.target.value)}
+                                style={searchInput}
+                            />
+                            {filterLoading && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 0.8s linear infinite', color: 'rgba(55,53,47,0.4)', flexShrink: 0 }}>
+                                    <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                                    <path d="M12 2a10 10 0 0 1 10 10" />
+                                </svg>
+                            )}
+                        </div>
                         <select style={select} value={filterProficiency} onChange={(e) => setFilterProficiency(e.target.value as Proficiency | 'all')}>
                             <option value="all">習熟度: すべて</option>
                             {PROFICIENCY_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
@@ -310,16 +292,6 @@ export default function WeakPage() {
                     </section>
                 ))}
 
-                <div ref={sentinelRef} style={sentinel}>
-                    {loadingMore && (
-                        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
-                            <LoadingSpinner size="sm" />
-                        </div>
-                    )}
-                    {!hasMore && problems.length > 0 && (
-                        <span style={sentinelText}>すべて表示しました</span>
-                    )}
-                </div>
             </div>
 
             {quickProblem && (
@@ -378,6 +350,16 @@ const select: React.CSSProperties = {
     border: `1px solid rgba(55, 53, 47, 0.16)`, backgroundColor: 'transparent',
     color: c.textSub, outline: 'none', cursor: 'pointer',
 }
+const searchWrap: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '6px',
+    flex: 1, minWidth: 0,
+    padding: '4px 8px', borderRadius: '4px',
+    border: '1px solid rgba(55, 53, 47, 0.16)', backgroundColor: 'transparent',
+}
+const searchInput: React.CSSProperties = {
+    flex: 1, minWidth: 0, border: 'none', outline: 'none',
+    fontSize: '12px', backgroundColor: 'transparent', color: c.text,
+}
 const subjectScroll: React.CSSProperties = {
     display: 'flex', gap: '4px', overflowX: 'auto',
     maxWidth: '720px', margin: '0 auto', paddingBottom: '4px', scrollbarWidth: 'none',
@@ -405,8 +387,7 @@ const fab: React.CSSProperties = {
 const mutedText: React.CSSProperties = { color: 'rgba(55, 53, 47, 0.4)', textAlign: 'center', marginTop: '60px', fontSize: font.base }
 const errorText: React.CSSProperties = { color: c.red, textAlign: 'center', padding: '2rem', fontSize: font.base }
 const emptyState: React.CSSProperties = { padding: '60px 0' }
-const sentinel: React.CSSProperties = { padding: '16px', textAlign: 'center', minHeight: '1px' }
-const sentinelText: React.CSSProperties = { fontSize: '12px', color: 'rgba(55, 53, 47, 0.4)' }
+
 const skeletonCard: React.CSSProperties = {
     padding: '16px', marginBottom: '12px', borderRadius: '16px',
     backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.08)',

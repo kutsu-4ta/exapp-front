@@ -4,11 +4,12 @@
 import type {AnalysisResponse, Problem, ProblemInput} from '../../types/workspace'
 
 
-// GET /api/problems?limit=N&after=ID
-export async function fetchProblems(limit?: number, after?: number): Promise<Problem[]> {
+// GET /api/problems
+export async function fetchProblems(opts?: { limit?: number; q?: string; subjects?: string[] }): Promise<Problem[]> {
   const params = new URLSearchParams()
-  if (limit !== undefined) params.set('limit', String(limit))
-  if (after !== undefined) params.set('after', String(after))
+  if (opts?.limit !== undefined) params.set('limit', String(opts.limit))
+  if (opts?.q) params.set('q', opts.q)
+  if (opts?.subjects?.length) params.set('subjects', opts.subjects.join(','))
   const qs = params.toString()
   const res = await apiFetch(`/api/problems${qs ? `?${qs}` : ''}`)
   if (!res.ok) throw new Error('問題の取得に失敗しました')
