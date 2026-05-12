@@ -33,7 +33,7 @@ export default function DailyLogsPage() {
     const navigate = useNavigate()
     const [viewMode, setViewMode] = useState<ViewMode>('list')
 
-    // --- List state (cursor-based pagination) ---
+    // --- List state ---
     const [listLogs, setListLogs] = useState<DailyLogSummary[]>([])
     const [listInitialLoading, setListInitialLoading] = useState(true)
     const [listLoadingMore, setListLoadingMore] = useState(false)
@@ -70,7 +70,6 @@ export default function DailyLogsPage() {
             .finally(() => setListInitialLoading(false))
     }, [])
 
-    // Load more logic
     const loadMore = useCallback(async () => {
         if (listLoadingMore || !listHasMore) return
         const oldest = listLogs[listLogs.length - 1]?.date
@@ -98,7 +97,7 @@ export default function DailyLogsPage() {
         return () => observer.disconnect()
     }, [loadMore])
 
-    // --- 1. 月の全日付配列の生成 ---
+    // --- Chart Logic ---
     const daysInMonth = useMemo(() => {
         const [year, month] = baseMonth.split('-').map(Number);
         const date = new Date(year, month, 0);
@@ -110,7 +109,6 @@ export default function DailyLogsPage() {
         });
     }, [baseMonth]);
 
-    // --- 2. データ取得（1ヶ月分のみ） ---
     useEffect(() => {
         if (viewMode !== 'chart') return;
         setChartLoading(true);
@@ -124,7 +122,6 @@ export default function DailyLogsPage() {
             .finally(() => setChartLoading(false));
     }, [viewMode, baseMonth]);
 
-    // --- 3. ゼロ埋め整形ロジック ---
     const filteredChartData = useMemo(() => {
         const monthDataMap = new Map(
             chartData
@@ -271,7 +268,7 @@ export default function DailyLogsPage() {
                                                 contentStyle={tooltipStyle}
                                                 cursor={{ stroke: '#2383e2', strokeWidth: 1 }}
                                                 labelFormatter={(label) => `${baseMonth.split('-')[0]}/${label}`}
-                                                formatter={(value: number) => [`${value}分`, '学習時間']}
+                                                formatter={(value) => [`${value}分`, '学習時間']}
                                             />
                                             <ReferenceLine
                                                 y={385}
@@ -318,7 +315,7 @@ export default function DailyLogsPage() {
     )
 }
 
-// スタイル定義は以前のコードと同じため、変更なし
+// Styles
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
 const tabBar: React.CSSProperties = { display: 'flex', padding: '0 16px', borderBottom: '1px solid rgba(55, 53, 47, 0.09)', gap: '16px' }
 const tabItem: React.CSSProperties = { background: 'none', border: 'none', padding: '12px 4px', fontSize: '14px', color: 'rgba(55, 53, 47, 0.45)', cursor: 'pointer', borderBottom: '2px solid transparent', display: 'flex', alignItems: 'center', gap: '6px' }
