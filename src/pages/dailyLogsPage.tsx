@@ -70,7 +70,7 @@ export default function DailyLogsPage() {
             .finally(() => setListInitialLoading(false))
     }, [])
 
-    // Load more (called by IntersectionObserver)
+    // Load more logic
     const loadMore = useCallback(async () => {
         if (listLoadingMore || !listHasMore) return
         const oldest = listLogs[listLogs.length - 1]?.date
@@ -87,7 +87,6 @@ export default function DailyLogsPage() {
         }
     }, [listLogs, listLoadingMore, listHasMore])
 
-    // IntersectionObserver for infinite scroll
     useEffect(() => {
         const el = sentinelRef.current
         if (!el) return
@@ -99,39 +98,45 @@ export default function DailyLogsPage() {
         return () => observer.disconnect()
     }, [loadMore])
 
-    // Chart: 3-month window
-    const chartStartMonth = useMemo(() => {
-        const [y, m] = baseMonth.split('-').map(Number)
-        const d = new Date(y, m - 3, 1)
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    }, [baseMonth])
+    // --- 1. 月の全日付配列の生成 ---
+    const daysInMonth = useMemo(() => {
+        const [year, month] = baseMonth.split('-').map(Number);
+        const date = new Date(year, month, 0);
+        const count = date.getDate();
+        return Array.from({ length: count }, (_, i) => {
+            const day = String(i + 1).padStart(2, '0');
+            const monthStr = String(month).padStart(2, '0');
+            return `${monthStr}/${day}`;
+        });
+    }, [baseMonth]);
 
-    // Chart data fetch (only when chart tab active)
+    // --- 2. データ取得（1ヶ月分のみ） ---
     useEffect(() => {
-        if (viewMode !== 'chart') return
-        setChartLoading(true)
-        const [endY, endM] = baseMonth.split('-').map(Number)
-        const months: [number, number][] = []
-        for (let i = 0; i < 3; i++) {
-            let m = endM - i
-            let y = endY
-            if (m <= 0) { m += 12; y -= 1 }
-            months.push([y, m])
-        }
-        Promise.all(months.map(([y, m]) => fetchDailyLogs(y, m)))
-            .then((results) => setChartData(results.flat().sort((a, b) => a.date.localeCompare(b.date))))
-            .catch(console.error)
-            .finally(() => setChartLoading(false))
-    }, [viewMode, baseMonth])
+        if (viewMode !== 'chart') return;
+        setChartLoading(true);
+        const [y, m] = baseMonth.split('-').map(Number);
 
-    const filteredChartData = useMemo(() => {
-        return chartData
-            .filter((log) => {
-                const m = log.date.slice(0, 7)
-                return m >= chartStartMonth && m <= baseMonth
+        fetchDailyLogs(y, m)
+            .then((data) => {
+                setChartData(data.sort((a, b) => a.date.localeCompare(b.date)));
             })
-            .map((log) => ({ date: log.date.slice(5), minutes: log.totalMinutes }))
-    }, [chartData, chartStartMonth, baseMonth])
+            .catch(console.error)
+            .finally(() => setChartLoading(false));
+    }, [viewMode, baseMonth]);
+
+    // --- 3. ゼロ埋め整形ロジック ---
+    const filteredChartData = useMemo(() => {
+        const monthDataMap = new Map(
+            chartData
+                .filter(log => log.date.startsWith(baseMonth))
+                .map(log => [log.date.slice(5).replace('-', '/'), log.totalMinutes])
+        );
+
+        return daysInMonth.map(dateLabel => ({
+            date: dateLabel,
+            minutes: monthDataMap.get(dateLabel) || 0
+        }));
+    }, [chartData, daysInMonth, baseMonth]);
 
     const navigateChart = (delta: number) => {
         const [y, m] = baseMonth.split('-').map(Number)
@@ -177,7 +182,7 @@ export default function DailyLogsPage() {
                             <div style={chartNavControls}>
                                 <button style={navBtn} onClick={() => navigateChart(-1)}>◀</button>
                                 <span style={chartRangeLabel}>
-                                    {chartStartMonth.replace('-', '/')} 〜 {baseMonth.replace('-', '/')}
+                                    {baseMonth.replace('-', '年')}月
                                 </span>
                                 <button
                                     style={navBtn}
@@ -249,10 +254,12 @@ export default function DailyLogsPage() {
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
                                             <XAxis
                                                 dataKey="date"
-                                                fontSize={10}
+                                                fontSize={9}
                                                 tickLine={false}
                                                 axisLine={false}
-                                                dy={10} // ラベルの位置を少し下げて余白を作る
+                                                dy={10}
+                                                interval={4}
+                                                tick={{ fill: 'rgba(55, 53, 47, 0.45)' }}
                                             />
                                             <YAxis
                                                 fontSize={10}
@@ -260,7 +267,12 @@ export default function DailyLogsPage() {
                                                 axisLine={false}
                                                 dx={-5}
                                             />
-                                            <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: '#2383e2', strokeWidth: 1 }} />
+                                            <Tooltip
+                                                contentStyle={tooltipStyle}
+                                                cursor={{ stroke: '#2383e2', strokeWidth: 1 }}
+                                                labelFormatter={(label) => `${baseMonth.split('-')[0]}/${label}`}
+                                                formatter={(value: number) => [`${value}分`, '学習時間']}
+                                            />
                                             <ReferenceLine
                                                 y={385}
                                                 stroke="#eb5757"
@@ -271,9 +283,9 @@ export default function DailyLogsPage() {
                                                 type="monotone"
                                                 dataKey="minutes"
                                                 stroke="#2383e2"
-                                                strokeWidth={2} // 少し細くしてシャープな印象に
-                                                dot={false}     // プロットの点を非表示
-                                                activeDot={{ r: 4, strokeWidth: 0 }} // ホバー時のみ点を表示
+                                                strokeWidth={2}
+                                                dot={false}
+                                                activeDot={{ r: 4, strokeWidth: 0 }}
                                                 animationDuration={1000}
                                             />
                                         </LineChart>
@@ -306,27 +318,18 @@ export default function DailyLogsPage() {
     )
 }
 
+// スタイル定義は以前のコードと同じため、変更なし
 const pageWrapper: React.CSSProperties = { backgroundColor: '#fff', minHeight: '100vh', color: '#37352f' }
 const tabBar: React.CSSProperties = { display: 'flex', padding: '0 16px', borderBottom: '1px solid rgba(55, 53, 47, 0.09)', gap: '16px' }
-const tabItem: React.CSSProperties = {
-    background: 'none', border: 'none', padding: '12px 4px', fontSize: '14px',
-    color: 'rgba(55, 53, 47, 0.45)', cursor: 'pointer', borderBottom: '2px solid transparent',
-    display: 'flex', alignItems: 'center', gap: '6px',
-}
+const tabItem: React.CSSProperties = { background: 'none', border: 'none', padding: '12px 4px', fontSize: '14px', color: 'rgba(55, 53, 47, 0.45)', cursor: 'pointer', borderBottom: '2px solid transparent', display: 'flex', alignItems: 'center', gap: '6px' }
 const activeTab: React.CSSProperties = { color: '#37352f', borderBottom: '2px solid #37352f' }
 const content: React.CSSProperties = { width: '100%', maxWidth: '720px', margin: '0 auto', padding: '40px 20px 100px' }
 const header: React.CSSProperties = { marginBottom: '32px' }
 const titleRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
 const title: React.CSSProperties = { fontSize: '32px', fontWeight: 700, marginBottom: '6px' }
-const openModalBtn: React.CSSProperties = {
-    background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
-    color: 'rgba(55, 53, 47, 0.55)', display: 'flex', alignItems: 'center',
-}
+const openModalBtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'rgba(55, 53, 47, 0.55)', display: 'flex', alignItems: 'center' }
 const chartNavControls: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px' }
-const navBtn: React.CSSProperties = {
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: '4px 8px', fontSize: '13px', color: 'rgba(55,53,47,0.55)',
-}
+const navBtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', fontSize: '13px', color: 'rgba(55,53,47,0.55)' }
 const chartRangeLabel: React.CSSProperties = { fontSize: '13px', fontWeight: 700, color: 'rgba(55,53,47,0.55)' }
 const listContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', border: '1px solid rgba(55, 53, 47, 0.06)', borderRadius: '8px' }
 const listHeader: React.CSSProperties = { display: 'flex', padding: '10px 8px', fontSize: '12px', fontWeight: 600, color: 'rgba(55, 53, 47, 0.35)', borderBottom: '1px solid rgba(55, 53, 47, 0.09)' }
@@ -344,25 +347,10 @@ const sentinelText: React.CSSProperties = { fontSize: '12px', color: 'rgba(55, 5
 const chartContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '24px' }
 const chartCard: React.CSSProperties = { padding: '24px', borderRadius: '12px', border: '1px solid rgba(55, 53, 47, 0.09)', backgroundColor: '#fcfcfc' }
 const tooltipStyle = { borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }
-const modalOverlay: React.CSSProperties = {
-    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
-}
-const modalContent: React.CSSProperties = {
-    backgroundColor: '#fff', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '320px',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.15)', textAlign: 'center',
-}
+const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }
+const modalContent: React.CSSProperties = { backgroundColor: '#fff', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '320px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', textAlign: 'center' }
 const modalTitle: React.CSSProperties = { fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#37352f' }
-const modalDateInput: React.CSSProperties = {
-    width: '100%', padding: '10px', fontSize: '16px', borderRadius: '8px',
-    border: '1px solid rgba(55, 53, 47, 0.16)', marginBottom: '24px', outline: 'none',
-}
+const modalDateInput: React.CSSProperties = { width: '100%', padding: '10px', fontSize: '16px', borderRadius: '8px', border: '1px solid rgba(55, 53, 47, 0.16)', marginBottom: '24px', outline: 'none' }
 const modalActions: React.CSSProperties = { display: 'flex', gap: '12px' }
-const cancelBtn: React.CSSProperties = {
-    flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid rgba(55, 53, 47, 0.16)',
-    backgroundColor: '#fff', fontSize: '14px', fontWeight: 600, color: 'rgba(55,53,47,0.6)', cursor: 'pointer',
-}
-const confirmBtn: React.CSSProperties = {
-    flex: 1, padding: '10px', borderRadius: '6px', border: 'none',
-    backgroundColor: '#2383e2', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer',
-}
+const cancelBtn: React.CSSProperties = { flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid rgba(55, 53, 47, 0.16)', backgroundColor: '#fff', fontSize: '14px', fontWeight: 600, color: 'rgba(55,53,47,0.6)', cursor: 'pointer' }
+const confirmBtn: React.CSSProperties = { flex: 1, padding: '10px', borderRadius: '6px', border: 'none', backgroundColor: '#2383e2', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }
