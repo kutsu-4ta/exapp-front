@@ -3,7 +3,7 @@ import type {AnalysisResponse, Problem, ProblemInput, SubCategory} from '../../t
 import {c} from '../../styles/notion'
 import {ProblemNoteStep} from '@/components/note/ProblemNoteStep'
 import {ProblemMetaStep} from '@/components/note/ProblemMetaStep'
-import {analyzeImage} from "@/lib/api/problem.ts";
+import {analyzeImage, deleteProblem} from "@/lib/api/problem.ts";
 
 type Props = {
   onClose: () => void
@@ -39,14 +39,19 @@ export function AddProblemModal({
     const created = await onSubmit(input)
 
     // AI解析でnote生成
-    const result: AnalysisResponse = await analyzeImage(file, created.id)
+    try{
+      const result: AnalysisResponse = await analyzeImage(file, created.id)
+      created.note = result.note
+      setProblem(created)
+      setStep('note')
 
-    created.note = result.note
-
-    setProblem(created)
-    setStep('note')
-
-    return created
+      return created
+    } catch (error) {
+      // DBのデータを削除する
+      console.error(error)
+      await deleteProblem(created.id)
+      throw error
+    }
   }
 
   async function handleNoteSave(note: string) {

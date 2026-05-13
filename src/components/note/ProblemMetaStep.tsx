@@ -37,7 +37,6 @@ const LOADING_MESSAGES = [
 export function ProblemMetaStep({
                                     initial,
                                     subCategories,
-                                    onCancel,
                                     onNext,
                                     onNextWithAI,
                                 }: Props) {
@@ -133,8 +132,6 @@ export function ProblemMetaStep({
         if (!file) return
         e.target.value = ''
 
-        if (!validate()) return
-
         setError(null)
         setAnalyzing(true)
         setLoadingMsgIdx(0)
@@ -143,7 +140,7 @@ export function ProblemMetaStep({
         try {
             await onNextWithAI(buildPayload(), file)
         } catch (e) {
-            setError(e instanceof Error ? e.message : '作成失敗')
+            setError('AI解析に失敗しました（手動入力で続行できます）')
         } finally {
             stopMessageLoop()
             setAnalyzing(false)
@@ -255,15 +252,15 @@ export function ProblemMetaStep({
                     type="button"
                     onClick={() => fileRef.current?.click()}
                     disabled={loading || analyzing || isInvalid}
-                    style={(loading || isInvalid) ? notionDisabledSaveBtn : notionSaveBtn}
+                    style={(loading || analyzing || isInvalid) ? notionDisabledSaveBtn : notionSaveBtn}
                 >
                     {loading ? '作成中...' : 'AIでnotes生成'}
                 </button>
 
                 <button
                     onClick={handleNext}
-                    disabled={loading || isInvalid}
-                    style={(loading || isInvalid) ? notionDisabledSaveBtn : notionSaveBtn}
+                    disabled={loading || analyzing || isInvalid}
+                    style={(loading || analyzing || isInvalid) ? notionDisabledSaveBtn : notionSaveBtn}
                 >
                     {loading ? '作成中...' : '次へ'}
                 </button>

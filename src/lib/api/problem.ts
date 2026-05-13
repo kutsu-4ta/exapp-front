@@ -70,7 +70,7 @@ export async function analyzeImage(
   form.append('image', image)
 
   if (problemId != null) {
-    form.append('id', String(problemId))
+    form.append('problemId', String(problemId))
   }
 
   const res = await apiUpload('/api/ai/analysis', form)
