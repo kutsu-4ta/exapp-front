@@ -20,6 +20,7 @@ import {StopWatchWidget} from '@/components/dashboard/StopWatchWidget.tsx'
 import {LoadingSpinner} from '@/components/common/LoadingSpinner.tsx'
 import {useTimer} from '@/context/TimerContext.tsx'
 import {getCached, invalidateCache, setCached} from '../lib/pageCache'
+import {LongPressButton} from "@/components/common/LongPressButton.tsx";
 
 function triggerTaptic(ms = 15) {
   if (navigator.vibrate) {
@@ -448,17 +449,23 @@ function WorkspaceDateContent() {
       </div>
 
       <div style={bottomBar}>
-        <div style={bottomBarContainer}>
-          {log.isCompleted ? (
-            <button style={reopenBtn} onClick={handleUncomplete} disabled={actionLoading}>
-              {actionLoading ? 'Updating...' : 'Reopen'}
+        {log.isCompleted ? (
+            <button
+                style={reopenBtn}
+                onClick={handleUncomplete}
+                disabled={actionLoading}
+            >
+              {actionLoading ? "Updating..." : "Reopen"}
             </button>
-          ) : (
-            <button style={completeBtn} onClick={handleComplete} disabled={actionLoading}>
-              {actionLoading ? 'Processing...' : 'Complete'}
-            </button>
-          )}
-        </div>
+        ) : (
+            <LongPressButton
+                style={completeBtn}
+                onConfirm={handleComplete}
+                disabled={actionLoading}
+            >
+              {actionLoading ? "Processing..." : "Complete"}
+            </LongPressButton>
+        )}
       </div>
     </>
   )
