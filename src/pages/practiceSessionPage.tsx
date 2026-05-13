@@ -273,7 +273,7 @@ export default function PracticeSessionPage() {
                         </svg>
                     </button>
                     {todayMode && (
-                        <span style={todayBadge}>今日の5問</span>
+                        <span style={todayBadge}>TODAY'S FVIE</span>
                     )}
                     {resumedFrom !== null && (
                         <span style={resumeBadge}>Q{resumedFrom}から再開</span>
@@ -290,7 +290,7 @@ export default function PracticeSessionPage() {
 
             {todayMode && todayCards[currentIndex - 1] && (
                 <div style={todayCardRef}>
-                    {todayCards[currentIndex - 1].front.questionRef}
+                    {todayCards[currentIndex - 1].front.material}_{todayCards[currentIndex - 1].front.questionRef}
                 </div>
             )}
 
