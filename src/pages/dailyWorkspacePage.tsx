@@ -20,7 +20,8 @@ import {StopWatchWidget} from '@/components/dashboard/StopWatchWidget.tsx'
 import {LoadingSpinner} from '@/components/common/LoadingSpinner.tsx'
 import {useTimer} from '@/context/TimerContext.tsx'
 import {getCached, invalidateCache, setCached} from '../lib/pageCache'
-import {LongPressButton} from "@/components/common/LongPressButton.tsx";
+import {WorkspaceBottomBar} from "@/components/workspace/WorkspaceBottomBar.tsx";
+import {WorkspaceDeleteSection} from "@/components/workspace/WorkspaceDeleteSection.tsx";
 
 function triggerTaptic(ms = 15) {
   if (navigator.vibrate) {
@@ -418,55 +419,26 @@ function WorkspaceDateContent() {
             />
           </section>
 
-          <div style={deleteArea}>
-            {deleteConfirming ? (
-              <div style={deleteConfirmBox}>
-                <p style={deleteConfirmText}>このデイリーログと全ての学習記録を削除しますか？</p>
-                {deleteError && <p style={deleteErrorText}>{deleteError}</p>}
-                <div style={deleteConfirmActions}>
-                  <button style={deleteConfirmBtn} onClick={handleDelete} disabled={deleteLoading}>
-                    {deleteLoading ? '削除中...' : '削除する'}
-                  </button>
-                  <button
-                    style={deleteCancelBtn}
-                    onClick={() => {
-                      setDeleteConfirming(false)
-                      setDeleteError(null)
-                    }}
-                    disabled={deleteLoading}
-                  >
-                    キャンセル
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button style={deleteBtn} onClick={() => setDeleteConfirming(true)}>
-                Delete this daily log
-              </button>
-            )}
-          </div>
+          <WorkspaceDeleteSection
+              deleteConfirming={deleteConfirming}
+              deleteError={deleteError}
+              deleteLoading={deleteLoading}
+              onConfirmDelete={() => setDeleteConfirming(true)}
+              onDelete={handleDelete}
+              onCancel={() => {
+                setDeleteConfirming(false)
+                setDeleteError(null)
+              }}
+          />
         </div>
       </div>
 
-      <div style={bottomBar}>
-        {log.isCompleted ? (
-            <button
-                style={reopenBtn}
-                onClick={handleUncomplete}
-                disabled={actionLoading}
-            >
-              {actionLoading ? "Updating..." : "Reopen"}
-            </button>
-        ) : (
-            <LongPressButton
-                style={completeBtn}
-                onConfirm={handleComplete}
-                disabled={actionLoading}
-            >
-              {actionLoading ? "Processing..." : "Complete"}
-            </LongPressButton>
-        )}
-      </div>
+      <WorkspaceBottomBar
+          isCompleted={log.isCompleted}
+          actionLoading={actionLoading}
+          onComplete={handleComplete}
+          onUncomplete={handleUncomplete}
+      />
     </>
   )
 }
@@ -519,77 +491,6 @@ const reflectionWrapper: React.CSSProperties = {
   borderTop: '1px solid rgba(55, 53, 47, 0.08)',
 }
 
-const deleteArea: React.CSSProperties = {
-  marginTop: '80px',
-  paddingTop: '32px',
-  borderTop: '1px solid rgba(55, 53, 47, 0.04)',
-  display: 'flex',
-  justifyContent: 'center',
-}
-
-const deleteBtn: React.CSSProperties = {
-  padding: '8px 16px',
-  backgroundColor: 'transparent',
-  border: 'none',
-  fontSize: '13px',
-  color: 'rgba(235, 87, 87, 0.6)',
-  cursor: 'pointer',
-  fontWeight: 500,
-}
-
-const deleteConfirmBox: React.CSSProperties = {
-  width: '100%',
-  maxWidth: '400px',
-  padding: '16px',
-  backgroundColor: 'rgba(235, 87, 87, 0.04)',
-  border: '1px solid rgba(235, 87, 87, 0.18)',
-  borderRadius: '8px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-}
-
-const deleteConfirmText: React.CSSProperties = {
-  fontSize: '13px',
-  color: '#eb5757',
-  fontWeight: 500,
-  lineHeight: 1.5,
-  margin: 0,
-}
-
-const deleteErrorText: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#eb5757',
-  margin: 0,
-}
-
-const deleteConfirmActions: React.CSSProperties = {
-  display: 'flex',
-  gap: '8px',
-}
-
-const deleteConfirmBtn: React.CSSProperties = {
-  padding: '8px 16px',
-  backgroundColor: '#eb5757',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '6px',
-  fontSize: '13px',
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const deleteCancelBtn: React.CSSProperties = {
-  padding: '8px 16px',
-  backgroundColor: 'transparent',
-  color: 'rgba(55, 53, 47, 0.6)',
-  border: '1px solid rgba(55, 53, 47, 0.16)',
-  borderRadius: '6px',
-  fontSize: '13px',
-  fontWeight: 500,
-  cursor: 'pointer',
-}
-
 const fullPageCenter: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'center',
@@ -631,16 +532,4 @@ const completeBtn: React.CSSProperties = {
   fontWeight: 700,
   cursor: 'pointer',
   boxShadow: '0 4px 12px rgba(35, 131, 226, 0.2)',
-}
-
-const reopenBtn: React.CSSProperties = {
-  width: '100%',
-  padding: '12px',
-  backgroundColor: 'transparent',
-  color: 'rgba(55, 53, 47, 0.6)',
-  border: '1px solid rgba(55, 53, 47, 0.15)',
-  borderRadius: '8px',
-  fontSize: '14px',
-  fontWeight: 600,
-  cursor: 'pointer',
 }
