@@ -13,7 +13,7 @@ const DashboardPage      = lazy(() => import('./pages/dashboardPage'));
 const DailyLogsPage      = lazy(() => import('./pages/dailyLogsPage'));
 const WorkspaceDatePage  = lazy(() => import('./pages/workspaceDatePage'));
 const ExamPage           = lazy(() => import('./pages/examPage'));
-const WeakPage           = lazy(() => import('./pages/weakPage'));
+const WeakPage           = lazy(() => import('./pages/./NoteListsPage'));
 const PracticeSessionPage  = lazy(() => import('./pages/practiceSessionPage'));
 const MorningBugfixPage   = lazy(() => import('./pages/morningBugfixPage'));
 const FlashBugfixPage     = lazy(() => import('./pages/flashBugfixPage'));

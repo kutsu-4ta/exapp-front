@@ -76,7 +76,7 @@ export function FlashBugfixConfigModal({subjectName, subCategories,onClose, onSt
 
                         {/* Failure type (複数選択) */}
                         <div style={fieldGroup}>
-                            <p style={fieldLabel}>ミス種別</p>
+                            <p style={fieldLabel}>属性</p>
                             <div style={chipWrap}>
                                 {FAILURE_TYPES.map((ft) => (
                                     <Chip

@@ -184,7 +184,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
 
         {/* Row 4: failure types (Pill style) */}
         <div>
-          <p style={labelStyle}>ミスの種類</p>
+          <p style={labelStyle}>属性</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
             {FAILURE_TYPE_VALUES.map((ft) => {
               const selected = failureTypes.includes(ft)

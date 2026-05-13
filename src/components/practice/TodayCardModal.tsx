@@ -89,7 +89,7 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Pr
 
           {/* Failure types */}
           <div style={fieldGroup}>
-            <p style={fieldLabel}>ミスの種類</p>
+            <p style={fieldLabel}>属性</p>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {FAILURE_TYPE_VALUES.map((ft) => {
                 const selected = failureTypes.includes(ft)

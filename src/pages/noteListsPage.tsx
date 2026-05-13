@@ -33,7 +33,7 @@ function SkeletonCard() {
 }
 
 
-export default function WeakPage() {
+export default function NoteListsPage() {
     const subjects = useSettingsStore((s) => s.subjects)
     const subCategories = useSettingsStore((s) => s.subCategories)
     const [problems, setProblems] = useState<Problem[]>([])
@@ -250,7 +250,7 @@ export default function WeakPage() {
                             {PROFICIENCY_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                         <select style={select} value={filterFailureType} onChange={(e) => setFilterFailureType(e.target.value as FailureType | 'all')}>
-                            <option value="all">ミス: すべて</option>
+                            <option value="all">属性: すべて</option>
                             {FAILURE_TYPE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                     </div>

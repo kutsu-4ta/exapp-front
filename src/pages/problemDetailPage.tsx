@@ -54,7 +54,7 @@ export default function ProblemDetailPage() {
         ]
         if (problem.material) lines.push(`【教材】${problem.material}`)
         if (problem.subCategory) lines.push(`【分野】${problem.subCategory}`)
-        if (problem.failureTypes.length > 0) lines.push(`【ミスの種類】${problem.failureTypes.join('、')}`)
+        if (problem.failureTypes.length > 0) lines.push(`【属性】${problem.failureTypes.join('、')}`)
         if (problem.defeatReason) lines.push(`【敗因】${problem.defeatReason}`)
         if (problem.note) lines.push(`【メモ】${problem.note}`)
         lines.push('')
@@ -176,10 +176,10 @@ export default function ProblemDetailPage() {
 
                 <div style={divider} />
 
-                {/* ミスの種類 */}
+                {/* 属性 */}
                 {problem.failureTypes.length > 0 && (
                     <div style={section}>
-                        <p style={sectionLabel}>ミスの種類</p>
+                        <p style={sectionLabel}>属性</p>
                         <div style={pillsRow}>
                             {problem.failureTypes.map((ft) => (
                                 <span key={ft} style={pill}>{ft}</span>

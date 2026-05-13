@@ -30,7 +30,7 @@ export function ProblemQuickModal({ problem, subCategories, onClose, onUpdate, o
         const lines = [`【問題】${problem.questionRef}`, `【科目】${problem.subject}`]
         if (problem.material)              lines.push(`【教材】${problem.material}`)
         if (problem.subCategory)           lines.push(`【分野】${problem.subCategory}`)
-        if (problem.failureTypes.length)   lines.push(`【ミスの種類】${problem.failureTypes.join('、')}`)
+        if (problem.failureTypes.length)   lines.push(`【属性】${problem.failureTypes.join('、')}`)
         if (problem.defeatReason)          lines.push(`【敗因】${problem.defeatReason}`)
         if (problem.note)                  lines.push(`【メモ】${problem.note}`)
         lines.push('', 'この問題について解説してください。なぜ間違えやすいのか、正しいアプローチ、次回に向けた復習のポイントを教えてください。')
@@ -136,7 +136,7 @@ export function ProblemQuickModal({ problem, subCategories, onClose, onUpdate, o
 
                             {problem.failureTypes.length > 0 && (
                                 <div style={section}>
-                                    <p style={sectionLbl}>ミスの種類</p>
+                                    <p style={sectionLbl}>属性</p>
                                     <div style={pillsRow}>
                                         {problem.failureTypes.map((ft) => <span key={ft} style={pill}>{ft}</span>)}
                                     </div>
