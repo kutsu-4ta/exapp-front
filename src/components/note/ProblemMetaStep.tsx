@@ -1,9 +1,6 @@
 import {useState} from 'react'
 import {useSettingsStore} from '../../lib/store/settings'
-import {
-    FAILURE_TYPE_VALUES,
-    todayString,
-} from '../../types/workspace'
+import {todayString,} from '../../types/workspace'
 import type {
     FailureType,
     ProblemInput,
@@ -19,6 +16,7 @@ import {
     notionSubInp, tinyLabel
 } from "@/components/workspace/StudyBlockRow.styles.ts";
 import {ProficiencySelector} from "@/components/common/ProficiencySelector.tsx";
+import {FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
 
 type Props = {
     initial?: Partial<ProblemInput>
@@ -47,31 +45,19 @@ export function ProblemMetaStep({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    function toggleFailureType(
-        ft: FailureType
-    ) {
-        setFailureTypes((prev) => prev.includes(ft) ? prev.filter((x) => x !== ft) : [...prev, ft,])
-    }
-
     async function handleNext() {
         if (!subject.trim()) {
-            setError(
-                '科目を入力してください'
-            )
+            setError('科目を入力してください')
             return
         }
 
         if (!subCategory.trim()) {
-            setError(
-                '小分類を入力してください'
-            )
+            setError('小分類を入力してください')
             return
         }
 
         if (!questionRef.trim()) {
-            setError(
-                '問題番号を入力してください'
-            )
+            setError('問題番号を入力してください')
             return
         }
 
@@ -79,9 +65,7 @@ export function ProblemMetaStep({
             failureTypes.length ===
             0
         ) {
-            setError(
-                '属性を選択してください'
-            )
+            setError('属性を選択してください')
             return
         }
 
@@ -90,32 +74,20 @@ export function ProblemMetaStep({
 
         try {
             await onNext({
-                subject:
-                    subject.trim(),
+                subject: subject.trim(),
                 materialId: null,
-                materialName:
-                    material.trim() ||
-                    null,
-                subCategory:
-                    subCategory.trim(),
-                questionRef:
-                    questionRef.trim(),
+                materialName: material.trim() || null,
+                subCategory: subCategory.trim(),
+                questionRef: questionRef.trim(),
                 note: null,
-                defeatReason:
-                    null,
+                defeatReason: null,
                 proficiency,
                 failureTypes,
-                isGoodQuestion:
-                    false,
-                solvedAt:
-                    todayString(),
+                isGoodQuestion: false,
+                solvedAt: todayString(),
             })
         } catch (e) {
-            setError(
-                e instanceof Error
-                    ? e.message
-                    : '作成失敗'
-            )
+            setError(e instanceof Error ? e.message : '作成失敗')
         } finally {
             setLoading(false)
         }
@@ -124,38 +96,17 @@ export function ProblemMetaStep({
     return (
         <div style={editableRow}>
             <div style={flexRow}>
-                <input
-                    list="subjects"
-                    value={subject}
-                    onChange={(
-                        e
-                    ) => {
-                        setSubject(
-                            e.target
-                                .value
-                        )
-                        setSubCategory(
-                            ''
-                        )
-                    }}
-                    placeholder="科目"
-                    style={
-                        notionMainInp
-                    }
+                <input list="subjects"
+                       value={subject}
+                       onChange={(e) => {
+                           setSubject(e.target.value)
+                           setSubCategory('')
+                       }}
+                       placeholder="科目"
+                       style={notionMainInp}
                 />
                 <datalist id="subjects">
-                    {subjects.map(
-                        (s) => (
-                            <option
-                                key={
-                                    s
-                                }
-                                value={
-                                    s
-                                }
-                            />
-                        )
-                    )}
+                    {subjects.map((s) => (<option key={s} value={s}/>))}
                 </datalist>
 
                 <input
@@ -171,26 +122,9 @@ export function ProblemMetaStep({
 
             </div>
 
-            <div
-                style={
-                    flexRowSecondary
-                }
-            >
-                <div
-                    style={{
-                        flex: 1,
-                        display:
-                            'flex',
-                        gap: 8,
-                    }}
-                >
-                    <span
-                        style={
-                            tinyLabel
-                        }
-                    >
-                        SUB
-                    </span>
+            <div style={                 flexRowSecondary}>
+                <div style={{flex: 1, display: 'flex', gap: 8,}}>
+                    <span style={tinyLabel}>SUB</span>
 
                     <input list="subcats"
                            value={subCategory}
@@ -199,38 +133,22 @@ export function ProblemMetaStep({
                            style={notionSubInp}
                     />
 
-                    <span
-                        style={tinyLabel}
-                    >
-                        MAT
-                    </span>
+                    <span style={tinyLabel}>MAT</span>
                 </div>
 
                 <div
                     style={{
                         flex: 1,
-                        display:
-                            'flex',
+                        display: 'flex',
                         gap: 8,
                     }}
                 >
                     <input
-                        value={
-                            questionRef
-                        }
-                        onChange={(
-                            e
-                        ) =>
-                            setQuestionRef(
-                                e
-                                    .target
-                                    .value
-                            )
-                        }
+                        value={                         questionRef}
+                        onChange={(e) =>
+                            setQuestionRef(e.target.value)}
                         placeholder="問題番号"
-                        style={
-                            notionSubInp
-                        }
+                        style={                         notionSubInp}
                     />
                 </div>
             </div>
@@ -272,21 +190,12 @@ export function ProblemMetaStep({
             </div>
 
             <div style={{display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: '12px',}}>
-                {FAILURE_TYPE_VALUES.map((ft) => {
-                        const selected = failureTypes.includes(ft)
-
-                        return (
-                            <button
-                                key={ft}
-                                type="button"
-                                onClick={() => toggleFailureType(ft)}
-                                style={{...pill, backgroundColor: selected ? 'rgba(55,53,47,.08)' : 'transparent',}}
-                            >
-                                {ft}
-                            </button>
-                        )
+                <FailureTypeSelector
+                    value={failureTypes}
+                    onChange={
+                        setFailureTypes
                     }
-                )}
+                />
             </div>
 
             {error && (
@@ -340,14 +249,3 @@ export function ProblemMetaStep({
         </div>
     )
 }
-
-const pill = {
-    padding: '6px 12px',
-    borderRadius: '999px',
-    border:
-        '1px solid rgba(55,53,47,.12)',
-    background:
-        'transparent',
-    cursor: 'pointer',
-    fontSize: '12px',
-} as const
