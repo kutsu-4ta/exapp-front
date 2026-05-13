@@ -1,8 +1,9 @@
+import {LongPressButton} from "@/components/common/LongPressButton.tsx";
+import {FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
 import {useEffect, useRef, useState} from 'react'
-import type {FailureType, Problem} from '../../types/workspace'
+import type {Problem} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {deleteProblem, updateProblem} from '../../lib/api/problem'
-import {LongPressButton} from "@/components/common/LongPressButton.tsx";
 
 type Props = {
   problem: Problem
@@ -15,20 +16,22 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  const [draft, setDraft] = useState<Problem>(problem)
+
+  const [note, setNote] = useState(problem.note ?? '')
+  const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
+
   const timerRef = useRef<number | null>(null)
+  const successTimerRef = useRef<number | null>(null)
+
   const noteRef = useRef<HTMLTextAreaElement | null>(null)
 
-  const [subject, setSubject] = useState(problem.subject)
-  const [materialName, setMaterialName] = useState(problem.materialName ?? '')
-  const [questionRef, setQuestionRef] = useState(problem.questionRef)
-  const [subCategory, setSubCategory] = useState(problem.subCategory ?? '')
-  const [defeatReason, setDefeatReason] = useState(problem.defeatReason ?? '')
-  const [failureTypes, setFailureTypes] = useState(problem.failureTypes)
-  const [isGoodQuestion, setIsGoodQuestion] = useState(problem.isGoodQuestion)
-  const [note, setNote] = useState(problem.note ?? '')
-
-  const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
-  const successTimerRef = useRef<number | null>(null)
+  // 編集開始時にコピー
+  useEffect(() => {
+    if (editing) {
+      setDraft(problem)
+    }
+  }, [editing, problem])
 
   useEffect(() => {
     const original = document.body.style.overflow
@@ -37,6 +40,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
     return () => {
       document.body.style.overflow = original
       window.clearTimeout(timerRef.current ?? 0)
+      window.clearTimeout(successTimerRef.current ?? 0)
     }
   }, [])
 
@@ -48,21 +52,10 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
     timerRef.current = window.setTimeout(async () => {
       const updated = await updateProblem(problem.id, {
         ...problem,
-        subject,
-        materialName,
-        questionRef,
-        subCategory,
-        defeatReason: defeatReason.trim() || null,
-        failureTypes,
-        isGoodQuestion,
         note: value,
       })
 
       onUpdate(updated)
-
-      if (successTimerRef.current) {
-        window.clearTimeout(successTimerRef.current)
-      }
 
       setSaveSuccessVisible(true)
 
@@ -74,24 +67,9 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   }
 
   async function handleMetaSave() {
-    const updated = await updateProblem(problem.id, {
-      ...problem,
-      subject,
-      materialName,
-      questionRef,
-      subCategory,
-      defeatReason: defeatReason.trim() || null,
-      failureTypes,
-      isGoodQuestion,
-      note,
-    })
-
+    const updated = await updateProblem(problem.id, draft)
     onUpdate(updated)
     setEditing(false)
-  }
-
-  function toggleFailureType(ft: FailureType) {
-    setFailureTypes((prev) => (prev.includes(ft) ? prev.filter((x) => x !== ft) : [...prev, ft]))
   }
 
   async function handleDelete() {
@@ -108,176 +86,168 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
     }
   }
 
-  useEffect(() => {
-    const original = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      document.body.style.overflow = original
-
-      window.clearTimeout(timerRef.current ?? 0)
-      window.clearTimeout(successTimerRef.current ?? 0)
-    }
-  }, [])
+  const isEditing = editing
 
   return (
-    <div style={overlay} onClick={onClose}>
-      <div style={sheet} onClick={(e) => e.stopPropagation()}>
-        <div style={handle} />
+      <div style={overlay} onClick={onClose}>
+        <div style={sheet} onClick={(e) => e.stopPropagation()}>
+          <div style={handle} />
 
-        <div style={header}>
-          <button style={closeBtn} onClick={onClose}>
-            ×
-          </button>
+          <div style={header}>
+            <button style={closeBtn} onClick={onClose}>×</button>
 
-          <button style={editBtn} onClick={() => setEditing((v) => !v)}>
-            {editing ? 'キャンセル' : '問題情報を編集する'}
-          </button>
-        </div>
-
-        <div style={body}>
-          {editing ? (
-            <>
-              <input
-                style={input}
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="科目"
-              />
-
-              <input
-                style={input}
-                value={materialName}
-                onChange={(e) => setMaterialName(e.target.value)}
-                placeholder="教材"
-              />
-
-              <input
-                style={input}
-                value={questionRef}
-                onChange={(e) => setQuestionRef(e.target.value)}
-                placeholder="問題番号"
-              />
-
-              <input
-                style={input}
-                value={subCategory}
-                onChange={(e) => setSubCategory(e.target.value)}
-                placeholder="小分類"
-              />
-
-              <textarea
-                style={factorTextarea}
-                value={defeatReason}
-                onChange={(e) => setDefeatReason(e.target.value)}
-                placeholder="敗因"
-              />
-
-              <div style={pillsRow}>
-                {failureTypes.map((ft) => (
-                  <button
-                    key={ft}
-                    style={{
-                      ...pillBtn,
-                      opacity: failureTypes.includes(ft) ? 1 : 0.4,
-                    }}
-                    onClick={() => toggleFailureType(ft)}
-                  >
-                    {ft}
-                  </button>
-                ))}
-              </div>
-
-              <label
-                style={{
-                  display: 'block',
-                  marginTop: 16,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isGoodQuestion}
-                  onChange={(e) => setIsGoodQuestion(e.target.checked)}
-                />
-                良問
-              </label>
-
-              <button style={saveMetaBtn} onClick={handleMetaSave}>
-                保存
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={metaRow}>
-                <span style={subjectTag}>{subject}</span>
-
-                <span style={subCatTag}>
-                  {materialName} {questionRef}
-                </span>
-
-                {isGoodQuestion && <span style={starTag}>★ 良問</span>}
-              </div>
-
-              <p style={questionRefStyle}>{subCategory}</p>
-
-              {failureTypes.length > 0 && (
-                <div style={section}>
-                  <div style={pillsRow}>
-                    {failureTypes.map((ft) => (
-                      <span key={ft} style={pill}>
-                        {ft}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {defeatReason && (
-                <div style={section}>
-                  <p style={sectionLbl}>敗因</p>
-
-                  <div style={defeatBox}>{defeatReason}</div>
-                </div>
-              )}
-            </>
-          )}
-
-          {!editing && (
-              <div style={section}>
-                <p style={sectionLbl}>メモ</p>
-
-                <textarea
-                    ref={noteRef}
-                    value={note}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setNote(value)
-                      scheduleSave(value)
-                    }}
-                    style={noteTextarea}
-                    placeholder="メモを書く..."
-                />
-
-                {saveSuccessVisible && (
-                    <div style={saveLabelSuccess}>
-                      自動保存済み
-                    </div>
-                )}
-              </div>
-          )}
-
-          <div style={{paddingBottom: 32}}>
-            <LongPressButton
-                onConfirm={handleDelete}
-                disabled={deleting}
-                style={deleteBtn}
+            <button
+                style={editBtn}
+                onClick={() => setEditing(v => !v)}
             >
-              この問題を削除
-            </LongPressButton>
+              {editing ? 'キャンセル' : '問題情報を編集する'}
+            </button>
+          </div>
+
+          <div style={body}>
+
+            {/* ===== META ===== */}
+            {isEditing ? (
+                <>
+                  <input
+                      style={input}
+                      value={draft.subject}
+                      onChange={(e) =>
+                          setDraft(prev => ({ ...prev, subject: e.target.value }))
+                      }
+                      placeholder="科目"
+                  />
+
+                  <input
+                      style={input}
+                      value={draft.materialName ?? ''}
+                      onChange={(e) =>
+                          setDraft(prev => ({ ...prev, materialName: e.target.value }))
+                      }
+                      placeholder="教材"
+                  />
+
+                  <input
+                      style={input}
+                      value={draft.questionRef}
+                      onChange={(e) =>
+                          setDraft(prev => ({ ...prev, questionRef: e.target.value }))
+                      }
+                      placeholder="問題番号"
+                  />
+
+                  <input
+                      style={input}
+                      value={draft.subCategory ?? ''}
+                      onChange={(e) =>
+                          setDraft(prev => ({ ...prev, subCategory: e.target.value }))
+                      }
+                      placeholder="小分類"
+                  />
+
+                  <textarea
+                      style={factorTextarea}
+                      value={draft.defeatReason ?? ''}
+                      onChange={(e) =>
+                          setDraft(prev => ({
+                            ...prev,
+                            defeatReason: e.target.value
+                          }))
+                      }
+                      placeholder="敗因"
+                  />
+
+                  <FailureTypeSelector
+                      value={draft.failureTypes}
+                      onChange={(next) =>
+                          setDraft(prev => ({ ...prev, failureTypes: next }))
+                      }
+                  />
+
+                  <label style={{ display: 'block', marginTop: 16 }}>
+                    <input
+                        type="checkbox"
+                        checked={draft.isGoodQuestion}
+                        onChange={(e) =>
+                            setDraft(prev => ({
+                              ...prev,
+                              isGoodQuestion: e.target.checked
+                            }))
+                        }
+                    />
+                    良問
+                  </label>
+
+                  <button style={saveMetaBtn} onClick={handleMetaSave}>
+                    保存
+                  </button>
+                </>
+            ) : (
+                <>
+                  <div style={metaRow}>
+                    <span style={subjectTag}>{problem.subject}</span>
+                    <span style={subCatTag}>
+                  {problem.materialName} {problem.questionRef}
+                </span>
+                    {problem.isGoodQuestion && <span style={starTag}>★ 良問</span>}
+                  </div>
+
+                  <p style={questionRefStyle}>{problem.subCategory}</p>
+
+                  {problem.failureTypes.length > 0 && (
+                      <div style={section}>
+                        <div style={pillsRow}>
+                          {problem.failureTypes.map(ft => (
+                              <span key={ft} style={pill}>{ft}</span>
+                          ))}
+                        </div>
+                      </div>
+                  )}
+
+                  {problem.defeatReason && (
+                      <div style={section}>
+                        <p style={sectionLbl}>敗因</p>
+                        <div style={defeatBox}>{problem.defeatReason}</div>
+                      </div>
+                  )}
+                </>
+            )}
+
+            {/* ===== NOTE ===== */}
+            {!editing && (
+                <div style={section}>
+                  <p style={sectionLbl}>メモ</p>
+
+                  <textarea
+                      ref={noteRef}
+                      value={note}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        setNote(v)
+                        scheduleSave(v)
+                      }}
+                      style={noteTextarea}
+                      placeholder="メモを書く..."
+                  />
+
+                  {saveSuccessVisible && (
+                      <div style={saveLabelSuccess}>自動保存済み</div>
+                  )}
+                </div>
+            )}
+
+            <div style={{ paddingBottom: 32 }}>
+              <LongPressButton
+                  onConfirm={handleDelete}
+                  disabled={deleting}
+                  style={deleteBtn}
+              >
+                この問題を削除
+              </LongPressButton>
+            </div>
           </div>
         </div>
       </div>
-    </div>
   )
 }
 
@@ -424,12 +394,6 @@ const pill = {
   padding: '4px 10px',
   borderRadius: '999px',
   background: '#f3f3f3',
-}
-
-const pillBtn = {
-  ...pill,
-  border: 'none',
-  cursor: 'pointer',
 }
 
 const defeatBox = {
