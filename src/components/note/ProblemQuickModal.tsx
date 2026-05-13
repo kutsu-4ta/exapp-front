@@ -14,7 +14,6 @@ type Props = {
 export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Props) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [saved, setSaved] = useState(true)
 
   const timerRef = useRef<number | null>(null)
   const noteRef = useRef<HTMLTextAreaElement | null>(null)
@@ -27,6 +26,9 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   const [failureTypes, setFailureTypes] = useState(problem.failureTypes)
   const [isGoodQuestion, setIsGoodQuestion] = useState(problem.isGoodQuestion)
   const [note, setNote] = useState(problem.note ?? '')
+
+  const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
+  const successTimerRef = useRef<number | null>(null)
 
   function resizeNote() {
     const el = noteRef.current
@@ -51,7 +53,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   }, [])
 
   function scheduleSave(value: string) {
-    setSaved(false)
+    setSaveSuccessVisible(false)
 
     window.clearTimeout(timerRef.current ?? 0)
 
@@ -67,8 +69,19 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
         isGoodQuestion,
         note: value,
       })
+
       onUpdate(updated)
-      setSaved(true)
+
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current)
+      }
+
+      setSaveSuccessVisible(true)
+
+      successTimerRef.current = window.setTimeout(() => {
+        setSaveSuccessVisible(false)
+      }, 3000)
+
     }, 500)
   }
 
@@ -106,6 +119,18 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
       setDeleting(false)
     }
   }
+
+  useEffect(() => {
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = original
+
+      window.clearTimeout(timerRef.current ?? 0)
+      window.clearTimeout(successTimerRef.current ?? 0)
+    }
+  }, [])
 
   return (
     <div style={overlay} onClick={onClose}>
@@ -244,7 +269,11 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
               placeholder="メモを書く..."
             />
 
-            <div style={saveLabel}>{saved ? '自動保存済み' : '保存中...'}</div>
+            {saveSuccessVisible && (
+                <div style={saveLabelSuccess}>
+                  自動保存済み
+                </div>
+            )}
           </div>
 
           <div style={{paddingBottom: 32}}>
@@ -406,10 +435,11 @@ const defeatBox = {
   background: 'rgba(235,87,87,0.04)',
 }
 
-const saveLabel = {
+const saveLabelSuccess = {
   marginTop: '6px',
   fontSize: '12px',
-  color: c.textSub,
+  color: '#19a576',
+  fontWeight: 500,
 }
 
 const saveMetaBtn = {

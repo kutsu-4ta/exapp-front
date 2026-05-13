@@ -9,8 +9,8 @@ type Props = {
 
 export function ProblemNoteStep({ problem, onAutoSave, onClose }: Props) {
   const [note, setNote] = useState(problem.note ?? '')
-  const [saved, setSaved] = useState(true)
-
+  const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
+  const successTimerRef = useRef<number | null>(null)
   const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -20,15 +20,34 @@ export function ProblemNoteStep({ problem, onAutoSave, onClose }: Props) {
   }, [])
 
   function scheduleSave(value: string) {
-    setSaved(false)
+    setSaveSuccessVisible(false)
 
-    window.clearTimeout(timerRef?.current ?? 0)
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current)
+    }
 
     timerRef.current = window.setTimeout(async () => {
       await onAutoSave(value)
-      setSaved(true)
+
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current)
+      }
+
+      setSaveSuccessVisible(true)
+
+      successTimerRef.current = window.setTimeout(() => {
+        setSaveSuccessVisible(false)
+      }, 3000)
+
     }, 500)
   }
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current)
+      if (successTimerRef.current) window.clearTimeout(successTimerRef.current)
+    }
+  }, [])
 
   return (
     <>
@@ -47,7 +66,11 @@ export function ProblemNoteStep({ problem, onAutoSave, onClose }: Props) {
         style={textarea}
       />
 
-      <div style={saveLabel}>{saved ? '自動保存済み' : '保存中...'}</div>
+      {saveSuccessVisible && (
+          <div style={saveLabelSuccess}>
+            自動保存済み
+          </div>
+      )}
 
       <div style={actions}>
         <button onClick={onClose}>終了</button>
@@ -71,15 +94,16 @@ const textarea = {
   lineHeight: 1.7,
 }
 
-const saveLabel = {
-  marginTop: 8,
-  fontSize: 12,
-  color: 'rgba(55,53,47,.4)',
-}
-
 const actions = {
   marginTop: 24,
   display: 'flex',
   justifyContent: 'flex-end',
   gap: 8,
+}
+
+const saveLabelSuccess = {
+  marginTop: 8,
+  fontSize: 12,
+  color: '#19a576',
+  fontWeight: 500,
 }

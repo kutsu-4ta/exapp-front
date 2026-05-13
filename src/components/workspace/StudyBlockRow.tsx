@@ -58,8 +58,8 @@ export function StudyBlockRow({
     const [subCategoryName, setSubCategoryName] = useState(session?.subCategory ?? '')
     const [memo, setMemo] = useState(session?.memo ?? '')
 
-    const [saved, setSaved] = useState(true)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
 
     const [menuOpen, setMenuOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement | null>(null)
@@ -92,7 +92,15 @@ export function StudyBlockRow({
             const newId = await onSave(savedIdRef.current, payload)
             savedIdRef.current = newId
             lastSavedRef.current = hash
-            setSaved(true)
+
+            setSaveError(null)
+
+            setSaveSuccessVisible(true)
+
+            window.setTimeout(() => {
+                setSaveSuccessVisible(false)
+            }, 3000)
+
         } catch (e) {
             setSaveError(e instanceof Error ? e.message : '保存失敗')
         }
@@ -100,8 +108,6 @@ export function StudyBlockRow({
 
     const scheduleAutoSave = () => {
         if (!isValid) return
-
-        setSaved(false)
 
         if (timerRef.current) {
             window.clearTimeout(timerRef.current)
@@ -287,9 +293,11 @@ export function StudyBlockRow({
                     style={notionMemoInp}
                 />
 
-                <div style={{ fontSize: 11, color: 'rgba(55,53,47,0.4)' }}>
-                    {saved ? '自動保存済み' : '保存中...'}
-                </div>
+                {saveSuccessVisible && (
+                    <div style={saveSuccessStyle}>
+                        自動保存済み
+                    </div>
+                )}
             </div>
 
             {saveError && <p style={errorStyle}>{saveError}</p>}
@@ -326,4 +334,10 @@ const overlay: React.CSSProperties = {
     inset: 0,
     background: 'transparent',
     zIndex: 40,
+}
+
+export const saveSuccessStyle: React.CSSProperties = {
+    fontSize: '11px',
+    color: '#19a576',
+    fontWeight: 500,
 }
