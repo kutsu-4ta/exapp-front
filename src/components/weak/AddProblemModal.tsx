@@ -216,7 +216,7 @@ export function AddProblemModal({ onSubmit, onClose, subCategories = [], initial
         <div style={overlay} role="dialog" aria-modal="true">
             <div style={panel}>
                 <div style={header}>
-                    <span style={titleStyle}>新規弱点登録</span>
+                    <span style={titleStyle}>新規ノート登録</span>
                     <button onClick={onClose} style={closeBtn}>×</button>
                 </div>
 

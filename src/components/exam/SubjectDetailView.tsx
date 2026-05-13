@@ -52,7 +52,7 @@ export default function SubjectDetailView({ subject, onBack }: SubjectDetailView
             </div>
           </div>
 
-          <h3 style={sectionLabel}>弱点・要復習メモ</h3>
+          <h3 style={sectionLabel}>ノート・問題</h3>
           <div style={noteList}>
             {stats.recentMistakes.length === 0 && (
               <p style={stateText}>メモはありません</p>

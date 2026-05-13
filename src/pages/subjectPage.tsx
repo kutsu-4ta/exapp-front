@@ -305,7 +305,7 @@ export default function SubjectPage() {
           {todayCardsLoading ? (
             <p style={loadingText}>読み込み中...</p>
           ) : todayCards.length === 0 ? (
-            <p style={emptyText}>弱点がありません</p>
+            <p style={emptyText}>ノートがありません</p>
           ) : (
             <div style={{ ...block, padding: '12px 20px' }}>
               {todayCards.map((card, i) => (
@@ -471,7 +471,7 @@ export default function SubjectPage() {
                     )}
                 </div>
                 {flashcards.length === 0 ? (
-                    <p style={emptyText}>この月の弱点登録はありません</p>
+                    <p style={emptyText}>この月のノート登録はありません</p>
                 ) : (
                     <div style={block}>
                       <div style={profRow}>
