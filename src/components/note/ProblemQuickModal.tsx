@@ -30,18 +30,6 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
   const successTimerRef = useRef<number | null>(null)
 
-  function resizeNote() {
-    const el = noteRef.current
-    if (!el) return
-
-    el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight}px`
-  }
-
-  useEffect(() => {
-    resizeNote()
-  }, [note])
-
   useEffect(() => {
     const original = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -143,7 +131,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
           </button>
 
           <button style={editBtn} onClick={() => setEditing((v) => !v)}>
-            {editing ? 'キャンセル' : '編集'}
+            {editing ? 'キャンセル' : '問題情報を編集する'}
           </button>
         </div>
 
@@ -179,7 +167,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
               />
 
               <textarea
-                style={noteTextarea}
+                style={factorTextarea}
                 value={defeatReason}
                 onChange={(e) => setDefeatReason(e.target.value)}
                 placeholder="敗因"
@@ -254,27 +242,29 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
             </>
           )}
 
-          <div style={section}>
-            <p style={sectionLbl}>メモ</p>
+          {!editing && (
+              <div style={section}>
+                <p style={sectionLbl}>メモ</p>
 
-            <textarea
-              ref={noteRef}
-              value={note}
-              onChange={(e) => {
-                const value = e.target.value
-                setNote(value)
-                scheduleSave(value)
-              }}
-              style={noteTextarea}
-              placeholder="メモを書く..."
-            />
+                <textarea
+                    ref={noteRef}
+                    value={note}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setNote(value)
+                      scheduleSave(value)
+                    }}
+                    style={noteTextarea}
+                    placeholder="メモを書く..."
+                />
 
-            {saveSuccessVisible && (
-                <div style={saveLabelSuccess}>
-                  自動保存済み
-                </div>
-            )}
-          </div>
+                {saveSuccessVisible && (
+                    <div style={saveLabelSuccess}>
+                      自動保存済み
+                    </div>
+                )}
+              </div>
+          )}
 
           <div style={{paddingBottom: 32}}>
             <LongPressButton
@@ -353,19 +343,33 @@ const input = {
 
 const noteTextarea: React.CSSProperties = {
   width: '100%',
-  minHeight: '120px',
-  height: 'auto',
-  overflow: 'hidden',
+  height: '500px',
+  overflowY: 'auto',
   resize: 'none',
   padding: '12px',
   borderRadius: '8px',
   border: `1px solid ${c.border}`,
-  background: '#fafafa',
+  background: 'none',
   fontSize: '15px',
   lineHeight: 1.7,
   boxSizing: 'border-box',
+  transition: 'background 0.15s ease, border-color 0.15s ease',
 }
 
+const factorTextarea: React.CSSProperties = {
+  width: '100%',
+  height: 'auto',
+  overflowY: 'auto',
+  resize: 'none',
+  padding: '12px',
+  borderRadius: '8px',
+  border: `1px solid ${c.border}`,
+  background: 'none',
+  fontSize: '15px',
+  lineHeight: 1.7,
+  boxSizing: 'border-box',
+  transition: 'background 0.15s ease, border-color 0.15s ease',
+}
 const metaRow = {
   display: 'flex',
   gap: '8px',

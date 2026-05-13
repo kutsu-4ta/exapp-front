@@ -66,11 +66,11 @@ export function ProblemNoteStep({ problem, onAutoSave, onClose }: Props) {
         style={textarea}
       />
 
-      {saveSuccessVisible && (
+      {saveSuccessVisible ?
           <div style={saveLabelSuccess}>
             自動保存済み
-          </div>
-      )}
+          </div> : <span>&nbsp;</span>
+      }
 
       <div style={actions}>
         <button onClick={onClose}>終了</button>

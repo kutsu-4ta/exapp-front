@@ -293,11 +293,11 @@ export function StudyBlockRow({
                     style={notionMemoInp}
                 />
 
-                {saveSuccessVisible && (
+                {saveSuccessVisible ?
                     <div style={saveSuccessStyle}>
                         自動保存済み
-                    </div>
-                )}
+                    </div> : <span>&nbsp;</span>
+                }
             </div>
 
             {saveError && <p style={errorStyle}>{saveError}</p>}
