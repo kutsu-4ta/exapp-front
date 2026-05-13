@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import type {FailureType, Problem} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {deleteProblem, updateProblem} from '../../lib/api/problem'
+import {LongPressButton} from "@/components/common/LongPressButton.tsx";
 
 type Props = {
   problem: Problem
@@ -93,7 +94,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   }
 
   async function handleDelete() {
-    if (!confirm('この問題を削除しますか？')) return
+    if (!confirm('本当に削除しますか？')) return
 
     setDeleting(true)
 
@@ -246,9 +247,15 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
             <div style={saveLabel}>{saved ? '自動保存済み' : '保存中...'}</div>
           </div>
 
-          <button style={deleteBottomBtn} onClick={handleDelete} disabled={deleting}>
-            この問題を削除
-          </button>
+          <div style={{paddingBottom: 32}}>
+            <LongPressButton
+                onConfirm={handleDelete}
+                disabled={deleting}
+                style={deleteBtn}
+            >
+              この問題を削除
+            </LongPressButton>
+          </div>
         </div>
       </div>
     </div>
@@ -415,12 +422,13 @@ const saveMetaBtn = {
   color: '#fff',
 }
 
-const deleteBottomBtn = {
-  width: '100%',
-  marginTop: '32px',
-  padding: '14px',
-  border: 'none',
-  background: 'rgba(235,87,87,0.08)',
-  color: c.red,
-  borderRadius: '8px',
-}
+const deleteBtn: React.CSSProperties = {
+  padding: "8px 16px",
+  backgroundColor: "transparent",
+  border: "none",
+  fontSize: "13px",
+  width: "100%",
+  color: "rgba(235, 87, 87, 0.6)",
+  cursor: "pointer",
+  fontWeight: 500,
+};

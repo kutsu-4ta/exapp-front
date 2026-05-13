@@ -97,14 +97,6 @@ export function SubjectActivity({
 }
 
 /* styles */
-const block: React.CSSProperties = {
-    border: "1px solid rgba(55,53,47,0.08)",
-    borderRadius: "10px",
-    padding: "16px",
-    background: "#fff",
-    marginBottom: "12px",
-}
-
 const label: React.CSSProperties = {
     fontSize: "11px",
     fontWeight: 700,
