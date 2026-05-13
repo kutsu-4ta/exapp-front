@@ -21,6 +21,7 @@ import type {FailureType, Flashcard, SubjectSettings} from "@/types/workspace.ts
 import {subjectUi} from "@/styles/subjectUI.ts";
 import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts";
 import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx";
+import {StrategySection} from "@/components/subject/StrategySection.tsx";
 
 
 export default function SubjectPage() {
@@ -152,80 +153,29 @@ export default function SubjectPage() {
                     <TodaysFive subjectName={subjectName} navigate={navigate} />
                 </section>
 
-                <section>
-                    {!settingsLoaded ? (
-                        <div style={subjectUi.muted}>読み込み中...</div>
-                    ) : (
-                        <div style={subjectUi.block}>
-                                                <span style={{ ...strategyLabel, color: 'rgba(55,53,47,0.4)' }}>
-                            <label style={subjectUi.label}>最終目標</label>
-                    </span>
-                            <input
-                                style={strategyInput}
-                                value={settings.finalTarget ?? ''}
-                                onChange={(e) =>
-                                    setSettings(s => ({
-                                        ...s,
-                                        finalTarget: e.target.value || null
-                                    }))
-                                }
-                                onBlur={() => saveSubjectSettings(subjectName, settings)}
-                                placeholder="ゴール設定"
-                            />
-                        </div>
-                    )}
-                </section>
-
-                <section>
-
-                    <div style={subjectUi.monthNav}>
-                        <button style={subjectUi.navBtn} onClick={prevMonth}>‹</button>
-
-                        <span style={{ ...strategyLabel, color: 'rgba(55,53,47,0.4)' }}>
-
-                        </span>
-                        <span style={subjectUi.monthLabel}>
-                        {viewYear}年{viewMonth}月の注力ポイント
-                            </span>
-
-                        <button style={subjectUi.navBtn} onClick={nextMonth}>›</button>
-                    </div>
-
-                    {goalLoading ? (
-                        <div style={subjectUi.muted}>読み込み中...</div>
-                    ) : (
-                        <textarea
-                            style={strategyTextarea}
-                            value={monthlyGoal}
-                            onChange={(e) => setMonthlyGoal(e.target.value)}
-                            onBlur={() =>
-                                saveSubjectMonthlyGoal(
-                                    subjectName,
-                                    viewYear,
-                                    viewMonth,
-                                    monthlyGoal || null
-                                )
-                            }
-                            placeholder="今月の方針"
-                        />
-                    )}
-                </section>
-
+                <StrategySection
+                    settingsLoaded={settingsLoaded}
+                    settings={settings}
+                    setSettings={setSettings}
+                    saveSubjectSettings={saveSubjectSettings}
+                    subjectName={subjectName}
+                />
                 {/* ACTIVITY */}
                 <section style={subjectUi.card}>
                     <div>
                         <h3 style={subjectUi.title}>ACTIVITY</h3>
-                        <div style={subjectUi.monthNav}>
-                            <button style={subjectUi.navBtn} onClick={prevMonth}>‹</button>
-                            <span style={subjectUi.monthLabel}>{viewYear}/{viewMonth}</span>
-                            <button style={subjectUi.navBtn} onClick={nextMonth}>›</button>
-                        </div>
                     </div>
 
                     <SubjectActivity
                         subjectName={subjectName}
                         viewYear={viewYear}
                         viewMonth={viewMonth}
+                        monthlyGoal={monthlyGoal}
+                        setMonthlyGoal={setMonthlyGoal}
+                        goalLoading={goalLoading}
+                        saveSubjectMonthlyGoal={saveSubjectMonthlyGoal}
+                        prevMonth={prevMonth}
+                        nextMonth={nextMonth}
                     />
                 </section>
 
@@ -353,33 +303,6 @@ export default function SubjectPage() {
             </div>
         </div>
     )
-}
-
-const strategyLabel: React.CSSProperties = {
-    fontSize: '10px',
-    fontWeight: 700,
-    color: c.blue,
-    letterSpacing: '0.05em',
-    textTransform: 'uppercase',
-}
-const strategyTextarea: React.CSSProperties = {
-    border: 'none',
-    resize: 'none',
-    fontSize: '14px',
-    lineHeight: '1.6',
-    color: c.text,
-    outline: 'none',
-    backgroundColor: 'transparent',
-    width: '100%',
-}
-const strategyInput: React.CSSProperties = {
-    border: 'none',
-    fontSize: '15px',
-    color: c.text,
-    outline: 'none',
-    backgroundColor: 'transparent',
-    fontWeight: 600,
-    width: '100%',
 }
 const emptyText: React.CSSProperties = {
     fontSize: '13px',

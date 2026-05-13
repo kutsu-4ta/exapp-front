@@ -8,10 +8,28 @@ export function SubjectActivity({
                                     subjectName,
                                     viewYear,
                                     viewMonth,
+                                    monthlyGoal,
+                                    setMonthlyGoal,
+                                    goalLoading,
+                                    saveSubjectMonthlyGoal,
+                                    prevMonth,
+                                    nextMonth,
                                 }: {
     subjectName: string
     viewYear: number
     viewMonth: number
+    monthlyGoal: string
+    setMonthlyGoal: (v: string) => void
+    goalLoading: boolean
+    saveSubjectMonthlyGoal: (
+        subjectName: string,
+        year: number,
+        month: number,
+        goal: string | null
+    ) => void
+
+    prevMonth: () => void
+    nextMonth: () => void
 }) {
     const [activityData, setActivityData] = useState<SubjectActivityDay[]>([])
     const [loading, setLoading] = useState(false)
@@ -25,6 +43,40 @@ export function SubjectActivity({
 
     return (
         <div style={subjectUi.subContainer}>
+
+            {/* 月次方針 + 月送り */}
+            <section>
+                <div style={monthNav}>
+                    <button style={navBtn} onClick={prevMonth}>‹</button>
+                    <span style={monthLabel}>
+                        {viewYear}年{viewMonth}
+                    </span>
+                    <button style={navBtn} onClick={nextMonth}>›</button>
+                </div>
+
+                {goalLoading ? (
+                    <div style={muted}></div>
+                ) : (
+                    <div>
+                        <label style={label}>月次方針</label>
+                        <textarea
+                            style={textarea}
+                            value={monthlyGoal}
+                            onChange={(e) => setMonthlyGoal(e.target.value)}
+                            onBlur={() =>
+                                saveSubjectMonthlyGoal(
+                                    subjectName,
+                                    viewYear,
+                                    viewMonth,
+                                    monthlyGoal || null
+                                )
+                            }
+                            placeholder="今月の方針"
+                        />
+                    </div>
+                )}
+            </section>
+
             <div style={{ marginBottom: '32px' }}>
                     <span style={{ ...subjectUi.sectionHeading, marginLeft: '40vw', display: 'flex', gap: '12px' }}>
                         <span style={{ color: '#2383e2' }}>─ 学習時間</span>
@@ -42,4 +94,57 @@ export function SubjectActivity({
             </div>
         </div>
     )
+}
+
+/* styles */
+const block: React.CSSProperties = {
+    border: "1px solid rgba(55,53,47,0.08)",
+    borderRadius: "10px",
+    padding: "16px",
+    background: "#fff",
+    marginBottom: "12px",
+}
+
+const label: React.CSSProperties = {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "rgba(55,53,47,0.4)",
+    marginBottom: "8px",
+    display: "block",
+}
+
+const textarea: React.CSSProperties = {
+    width: "100%",
+    border: "none",
+    outline: "none",
+    resize: "none",
+    fontSize: "14px",
+    lineHeight: "1.6",
+    background: "transparent",
+}
+
+const muted: React.CSSProperties = {
+    fontSize: "12px",
+    color: "rgba(55,53,47,0.4)",
+}
+
+const monthNav: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "8px",
+}
+
+const navBtn: React.CSSProperties = {
+    width: "24px",
+    height: "24px",
+    borderRadius: "6px",
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "#fff",
+    cursor: "pointer",
+}
+
+const monthLabel: React.CSSProperties = {
+    fontSize: "12px",
+    fontWeight: 600,
 }
