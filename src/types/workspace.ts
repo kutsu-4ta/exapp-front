@@ -126,13 +126,14 @@ export type Flashcard = {
 export const PROFICIENCY_VALUES = ['○', '△', '×'] as const
 export type Proficiency = (typeof PROFICIENCY_VALUES)[number]
 
-export const FAILURE_TYPE_VALUES = ['定義', '解法', '計算ミス'] as const
+export const FAILURE_TYPE_VALUES = ['定義', '解法', 'ケアレス'] as const
 export type FailureType = (typeof FAILURE_TYPE_VALUES)[number]
 
 export type Problem = {
   id: number
   subject: string
   material: string
+  materialName: string | null
   subCategory: string | null
   questionRef: string
   note: string | null

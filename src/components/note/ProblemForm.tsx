@@ -22,7 +22,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
   const materials = useSettingsStore((s) => s.materials)
 
   const [subject, setSubject] = useState(initial?.subject ?? '')
-  const [material, setMaterial] = useState(initial?.materialName ?? '')
+  const [materialName, setMaterialName] = useState(initial?.materialName ?? '')
   const [subCategoryName, setSubCategoryName] = useState<string>(initial?.subCategory ?? '')
   const [questionRef, setQuestionRef] = useState(initial?.questionRef ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
@@ -60,7 +60,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
       await onSubmit({
         subject: subject.trim(),
         materialId: null,
-        materialName: material.trim() || null,
+        materialName: materialName.trim() || null,
         subCategory: subCategoryName.trim() || null,
         questionRef: questionRef.trim(),
         note: note.trim() || null,
@@ -127,8 +127,8 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
             <input
                 id={materialId}
                 list="pf-materials"
-                value={material}
-                onChange={(e) => setMaterial(e.target.value)}
+                value={materialName}
+                onChange={(e) => setMaterialName(e.target.value)}
                 placeholder="教材名"
                 style={inp}
             />
@@ -235,6 +235,7 @@ export function ProblemForm({ initial, subCategories = [], onSubmit, onCancel, l
         </div>
 
         {/* Row 7: note */}
+        {/* 復習や理解の整理のための書き込み */}
         <div style={field}>
           <label style={labelStyle}>分析・メモ</label>
           <textarea

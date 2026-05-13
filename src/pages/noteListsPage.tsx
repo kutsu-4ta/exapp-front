@@ -4,7 +4,7 @@ import type { FailureType, ProblemInput, Proficiency } from "../types/workspace"
 import { useSettingsStore } from '../lib/store/settings';
 import { ProblemCard } from "../components/note/ProblemCard";
 import { ProblemQuickModal } from "../components/note/ProblemQuickModal";
-import { addProblem, fetchProblems } from "../lib/api/problem"
+import {addProblem, fetchProblems, updateProblem} from "../lib/api/problem"
 import { fetchFlashcards } from "../lib/api/subjects"
 import { getCached, setCached, invalidateCache } from "../lib/pageCache"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -78,12 +78,29 @@ export default function NoteListsPage() {
     }, [filterSubject, filterQuery])
 
     const handleAdd = useCallback(async (input: ProblemInput) => {
+        console.log('parent handleAdd')
         const p = await addProblem(input)
+
         setProblems((prev) => [p, ...prev])
-        setShowAddForm(false)
-        setQuickProblem(p)
         invalidateCache('note-problems')
+        console.log(p);
+        return p
     }, [])
+
+    const handleProblemUpdate = useCallback(
+        async (id: number, input: ProblemInput) => {
+            const updated = await updateProblem(id, input)
+
+            setProblems((prev) =>
+                prev.map((p) => (p.id === updated.id ? updated : p))
+            )
+
+            invalidateCache('note-problems')
+
+            return updated
+        },
+        []
+    )
 
     const handleUpdate = useCallback((updated: Problem) => {
         setProblems((prev) => prev.map((p) => p.id === updated.id ? updated : p))
@@ -264,7 +281,14 @@ export default function NoteListsPage() {
             </div>
 
             <div style={mainContent}>
-                {showAddForm && <AddProblemModal onSubmit={handleAdd} onClose={() => setShowAddForm(false)} subCategories={subCategories} />}
+                {showAddForm &&
+                    <AddProblemModal
+                        onSubmit={handleAdd}
+                        onUpdate={handleProblemUpdate}
+                        onClose={() => setShowAddForm(false)}
+                        subCategories={subCategories}
+                    />
+                }
 
                 {error && <p style={errorText}>{error}</p>}
 
