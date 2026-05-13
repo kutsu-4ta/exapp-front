@@ -5,9 +5,9 @@ import { FAILURE_TYPE_VALUES } from '@/types/workspace'
 type Props = { problems: Problem[]; subjects: string[] }
 
 const FAILURE_COLORS: Record<string, string> = {
-    '定義ミス': '#2383e2',
-    '解法ミス': '#eb5757',
-    '計算ミス': '#f2ab26',
+    '定義': '#2383e2',
+    '解法': '#eb5757',
+    '計算': '#f2ab26',
 }
 
 export function FailureAnalysisSection({ problems, subjects }: Props) {

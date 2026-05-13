@@ -18,11 +18,11 @@ import { FlashBugfixConfigModal } from '../components/practice/FlashBugfixConfig
 import type { FlashBugfixConfig } from '../lib/api/morningQuiz'
 
 const FAILURE_COLORS: Record<string, string> = {
-  '定義ミス': '#2383e2',
-  '解法ミス': '#eb5757',
-  '計算ミス': '#f2ab26',
+  '定義': '#2383e2',
+  '解法': '#eb5757',
+  '計算': '#f2ab26',
 }
-const FAILURE_TYPES = ['定義ミス', '解法ミス', '計算ミス'] as const
+const FAILURE_TYPES = ['定義', '解法', '計算'] as const
 
 const RANK_COLORS: Record<string, { bg: string; color: string }> = {
   A: { bg: '#27ae60', color: '#fff' },
@@ -257,7 +257,7 @@ export default function SubjectPage() {
     if (p === '○' || p === '△' || p === '×') profCounts[p as keyof typeof profCounts]++
   })
   const weakCards = flashcards.filter((f) => f.back.proficiency === '△' || f.back.proficiency === '×')
-  const ftCounts: Record<string, number> = { '定義ミス': 0, '解法ミス': 0, '計算ミス': 0 }
+  const ftCounts: Record<string, number> = { '定義': 0, '解法': 0, '計算': 0 }
   weakCards.forEach((f) => f.back.failureTypes.forEach((ft) => { if (ft in ftCounts) ftCounts[ft]++ }))
   const ftTotal = Object.values(ftCounts).reduce((a, b) => a + b, 0)
 
