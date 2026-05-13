@@ -100,10 +100,10 @@ export default function NoteListPage() {
         []
     )
 
-    const handleUpdate = useCallback((updated: Problem) => {
-        setProblems((prev) => prev.map((p) => p.id === updated.id ? updated : p))
-        setQuickProblem(updated)
-    }, [])
+    // const handleUpdate = useCallback((updated: Problem) => {
+    //     setProblems((prev) => prev.map((p) => p.id === updated.id ? updated : p))
+    //     setQuickProblem(updated)
+    // }, [])
 
     const handleCopyForGemini = useCallback(async () => {
         setCopyState('loading')
@@ -184,7 +184,7 @@ export default function NoteListPage() {
                 <div style={{ ...headerContent, flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
                     {/* 1段目: タイトルとメインアクション */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <h1 style={{ ...pageHeading, marginBottom: 0 }}>ノート</h1>
+                        <h1 style={{ ...pageHeading, marginBottom: 0 }}>Note</h1>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <input
                                 type="number"
@@ -319,9 +319,7 @@ export default function NoteListPage() {
             {quickProblem && (
                 <ProblemQuickModal
                     problem={quickProblem}
-                    subCategories={subCategories}
                     onClose={() => setQuickProblem(null)}
-                    onUpdate={handleUpdate}
                     onDelete={handleDelete}
                 />
             )}

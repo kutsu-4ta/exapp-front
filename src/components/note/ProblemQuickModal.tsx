@@ -1,13 +1,12 @@
-import { useState } from 'react'
-import type { Problem, SubCategory } from '../../types/workspace'
+import { useEffect, useRef, useState } from 'react'
+import type { Problem } from '../../types/workspace'
 import { c, font } from '../../styles/notion'
 import { deleteProblem } from '../../lib/api/problem'
+import { updateProblem } from '../../lib/api/problem'
 
 type Props = {
     problem: Problem
-    subCategories: SubCategory[]
     onClose: () => void
-    onUpdate: (p: Problem) => void
     onDelete: (id: number) => void
 }
 
@@ -18,38 +17,32 @@ type Props = {
 // }
 
 export function ProblemQuickModal({ problem, onClose,onDelete }: Props) {
-    // const [copied, setCopied] = useState(false)
+    const [note, setNote] = useState(problem.note ?? '')
+    const [saved, setSaved] = useState(true)
+
+    const timerRef = useRef<number | null>(null)
     const [editing, setEditing] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    useEffect(() => {
+        return () => {
+            window.clearTimeout(timerRef.current ?? 0)
+        }
+    }, [])
 
-    // const prof = PROFICIENCY_STYLE[problem.proficiency] ?? { color: c.textSub, bg: c.surface }
-    //
-    // const buildPrompt = () => {
-    //     const lines = [`【問題】${problem.questionRef}`, `【科目】${problem.subject}`]
-    //     if (problem.material)              lines.push(`【教材】${problem.material}`)
-    //     if (problem.subCategory)           lines.push(`【分野】${problem.subCategory}`)
-    //     if (problem.failureTypes.length)   lines.push(`【属性】${problem.failureTypes.join('、')}`)
-    //     if (problem.defeatReason)          lines.push(`【敗因】${problem.defeatReason}`)
-    //     if (problem.note)                  lines.push(`【メモ】${problem.note}`)
-    //     lines.push('', 'この問題について解説してください。なぜ間違えやすいのか、正しいアプローチ、次回に向けた復習のポイントを教えてください。')
-    //     return lines.join('\n')
-    // }
-    //
-    // const handleCopy = async () => {
-    //     try { await navigator.clipboard.writeText(buildPrompt()); setCopied(true); setTimeout(() => setCopied(false), 2500) }
-    //     catch { /* silent */ }
-    // }
-    //
-    // const handleGemini = async () => {
-    //     try { await navigator.clipboard.writeText(buildPrompt()) } catch { /* silent */ }
-    //     window.open('https://gemini.google.com/app', '_blank')
-    // }
-    //
-    // const handleUpdate = async (input: ProblemInput) => {
-    //     const updated = await updateProblem(problem.id, input)
-    //     onUpdate(updated)
-    //     setEditing(false)
-    // }
+    function scheduleSave(value: string) {
+        setSaved(false)
+
+        window.clearTimeout(timerRef.current ?? 0)
+
+        timerRef.current = window.setTimeout(async () => {
+            await updateProblem(problem.id, {
+                ...problem,
+                note: value,
+            })
+
+            setSaved(true)
+        }, 500)
+    }
 
     const handleDelete = async () => {
         if (!confirm('この問題を削除しますか？')) return
@@ -84,78 +77,61 @@ export function ProblemQuickModal({ problem, onClose,onDelete }: Props) {
                     </div>
                 </div>
 
-                {/*<div style={body}>*/}
-                {/*    {editing ? (*/}
-                {/*        TODO: 編集画面*/}
-                {/*    ) : (*/}
-                {/*        <>*/}
-                {/*            <div style={metaRow}>*/}
-                {/*                <span style={subjectTag}>{problem.subject}</span>*/}
-                {/*                {problem.subCategory && <span style={subCatTag}>{problem.subCategory}</span>}*/}
-                {/*                {problem.material    && <span style={materialTag}>{problem.material}</span>}*/}
-                {/*                {problem.isGoodQuestion && <span style={starTag}>★ 良問</span>}*/}
-                {/*            </div>*/}
+                <div style={body}>
+                    <div style={metaRow}>
+                        <span style={subjectTag}>{problem.subject}</span>
+                        <span style={subCatTag}>{problem.materialName} {problem.questionRef}</span>
+                        {problem.isGoodQuestion && (
+                            <span style={starTag}>★ 良問</span>
+                        )}
+                    </div>
 
-                {/*            <p style={questionRefStyle}>{problem.questionRef}</p>*/}
+                    <p style={questionRefStyle}>
+                        {problem.subCategory}
+                    </p>
 
-                {/*            <div style={statsRow}>*/}
-                {/*                <div style={statItem}>*/}
-                {/*                    <span style={statLbl}>解いた日</span>*/}
-                {/*                    <span style={statVal}>{formatDate(problem.solvedAt)}</span>*/}
-                {/*                </div>*/}
-                {/*                <div style={statItem}>*/}
-                {/*                    <span style={statLbl}>経過</span>*/}
-                {/*                    <span style={statVal}>{daysAgo(problem.solvedAt)}日前</span>*/}
-                {/*                </div>*/}
-                {/*                <div style={statItem}>*/}
-                {/*                    <span style={statLbl}>習熟度</span>*/}
-                {/*                    <span style={{ ...profBadge, color: prof.color, backgroundColor: prof.bg }}>*/}
-                {/*                        {problem.proficiency}*/}
-                {/*                    </span>*/}
-                {/*                </div>*/}
-                {/*            </div>*/}
+                    {problem.failureTypes.length > 0 && (
+                        <div style={section}>
+                            <div style={pillsRow}>
+                                {problem.failureTypes.map((ft) => (
+                                    <span key={ft} style={pill}>
+                        {ft}
+                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
-                {/*            {problem.failureTypes.length > 0 && (*/}
-                {/*                <div style={section}>*/}
-                {/*                    <p style={sectionLbl}>属性</p>*/}
-                {/*                    <div style={pillsRow}>*/}
-                {/*                        {problem.failureTypes.map((ft) => <span key={ft} style={pill}>{ft}</span>)}*/}
-                {/*                    </div>*/}
-                {/*                </div>*/}
-                {/*            )}*/}
+                    {problem.defeatReason && (
+                        <div style={section}>
+                            <p style={sectionLbl}>敗因</p>
 
-                {/*            {problem.defeatReason && (*/}
-                {/*                <div style={section}>*/}
-                {/*                    <p style={sectionLbl}>敗因</p>*/}
-                {/*                    <div style={{ ...noteBox, color: c.red, borderColor: 'rgba(235,87,87,0.2)', background: 'rgba(235,87,87,0.03)' }}>*/}
-                {/*                        {problem.defeatReason}*/}
-                {/*                    </div>*/}
-                {/*                </div>*/}
-                {/*            )}*/}
+                            <div style={defeatBox}>
+                                {problem.defeatReason}
+                            </div>
+                        </div>
+                    )}
 
-                {/*            {problem.note && (*/}
-                {/*                <div style={section}>*/}
-                {/*                    <p style={sectionLbl}>メモ</p>*/}
-                {/*                    <div style={noteBox}>{problem.note}</div>*/}
-                {/*                </div>*/}
-                {/*            )}*/}
+                    <div style={section}>
+                        <p style={sectionLbl}>メモ</p>
 
-                {/*            <div style={actionRow}>*/}
-                {/*                <button style={copyBtn} onClick={handleCopy}>*/}
-                {/*                    {copied*/}
-                {/*                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>*/}
-                {/*                        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>*/}
-                {/*                    }*/}
-                {/*                    {copied ? 'コピー済み' : 'コピー'}*/}
-                {/*                </button>*/}
-                {/*                <button style={geminiBtn} onClick={handleGemini}>*/}
-                {/*                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z"/></svg>*/}
-                {/*                    Gemini*/}
-                {/*                </button>*/}
-                {/*            </div>*/}
-                {/*        </>*/}
-                {/*    )}*/}
-                {/*</div>*/}
+                        <textarea
+                            value={note}
+                            onChange={(e) => {
+                                const value = e.target.value
+                                setNote(value)
+                                scheduleSave(value)
+                            }}
+                            style={noteTextarea}
+                            placeholder="メモを書く..."
+                        />
+
+                        <div style={saveLabel}>
+                            {saved ? '自動保存済み' : '保存中...'}
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
     )
@@ -168,11 +144,14 @@ const overlay: React.CSSProperties = {
 }
 
 const sheet: React.CSSProperties = {
-    width: '100%', maxWidth: '720px', margin: '0 auto',
+    width: '100%',
+    maxWidth: '720px',
+    margin: '0 auto',
     backgroundColor: '#fff',
     borderRadius: '16px 16px 0 0',
-    maxHeight: '85vh', overflowY: 'auto',
-    paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+    height: '95vh', // maxHeight → height に変更
+    display: 'flex',
+    flexDirection: 'column',
 }
 
 const handle: React.CSSProperties = {
@@ -182,9 +161,15 @@ const handle: React.CSSProperties = {
 }
 
 const header: React.CSSProperties = {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: '12px 16px 8px',
     borderBottom: `1px solid ${c.border}`,
+    position: 'sticky',
+    top: 0,
+    background: '#fff',
+    zIndex: 1,
 }
 
 const closeBtn: React.CSSProperties = {
@@ -200,4 +185,103 @@ const editBtn: React.CSSProperties = {
 const deleteBtn: React.CSSProperties = {
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: font.sm, fontWeight: 600, color: c.red, padding: '4px 6px',
+}
+
+const body: React.CSSProperties = {
+    padding: '20px 16px',
+    overflowY: 'auto',
+    flex: 1,
+}
+
+const metaRow: React.CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginBottom: '16px',
+}
+
+const subjectTag: React.CSSProperties = {
+    padding: '4px 8px',
+    borderRadius: '6px',
+    background: '#eef5ff',
+    color: c.blue,
+    fontSize: font.sm,
+}
+
+const subCatTag: React.CSSProperties = {
+    padding: '4px 8px',
+    borderRadius: '6px',
+    background: '#f6f6f6',
+    color: c.textSub,
+    fontSize: font.sm,
+}
+
+const starTag: React.CSSProperties = {
+    padding: '4px 8px',
+    borderRadius: '6px',
+    background: '#fff8df',
+    color: '#c8860a',
+    fontSize: font.sm,
+}
+
+const questionRefStyle: React.CSSProperties = {
+    fontSize: '18px',
+    fontWeight: 600,
+    marginBottom: '20px',
+}
+
+const section: React.CSSProperties = {
+    marginBottom: '20px',
+}
+
+const sectionLbl: React.CSSProperties = {
+    fontSize: '12px',
+    color: c.textSub,
+    marginBottom: '8px',
+}
+
+const pillsRow: React.CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px',
+}
+
+const pill: React.CSSProperties = {
+    padding: '4px 10px',
+    borderRadius: '999px',
+    background: '#f3f3f3',
+    fontSize: '12px',
+}
+
+const noteBox: React.CSSProperties = {
+    whiteSpace: 'pre-wrap',
+    lineHeight: 1.7,
+    padding: '12px',
+    borderRadius: '8px',
+    background: '#fafafa',
+    border: `1px solid ${c.border}`,
+}
+
+const defeatBox: React.CSSProperties = {
+    ...noteBox,
+    color: c.red,
+    background: 'rgba(235,87,87,0.04)',
+}
+
+const noteTextarea: React.CSSProperties = {
+    width: '100%',
+    minHeight: '220px',
+    padding: '12px',
+    borderRadius: '8px',
+    border: `1px solid ${c.border}`,
+    background: '#fafafa',
+    fontSize: '15px',
+    lineHeight: 1.7,
+    resize: 'vertical',
+}
+
+const saveLabel: React.CSSProperties = {
+    marginTop: '6px',
+    fontSize: '12px',
+    color: c.textSub,
 }
