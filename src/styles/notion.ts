@@ -1,4 +1,4 @@
-// Notion-style design tokens shared across dashboard/weak components
+// Notion-style design tokens shared across dashboard/note components
 
 export const c = {
   text:       '#37352f',

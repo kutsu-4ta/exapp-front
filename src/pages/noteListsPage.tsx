@@ -2,14 +2,14 @@ import { FAILURE_TYPE_VALUES, PROFICIENCY_VALUES } from "../types/workspace";
 import type { Problem } from "../types/workspace";
 import type { FailureType, ProblemInput, Proficiency } from "../types/workspace";
 import { useSettingsStore } from '../lib/store/settings';
-import { ProblemCard } from "../components/weak/ProblemCard";
-import { ProblemQuickModal } from "../components/weak/ProblemQuickModal";
+import { ProblemCard } from "../components/note/ProblemCard";
+import { ProblemQuickModal } from "../components/note/ProblemQuickModal";
 import { addProblem, fetchProblems } from "../lib/api/problem"
 import { fetchFlashcards } from "../lib/api/subjects"
 import { getCached, setCached, invalidateCache } from "../lib/pageCache"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FilterPill } from "../components/weak/FilterPill";
-import { AddProblemModal } from "../components/weak/AddProblemModal";
+import { FilterPill } from "../components/note/FilterPill";
+import { AddProblemModal } from "../components/note/AddProblemModal";
 import { c, font, pageHeading } from "../styles/notion";
 
 
@@ -54,10 +54,10 @@ export default function NoteListsPage() {
 
     // 初回ロード
     useEffect(() => {
-        const cached = getCached<Problem[]>('weak-problems')
+        const cached = getCached<Problem[]>('note-problems')
         if (cached) { setProblems(cached); setInitialLoading(false) }
         fetchProblems()
-            .then((p) => { setProblems(p); setCached('weak-problems', p) })
+            .then((p) => { setProblems(p); setCached('note-problems', p) })
             .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
             .finally(() => setInitialLoading(false))
     }, [])
@@ -82,7 +82,7 @@ export default function NoteListsPage() {
         setProblems((prev) => [p, ...prev])
         setShowAddForm(false)
         setQuickProblem(p)
-        invalidateCache('weak-problems')
+        invalidateCache('note-problems')
     }, [])
 
     const handleUpdate = useCallback((updated: Problem) => {
@@ -146,7 +146,7 @@ export default function NoteListsPage() {
     const handleDelete = useCallback((id: number) => {
         setProblems((prev) => prev.filter((p) => p.id !== id))
         setQuickProblem(null)
-        invalidateCache('weak-problems')
+        invalidateCache('note-problems')
     }, [])
 
     const grouped = useMemo(() => {

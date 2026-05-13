@@ -17,7 +17,7 @@ import {
     correctActive, incorrectActive, rankLabel, rankBtn,
     confirmHeader, backToEditBtn, confirmActions, addProblemBtn, nextBtn,
 } from './PracticeAnswerView.styles'
-import { AddProblemModal } from '@/components/weak/AddProblemModal.tsx'
+import { AddProblemModal } from '../note/AddProblemModal.tsx'
 import { addProblem } from '@/lib/api/problem.ts'
 import type { ProblemInput } from '@/types/workspace.ts'
 import { useSettingsStore } from '@/lib/store/settings.ts'
