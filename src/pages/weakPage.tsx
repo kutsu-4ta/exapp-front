@@ -99,12 +99,12 @@ export default function WeakPage() {
 
             const buildStats = (cards: Awaited<ReturnType<typeof fetchFlashcards>>) => {
                 const weak = cards.filter(c => c.back.proficiency === '△' || c.back.proficiency === '×')
-                const bySubject = new Map<string, { '定義': number; '解法': number; '計算': number; total: number }>()
+                const bySubject = new Map<string, { '定義': number; '解法': number; 'ケアレス': number; total: number }>()
                 for (const c of weak) {
-                    if (!bySubject.has(c.subject)) bySubject.set(c.subject, { '定義': 0, '解法': 0, '計算': 0, total: 0 })
+                    if (!bySubject.has(c.subject)) bySubject.set(c.subject, { '定義': 0, '解法': 0, 'ケアレス': 0, total: 0 })
                     const s = bySubject.get(c.subject)!
                     for (const ft of c.back.failureTypes) {
-                        if (ft === '定義' || ft === '解法' || ft === '計算') { s[ft]++; s.total++ }
+                        if (ft === '定義' || ft === '解法' || ft === 'ケアレス') { s[ft]++; s.total++ }
                     }
                 }
                 return [...bySubject.entries()].map(([subj, s]) => ({
@@ -112,7 +112,7 @@ export default function WeakPage() {
                     total: s.total,
                     定義: s.total > 0 ? `${((s['定義'] / s.total) * 100).toFixed(0)}%` : '0%',
                     解法: s.total > 0 ? `${((s['解法'] / s.total) * 100).toFixed(0)}%` : '0%',
-                    計算: s.total > 0 ? `${((s['計算'] / s.total) * 100).toFixed(0)}%` : '0%',
+                    ケアレス: s.total > 0 ? `${((s['ケアレス'] / s.total) * 100).toFixed(0)}%` : '0%',
                 }))
             }
 

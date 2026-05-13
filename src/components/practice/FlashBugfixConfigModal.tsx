@@ -3,7 +3,7 @@ import type {SubCategory} from '../../types/workspace'
 import type {FlashBugfixConfig} from '../../lib/api/morningQuiz'
 import {c, font} from '../../styles/notion'
 
-const FAILURE_TYPES = ['定義', '解法', '計算'] as const
+const FAILURE_TYPES = ['定義', '解法', 'ケアレス'] as const
 const PROFICIENCY_OPTIONS = ['○', '△', '×'] as const
 
 interface Props {
