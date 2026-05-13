@@ -133,7 +133,7 @@ export type Problem = {
   id: number
   subject: string
   material: string
-  materialId: null,
+  materialId: null
   materialName: string | null
   subCategory: string | null
   questionRef: string

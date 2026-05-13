@@ -1,16 +1,16 @@
 /**
  * ── Daily Logs ─────────────────────────────────────────────────────────────
- */ import {apiFetch} from "../client";
+ */
+import {apiFetch} from '../client'
 import type {
   DailyLog,
   DailyLogSummary,
   DashboardStats,
   MonthlySettings,
   StudySession,
-  StudySessionInput
-} from "../../types/workspace";
-import type {AdviceMode} from "@/types/aiAgent.ts";
-
+  StudySessionInput,
+} from '../../types/workspace'
+import type {AdviceMode} from '@/types/aiAgent.ts'
 
 // GET /api/daily-logs?year=&month=
 export async function fetchMonthlyLogs(year: number, month: number): Promise<DailyLogSummary[]> {
@@ -99,7 +99,7 @@ export async function addStudySession(input: StudySessionInput): Promise<StudySe
 // PUT /api/study-sessions/:id
 export async function updateStudySession(
   id: number,
-  input: Omit<StudySessionInput, 'dailyLogDate'>,
+  input: Omit<StudySessionInput, 'dailyLogDate'>
 ): Promise<StudySession> {
   const res = await apiFetch(`/api/study-sessions/${id}`, {
     method: 'PUT',
@@ -141,7 +141,7 @@ export async function fetchMonthlySettings(year: number, month: number): Promise
 export async function updateMonthlySettings(
   year: number,
   month: number,
-  input: { targetMin: number; targetMax: number },
+  input: { targetMin: number; targetMax: number }
 ): Promise<MonthlySettings> {
   const res = await apiFetch(`/api/monthly-settings/${year}/${month}`, {
     method: 'PUT',
@@ -155,16 +155,16 @@ export async function updateMonthlySettings(
  * ── AiAgent ────────────────────────────────────────────────────────
  */
 
-export async function fetchAIAdvice( mode: AdviceMode): Promise<string> {
+export async function fetchAIAdvice(mode: AdviceMode): Promise<string> {
   const res = await apiFetch(`/api/ai/advice`, {
     method: 'POST',
     body: JSON.stringify({ mode }),
-  });
+  })
 
   if (!res.ok) {
-    throw new Error('AIアドバイスの取得に失敗しました');
+    throw new Error('AIアドバイスの取得に失敗しました')
   }
 
-  const data = await res.json();
-  return data.advice; // APIレスポンスのフィールド名に合わせて調整
+  const data = await res.json()
+  return data.advice // APIレスポンスのフィールド名に合わせて調整
 }

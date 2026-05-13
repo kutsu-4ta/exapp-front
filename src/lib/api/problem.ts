@@ -1,11 +1,15 @@
 /**
  * ── Problems (苦手問題管理) ──────────────────────────────────────────────────
- */ import { apiFetch, apiUpload } from '../client'
+ */
+import {apiFetch, apiUpload} from '../client'
 import type {AnalysisResponse, Problem, ProblemInput} from '../../types/workspace'
 
-
 // GET /api/problems
-export async function fetchProblems(opts?: { limit?: number; q?: string; subjects?: string[] }): Promise<Problem[]> {
+export async function fetchProblems(opts?: {
+  limit?: number
+  q?: string
+  subjects?: string[]
+}): Promise<Problem[]> {
   const params = new URLSearchParams()
   if (opts?.limit !== undefined) params.set('limit', String(opts.limit))
   if (opts?.q) params.set('q', opts.q)

@@ -1,5 +1,5 @@
-import { create } from 'zustand'
-import { type AiModel, getWeight, TINY, MODEL_LIMITS } from '../api/apiWeights'
+import {create} from 'zustand'
+import {type AiModel, getWeight, MODEL_LIMITS, TINY} from '../api/apiWeights'
 
 function todayMidnightMs(): number {
   const d = new Date()
@@ -45,10 +45,7 @@ export const useApiTrafficStore = create<ApiTrafficState>()((set, get) => ({
     set((s) => ({
       histories: {
         ...s.histories,
-        [activeModel]: [
-          ...(s.histories[activeModel] ?? []).filter(t => t >= midnight),
-          now,
-        ],
+        [activeModel]: [...(s.histories[activeModel] ?? []).filter((t) => t >= midnight), now],
       },
     }))
   },
@@ -57,11 +54,11 @@ export const useApiTrafficStore = create<ApiTrafficState>()((set, get) => ({
     const { activeModel, histories } = get()
     const midnight = todayMidnightMs()
     const hist = histories[activeModel] ?? []
-    if (!hist.some(t => t < midnight)) return
+    if (!hist.some((t) => t < midnight)) return
     set((s) => ({
       histories: {
         ...s.histories,
-        [activeModel]: hist.filter(t => t >= midnight),
+        [activeModel]: hist.filter((t) => t >= midnight),
       },
     }))
   },
@@ -69,13 +66,13 @@ export const useApiTrafficStore = create<ApiTrafficState>()((set, get) => ({
   todayCount: () => {
     const { activeModel, histories } = get()
     const midnight = todayMidnightMs()
-    return (histories[activeModel] ?? []).filter(t => t >= midnight).length
+    return (histories[activeModel] ?? []).filter((t) => t >= midnight).length
   },
 
   lastMinuteCount: () => {
     const { activeModel, histories } = get()
     const cutoff = Date.now() - 60_000
-    return (histories[activeModel] ?? []).filter(t => t >= cutoff).length
+    return (histories[activeModel] ?? []).filter((t) => t >= cutoff).length
   },
 
   canRequest: (endpoint) => {
@@ -90,7 +87,7 @@ export const useApiTrafficStore = create<ApiTrafficState>()((set, get) => ({
     const { activeModel, histories, rpmLimit } = get()
     const now = Date.now()
     const hist = histories[activeModel] ?? []
-    const rpmWindow = hist.filter(t => t >= now - 60_000)
+    const rpmWindow = hist.filter((t) => t >= now - 60_000)
     if (rpmWindow.length < rpmLimit) return null
     const oldest = Math.min(...rpmWindow)
     return Math.max(0, oldest + 60_000 - now)

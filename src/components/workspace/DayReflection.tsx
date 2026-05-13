@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 type Props = {
   value: string | null
@@ -37,7 +37,7 @@ export function DayReflection({ value, readonly, onSave }: Props) {
         }
       }, 800)
     },
-    [onSave],
+    [onSave]
   )
 
   return (
@@ -53,9 +53,7 @@ export function DayReflection({ value, readonly, onSave }: Props) {
         >
           振り返り
         </label>
-        {!readonly && !saved && (
-          <span style={{ fontSize: '0.75rem', color: '#c9c0b8' }}>●</span>
-        )}
+        {!readonly && !saved && <span style={{ fontSize: '0.75rem', color: '#c9c0b8' }}>●</span>}
         {!readonly && saved && text && (
           <span style={{ fontSize: '0.75rem', color: '#4c7a3a' }}>✓</span>
         )}

@@ -1,9 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  type MorningQuizAnswer,
-  type MorningQuizSession,
-  fetchMorningQuiz,
-} from '@/lib/api/morningQuiz'
+import {useEffect, useRef, useState} from 'react'
+import {fetchMorningQuiz, type MorningQuizAnswer, type MorningQuizSession,} from '@/lib/api/morningQuiz'
 
 const OPTION_LABELS = ['ア', 'イ', 'ウ', 'エ']
 
@@ -58,8 +54,14 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
 
   useEffect(() => {
     fetchMorningQuiz()
-      .then((s) => { setSession(s); setPhase('active') })
-      .catch((e) => { setErrorMsg(e.message ?? 'エラーが発生しました'); setPhase('error') })
+      .then((s) => {
+        setSession(s)
+        setPhase('active')
+      })
+      .catch((e) => {
+        setErrorMsg(e.message ?? 'エラーが発生しました')
+        setPhase('error')
+      })
   }, [])
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
       await onComplete({
         sessionId: session.session_id,
         answers: newAnswers,
-        elapsedMs: (Date.now() - startRef.current),
+        elapsedMs: Date.now() - startRef.current,
         correctCount: newCorrect,
       })
     } else {
@@ -105,8 +107,16 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
   if (phase === 'loading') {
     return (
       <div className="rounded-xl border border-[rgba(55,53,47,0.08)] bg-white p-6 mb-4 flex items-center justify-center gap-2 text-[13px] text-[rgba(55,53,47,0.35)]">
-        <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        <svg
+          className="animate-spin"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
         </svg>
         クイズを準備しています...
       </div>
@@ -117,7 +127,10 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
     return (
       <div className="rounded-xl border border-[rgba(235,87,87,0.15)] bg-[rgba(235,87,87,0.03)] p-5 mb-4">
         <p className="text-[13px] text-[rgba(235,87,87,0.7)] mb-3">{errorMsg}</p>
-        <button onClick={onCancel} className="text-[12px] text-[rgba(55,53,47,0.4)] underline cursor-pointer border-none bg-transparent">
+        <button
+          onClick={onCancel}
+          className="text-[12px] text-[rgba(55,53,47,0.4)] underline cursor-pointer border-none bg-transparent"
+        >
           キャンセル
         </button>
       </div>
@@ -159,7 +172,8 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
             {formatTime(elapsedSeconds)}
           </span>
           <span className="text-[11px] font-bold text-[rgba(55,53,47,0.4)]">
-            {currentIdx + 1}<span className="font-normal text-[rgba(55,53,47,0.25)]">/{total}</span>
+            {currentIdx + 1}
+            <span className="font-normal text-[rgba(55,53,47,0.25)]">/{total}</span>
           </span>
           <button
             onClick={onCancel}
@@ -167,8 +181,17 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
             className="text-[rgba(55,53,47,0.2)] hover:text-[rgba(55,53,47,0.5)] transition-colors border-none bg-transparent cursor-pointer"
             title="終了"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -195,11 +218,15 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
             const isCorrectOption = i === quiz.correct_index
             let style = 'bg-white border-[rgba(55,53,47,0.12)] text-[rgba(55,53,47,0.8)]'
             if (revealed) {
-              if (isCorrectOption) style = 'bg-[rgba(39,174,96,0.08)] border-[rgba(39,174,96,0.4)] text-[#19a576]'
-              else if (isSelected && !isCorrectOption) style = 'bg-[rgba(235,87,87,0.07)] border-[rgba(235,87,87,0.35)] text-[rgba(235,87,87,0.8)]'
+              if (isCorrectOption)
+                style = 'bg-[rgba(39,174,96,0.08)] border-[rgba(39,174,96,0.4)] text-[#19a576]'
+              else if (isSelected && !isCorrectOption)
+                style =
+                  'bg-[rgba(235,87,87,0.07)] border-[rgba(235,87,87,0.35)] text-[rgba(235,87,87,0.8)]'
               else style = 'bg-white border-[rgba(55,53,47,0.07)] text-[rgba(55,53,47,0.3)]'
             } else {
-              style = 'bg-white border-[rgba(55,53,47,0.12)] text-[rgba(55,53,47,0.8)] hover:bg-[rgba(35,131,226,0.04)] hover:border-[rgba(35,131,226,0.3)] cursor-pointer'
+              style =
+                'bg-white border-[rgba(55,53,47,0.12)] text-[rgba(55,53,47,0.8)] hover:bg-[rgba(35,131,226,0.04)] hover:border-[rgba(35,131,226,0.3)] cursor-pointer'
             }
             return (
               <button
@@ -208,10 +235,21 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
                 disabled={revealed}
                 className={`flex items-start gap-3 w-full text-left px-4 py-3 rounded-lg border text-[13px] transition-colors ${style}`}
               >
-                <span className="shrink-0 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold mt-0.5"
+                <span
+                  className="shrink-0 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold mt-0.5"
                   style={{
-                    borderColor: revealed && isCorrectOption ? '#19a576' : revealed && isSelected ? 'rgba(235,87,87,0.5)' : 'currentColor',
-                    backgroundColor: revealed && isCorrectOption ? '#19a576' : revealed && isSelected && !isCorrectOption ? 'rgba(235,87,87,0.15)' : 'transparent',
+                    borderColor:
+                      revealed && isCorrectOption
+                        ? '#19a576'
+                        : revealed && isSelected
+                          ? 'rgba(235,87,87,0.5)'
+                          : 'currentColor',
+                    backgroundColor:
+                      revealed && isCorrectOption
+                        ? '#19a576'
+                        : revealed && isSelected && !isCorrectOption
+                          ? 'rgba(235,87,87,0.15)'
+                          : 'transparent',
                     color: revealed && isCorrectOption ? '#fff' : 'currentColor',
                   }}
                 >
@@ -225,17 +263,23 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
 
         {/* Feedback + Explanation */}
         {revealed && (
-          <div className={[
-            'rounded-lg px-4 py-3 mb-4 border',
-            isCorrect
-              ? 'bg-[rgba(39,174,96,0.06)] border-[rgba(39,174,96,0.2)]'
-              : 'bg-[rgba(235,87,87,0.05)] border-[rgba(235,87,87,0.15)]',
-          ].join(' ')}>
-            <p className={[
-              'text-[12px] font-bold mb-1.5',
-              isCorrect ? 'text-[#19a576]' : 'text-[#eb5757]',
-            ].join(' ')}>
-              {isCorrect ? '✓ 正解' : '✗ 不正解 — 正解は「' + OPTION_LABELS[quiz.correct_index] + '」'}
+          <div
+            className={[
+              'rounded-lg px-4 py-3 mb-4 border',
+              isCorrect
+                ? 'bg-[rgba(39,174,96,0.06)] border-[rgba(39,174,96,0.2)]'
+                : 'bg-[rgba(235,87,87,0.05)] border-[rgba(235,87,87,0.15)]',
+            ].join(' ')}
+          >
+            <p
+              className={[
+                'text-[12px] font-bold mb-1.5',
+                isCorrect ? 'text-[#19a576]' : 'text-[#eb5757]',
+              ].join(' ')}
+            >
+              {isCorrect
+                ? '✓ 正解'
+                : '✗ 不正解 — 正解は「' + OPTION_LABELS[quiz.correct_index] + '」'}
             </p>
             <p className="text-[13px] text-[rgba(55,53,47,0.7)] leading-relaxed whitespace-pre-wrap">
               {quiz.explanation}
@@ -256,8 +300,16 @@ export function MorningQuiz({ onComplete, onCancel }: Props) {
             >
               {phase === 'saving' ? '保存中...' : currentIdx + 1 >= total ? '完了する' : '次の問題'}
               {phase !== 'saving' && (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <polyline points="9 18 15 12 9 6"/>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
                 </svg>
               )}
             </button>

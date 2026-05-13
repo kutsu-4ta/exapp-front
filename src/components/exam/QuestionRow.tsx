@@ -1,22 +1,54 @@
-import { useState } from 'react'
-import { ANSWER_OPTIONS, RANKS } from '../../types/exam'
-import type { QuestionDraft } from '../../types/exam'
-import { DoubtIcon } from '@/lib/icon/DoubtIcon.tsx'
-import { c } from '@/styles/notion.ts'
+import {useState} from 'react'
+import type {QuestionDraft} from '../../types/exam'
+import {ANSWER_OPTIONS, RANKS} from '../../types/exam'
+import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
+import {c} from '@/styles/notion.ts'
 import {
-    rankColors, questionItem, parentStyle, subStyle,
-    sideControl, sideBtn, layoutContainer, qNumberHeader, controlsContent,
-    qNumberParent, qNumberSub, addSubQBtn, answerGroup,
-    typeToggleRow, typeToggleBtn, typeToggleActive,
-    alphabetToggleBtn, alphabetToggleBtnActive, alphabetToggleBtnDisabled,
-    optionLineRow, optionBtn, optionActive, optionExcluded,
-    excludeBtn, excludeBtnActive, optionMemoInput,
-    doubtRow, doubtBtnInline, generalMemoTextarea,
+    activeCorrect,
+    activeIncorrect,
+    addSubQBtn,
+    alphabetToggleBtn,
+    alphabetToggleBtnActive,
+    alphabetToggleBtnDisabled,
+    answerGroup,
+    controlsContent,
     descriptiveTextarea,
     doubtBtn,
-    scoringGroup, scoringRow, myAnswerDisplay, scoringBtnGroup,
-    statusBtn, activeCorrect, activeIncorrect, scoringMeta,
-    metaGroup, miniLabel, rankBadge, pointInput, timeValue, noteInput,
+    doubtBtnInline,
+    doubtRow,
+    excludeBtn,
+    excludeBtnActive,
+    generalMemoTextarea,
+    layoutContainer,
+    metaGroup,
+    miniLabel,
+    myAnswerDisplay,
+    noteInput,
+    optionActive,
+    optionBtn,
+    optionExcluded,
+    optionLineRow,
+    optionMemoInput,
+    parentStyle,
+    pointInput,
+    qNumberHeader,
+    qNumberParent,
+    qNumberSub,
+    questionItem,
+    rankBadge,
+    rankColors,
+    scoringBtnGroup,
+    scoringGroup,
+    scoringMeta,
+    scoringRow,
+    sideBtn,
+    sideControl,
+    statusBtn,
+    subStyle,
+    timeValue,
+    typeToggleActive,
+    typeToggleBtn,
+    typeToggleRow,
 } from './QuestionRow.styles'
 
 function formatMs(ms: number | undefined): string {
@@ -54,15 +86,17 @@ export function QuestionRow({
   }
 
   return (
-    <div style={{
-      ...questionItem,
-      ...(q.isSub ? subStyle : parentStyle),
-      borderLeft: q.hasChildren
-        ? `4px solid ${c.border}`
-        : q.isSub
-        ? `4px solid ${c.blue}`
-        : `1px solid ${c.border}`,
-    }}>
+    <div
+      style={{
+        ...questionItem,
+        ...(q.isSub ? subStyle : parentStyle),
+        borderLeft: q.hasChildren
+          ? `4px solid ${c.border}`
+          : q.isSub
+            ? `4px solid ${c.blue}`
+            : `1px solid ${c.border}`,
+      }}
+    >
       {/* ＋ / － side buttons */}
       {!isScoring && (
         <div style={sideControl}>
@@ -73,11 +107,7 @@ export function QuestionRow({
           >
             －
           </button>
-          <button
-            style={sideBtn}
-            onClick={q.isSub ? onAddSub : onAddParent}
-            title="追加"
-          >
+          <button style={sideBtn} onClick={q.isSub ? onAddSub : onAddParent} title="追加">
             ＋
           </button>
         </div>
@@ -98,10 +128,11 @@ export function QuestionRow({
           {/* 解答コントロール */}
           {!q.hasChildren && (
             <div style={controlsContent}>
-              {isScoring
-                ? <ScoringControls q={q} onUpdate={onUpdate} onCycleRank={cycleRank} />
-                : <AnswerControls q={q} onUpdate={onUpdate} />
-              }
+              {isScoring ? (
+                <ScoringControls q={q} onUpdate={onUpdate} onCycleRank={cycleRank} />
+              ) : (
+                <AnswerControls q={q} onUpdate={onUpdate} />
+              )}
             </div>
           )}
         </div>
@@ -123,12 +154,23 @@ export function QuestionRow({
 // ── 解答入力コントロール ───────────────────────────────────────────────────────
 
 const ALPHA_MAP: Record<string, string> = {
-  'ア': 'a', 'イ': 'b', 'ウ': 'c', 'エ': 'd', 'オ': 'e',
+  ア: 'a',
+  イ: 'b',
+  ウ: 'c',
+  エ: 'd',
+  オ: 'e',
 }
 
-function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Partial<QuestionDraft>) => void }) {
+function AnswerControls({
+  q,
+  onUpdate,
+}: {
+  q: QuestionDraft
+  onUpdate: (p: Partial<QuestionDraft>) => void
+}) {
   const [isDescriptive, setIsDescriptive] = useState(
-    () => q.myAnswer !== '' && !ANSWER_OPTIONS.includes(q.myAnswer as typeof ANSWER_OPTIONS[number])
+    () =>
+      q.myAnswer !== '' && !ANSWER_OPTIONS.includes(q.myAnswer as (typeof ANSWER_OPTIONS)[number])
   )
   const [isAlphabet, setIsAlphabet] = useState(false)
 
@@ -144,12 +186,12 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
     const already = excludedOptions.includes(opt)
     onUpdate({
       excludedOptions: already
-        ? excludedOptions.filter(o => o !== opt)
+        ? excludedOptions.filter((o) => o !== opt)
         : [...excludedOptions, opt],
     })
   }
 
-  const label = (opt: string) => isAlphabet ? (ALPHA_MAP[opt] ?? opt) : opt
+  const label = (opt: string) => (isAlphabet ? (ALPHA_MAP[opt] ?? opt) : opt)
 
   return (
     <div style={answerGroup}>
@@ -173,7 +215,9 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
             ...(isAlphabet ? alphabetToggleBtnActive : {}),
             ...(isDescriptive ? alphabetToggleBtnDisabled : {}),
           }}
-          onClick={() => { if (!isDescriptive) setIsAlphabet(v => !v) }}
+          onClick={() => {
+            if (!isDescriptive) setIsAlphabet((v) => !v)
+          }}
           disabled={isDescriptive}
           title="ア→a / a→ア 切り替え"
         >
@@ -202,7 +246,7 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
       ) : (
         /* 選択式: 各選択肢行 + DoubtIcon + 共通メモ */
         <>
-          {ANSWER_OPTIONS.map(opt => {
+          {ANSWER_OPTIONS.map((opt) => {
             const isSelected = q.myAnswer === opt
             const isExcluded = excludedOptions.includes(opt)
             return (
@@ -228,7 +272,15 @@ function AnswerControls({ q, onUpdate }: { q: QuestionDraft; onUpdate: (p: Parti
                   title="消去法"
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <line
+                      x1="1"
+                      y1="1"
+                      x2="11"
+                      y2="11"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </button>
 
@@ -325,4 +377,3 @@ function ScoringControls({
     </div>
   )
 }
-

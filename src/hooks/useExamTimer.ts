@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 export type ExamTimer = {
   time: number
@@ -26,7 +26,7 @@ export function useExamTimer(): ExamTimer {
     }
   }, [isActive])
 
-  const toggle = () => setIsActive(prev => !prev)
+  const toggle = () => setIsActive((prev) => !prev)
   const reset = () => {
     setIsActive(false)
     setTime(0)

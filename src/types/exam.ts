@@ -1,5 +1,5 @@
 export const RANKS = ['A', 'B', 'C', 'D', 'E'] as const
-export type Rank = typeof RANKS[number]
+export type Rank = (typeof RANKS)[number]
 
 export const ANSWER_OPTIONS = ['ア', 'イ', 'ウ', 'エ', 'オ'] as const
 

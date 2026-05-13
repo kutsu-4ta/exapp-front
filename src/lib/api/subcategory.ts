@@ -1,7 +1,6 @@
-
 // GET /api/sub-categories?subject=
-import {apiFetch} from "../client";
-import type {SubCategory, SubCategoryInput} from "../../types/workspace";
+import {apiFetch} from '../client'
+import type {SubCategory, SubCategoryInput} from '../../types/workspace'
 
 export async function fetchSubCategories(subject?: string): Promise<SubCategory[]> {
   const url = subject

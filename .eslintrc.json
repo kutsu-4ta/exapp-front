@@ -1,0 +1,7 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier" // 最後に書くことで見た目ルールを上書き無効化
+  ]
+}

@@ -1,10 +1,5 @@
-import { apiFetch } from '../client'
-import type {
-  ExamSession,
-  ExamSessionSummary,
-  ExamQuestionInput,
-  ExamSubjectStats,
-} from '../../types/exam'
+import {apiFetch} from '../client'
+import type {ExamQuestionInput, ExamSession, ExamSessionSummary, ExamSubjectStats,} from '../../types/exam'
 
 export async function fetchExamSessions(status?: string): Promise<ExamSessionSummary[]> {
   const query = status ? `?status=${status}` : ''
@@ -33,7 +28,7 @@ export async function createExamSession(input: {
 
 export async function updateExamSession(
   id: number,
-  patch: { subject?: string; examYear?: string; status?: string },
+  patch: { subject?: string; examYear?: string; status?: string }
 ): Promise<ExamSession> {
   const res = await apiFetch(`/api/exam-sessions/${id}`, {
     method: 'PUT',
@@ -50,7 +45,7 @@ export async function deleteExamSession(id: number): Promise<void> {
 
 export async function completeExamSession(
   id: number,
-  body: { subject: string; examYear: string; questions: ExamQuestionInput[] },
+  body: { subject: string; examYear: string; questions: ExamQuestionInput[] }
 ): Promise<ExamSession> {
   const res = await apiFetch(`/api/exam-sessions/${id}/complete`, {
     method: 'POST',
@@ -60,12 +55,18 @@ export async function completeExamSession(
   return res.json()
 }
 
-export async function fetchSubjectStats(subject: string, year?: number, month?: number): Promise<ExamSubjectStats> {
+export async function fetchSubjectStats(
+  subject: string,
+  year?: number,
+  month?: number
+): Promise<ExamSubjectStats> {
   const params = new URLSearchParams()
   if (year !== undefined) params.set('year', String(year))
   if (month !== undefined) params.set('month', String(month))
   const qs = params.toString()
-  const res = await apiFetch(`/api/exam-subjects/${encodeURIComponent(subject)}/stats${qs ? `?${qs}` : ''}`)
+  const res = await apiFetch(
+    `/api/exam-subjects/${encodeURIComponent(subject)}/stats${qs ? `?${qs}` : ''}`
+  )
   if (!res.ok) throw new Error('Failed to fetch subject stats')
   return res.json()
 }

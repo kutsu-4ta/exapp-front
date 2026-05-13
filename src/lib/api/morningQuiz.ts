@@ -1,4 +1,4 @@
-import { apiFetch } from '../client'
+import {apiFetch} from '../client'
 
 export type MorningQuizQuestion = {
   id: string
@@ -40,7 +40,10 @@ export type FlashBugfixConfig = {
   proficiency: string[]
 }
 
-export async function fetchFlashBugfix(subject: string, config: FlashBugfixConfig): Promise<MorningQuizSession> {
+export async function fetchFlashBugfix(
+  subject: string,
+  config: FlashBugfixConfig
+): Promise<MorningQuizSession> {
   const q = new URLSearchParams({ subject })
   config.failureTypes.forEach((ft) => q.append('failureTypes[]', ft))
   config.subCategoryIds.forEach((id) => q.append('subCategoryIds[]', String(id)))
@@ -60,7 +63,7 @@ export async function fetchFlashBugfix(subject: string, config: FlashBugfixConfi
 export async function completeMorningQuiz(
   sessionId: string,
   answers: MorningQuizAnswer[],
-  elapsedMs: number,
+  elapsedMs: number
 ): Promise<{ minutes: number }> {
   const res = await apiFetch('/api/morning-bugfix/sessions', {
     method: 'POST',

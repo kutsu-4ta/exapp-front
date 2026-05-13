@@ -1,45 +1,47 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ── Design Tokens ─────────────────────────────────────────────────────────── */
 
 @theme {
   /* Notion-palette solid colors — usable as bg-n-*, text-n-*, border-n-* */
-  --color-n-text:   #37352f;
-  --color-n-blue:   #2383e2;
-  --color-n-red:    #eb5757;
-  --color-n-amber:  #f59e0b;
-  --color-n-green:  #3a7a2a;
-  --color-n-brown:  #5c3a1e;
-  --color-n-bg:     #ffffff;
+    --color-n-text: #37352f;
+    --color-n-blue: #2383e2;
+    --color-n-red: #eb5757;
+    --color-n-amber: #f59e0b;
+    --color-n-green: #3a7a2a;
+    --color-n-brown: #5c3a1e;
+    --color-n-bg: #ffffff;
   --color-n-bgpage: #f7f6f3;
 
   /* Typography scale */
   --font-size-2xs: 10px;
-  --font-size-xs:  11px;
-  --font-size-sm:  13px;
+    --font-size-xs: 11px;
+    --font-size-sm: 13px;
   --font-size-base: 14px;
-  --font-size-md:  16px;
+    --font-size-md: 16px;
 }
 
 /* Semi-transparent tokens — reference with [var(--nt-*)] in Tailwind arbitrary values */
 :root {
-  --nt-text-sub:    rgba(55, 53, 47, 0.45);
-  --nt-text-hint:   rgba(55, 53, 47, 0.35);
-  --nt-text-faint:  rgba(55, 53, 47, 0.25);
-  --nt-border:      rgba(55, 53, 47, 0.09);
-  --nt-border-xs:   rgba(55, 53, 47, 0.04);
-  --nt-surface:     rgba(55, 53, 47, 0.02);
-  --nt-hover:       rgba(55, 53, 47, 0.03);
-  --nt-pressed:     rgba(55, 53, 47, 0.06);
-  --nt-blue-bg:     rgba(35, 131, 226, 0.06);
+    --nt-text-sub: rgba(55, 53, 47, 0.45);
+    --nt-text-hint: rgba(55, 53, 47, 0.35);
+    --nt-text-faint: rgba(55, 53, 47, 0.25);
+    --nt-border: rgba(55, 53, 47, 0.09);
+    --nt-border-xs: rgba(55, 53, 47, 0.04);
+    --nt-surface: rgba(55, 53, 47, 0.02);
+    --nt-hover: rgba(55, 53, 47, 0.03);
+    --nt-pressed: rgba(55, 53, 47, 0.06);
+    --nt-blue-bg: rgba(35, 131, 226, 0.06);
   --nt-blue-border: rgba(35, 131, 226, 0.15);
-  --nt-red-bg:      rgba(235, 87, 87, 0.05);
-  --nt-red-border:  rgba(235, 87, 87, 0.15);
+    --nt-red-bg: rgba(235, 87, 87, 0.05);
+    --nt-red-border: rgba(235, 87, 87, 0.15);
 }
 
 /* ── Base Reset ─────────────────────────────────────────────────────────────── */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -51,7 +53,7 @@ body {
   margin: 0;
   overflow-x: hidden;
   background-color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, 'Apple Color Emoji', Arial, sans-serif;
   color: #37352f;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -62,27 +64,55 @@ body {
   min-height: 100svh;
 }
 
-p { margin: 0; }
+p {
+    margin: 0;
+}
 
 /* iOS Safari はフォントサイズ 16px 未満の入力要素にフォーカスが当たると自動ズームする */
-input, textarea, select {
+input,
+textarea,
+select {
   font-size: 16px !important;
 }
 
 /* ── Shared Animations ──────────────────────────────────────────────────────── */
 
 @keyframes pulse {
-  0%   { opacity: 1; }
-  50%  { opacity: 0.4; }
-  100% { opacity: 1; }
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 /* スプライトアニメーション用キーフレーム（translateY を steps() で駒送り） */
-@keyframes sprite-sm { to { transform: translateY(-64px);  } }
-@keyframes sprite-md { to { transform: translateY(-96px);  } }
-@keyframes sprite-lg { to { transform: translateY(-144px); } }
+@keyframes sprite-sm {
+    to {
+        transform: translateY(-64px);
+    }
+}
+
+@keyframes sprite-md {
+    to {
+        transform: translateY(-96px);
+    }
+}
+
+@keyframes sprite-lg {
+    to {
+        transform: translateY(-144px);
+    }
+}
 
 /* アラートウィジェット表示用アニメーション */
 @keyframes slideInUp {

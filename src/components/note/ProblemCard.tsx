@@ -1,5 +1,5 @@
-import type { Problem, Proficiency } from "../../types/workspace";
-import { c, font } from "../../styles/notion";
+import type {Problem, Proficiency} from '../../types/workspace'
+import {c, font} from '../../styles/notion'
 
 type Props = {
   problem: Problem
@@ -16,51 +16,51 @@ export function ProblemCard({ problem, onClick }: Props) {
   const profColor = PROF_COLOR[problem.proficiency] ?? c.textSub
 
   return (
-      <div style={card} onClick={onClick}>
-        {/* SNS Header: SubCategory @Subject */}
-        <div style={topRow}>
-          <span style={subCatMain}>{problem.subCategory || "全般"}</span>
-          <span style={subjectHandle}>@{problem.subject}</span>
-          <span style={dotSeparator}>·</span>
-          <span style={dateText}>{problem.solvedAt.replace(/-/g, '/')}</span>
+    <div style={card} onClick={onClick}>
+      {/* SNS Header: SubCategory @Subject */}
+      <div style={topRow}>
+        <span style={subCatMain}>{problem.subCategory || '全般'}</span>
+        <span style={subjectHandle}>@{problem.subject}</span>
+        <span style={dotSeparator}>·</span>
+        <span style={dateText}>{problem.solvedAt.replace(/-/g, '/')}</span>
+      </div>
+
+      {/* Main Content (Note) */}
+      {problem.note && (
+        <div style={contentBody}>
+          <p style={noteText}>{problem.note}</p>
         </div>
+      )}
 
-        {/* Main Content (Note) */}
-        {problem.note && (
-            <div style={contentBody}>
-              <p style={noteText}>{problem.note}</p>
-            </div>
-        )}
+      {/* Hashtags: #Failure, #Material, #QuestionRef */}
+      <div style={tagRow}>
+        {problem.failureTypes.map((ft) => (
+          <span key={ft} style={hashtag}>
+            #{ft}
+          </span>
+        ))}
+        {problem.material && <span style={hashtag}>#{problem.material}</span>}
+        <span style={hashtag}>#{problem.questionRef}</span>
+      </div>
 
-        {/* Hashtags: #Failure, #Material, #QuestionRef */}
-        <div style={tagRow}>
-          {problem.failureTypes.map((ft) => (
-              <span key={ft} style={hashtag}>#{ft}</span>
-          ))}
-          {problem.material && (
-              <span style={hashtag}>#{problem.material}</span>
-          )}
-          <span style={hashtag}>#{problem.questionRef}</span>
+      {/* Defeat reason (Quote styling) */}
+      {problem.defeatReason && (
+        <div style={defeatBox}>
+          <p style={defeatText}>
+            <span style={{ fontWeight: 700, marginRight: '4px' }}>敗因:</span>
+            {problem.defeatReason}
+          </p>
         </div>
+      )}
 
-        {/* Defeat reason (Quote styling) */}
-        {problem.defeatReason && (
-            <div style={defeatBox}>
-              <p style={defeatText}>
-                <span style={{ fontWeight: 700, marginRight: '4px' }}>敗因:</span>
-                {problem.defeatReason}
-              </p>
-            </div>
-        )}
-
-        {/* Bottom Status Area */}
-        <div style={bottomRow}>
-          <div style={statusGroup}>
-            <span style={{ ...profText, color: profColor }}>{problem.proficiency}</span>
-            {problem.isGoodQuestion && <span style={starText}>★</span>}
-          </div>
+      {/* Bottom Status Area */}
+      <div style={bottomRow}>
+        <div style={statusGroup}>
+          <span style={{ ...profText, color: profColor }}>{problem.proficiency}</span>
+          {problem.isGoodQuestion && <span style={starText}>★</span>}
         </div>
       </div>
+    </div>
   )
 }
 
@@ -68,7 +68,7 @@ export function ProblemCard({ problem, onClick }: Props) {
 
 const card: React.CSSProperties = {
   padding: '16px',
-  marginBottom: '12px',      // カード間の垂直余白のみ保持
+  marginBottom: '12px', // カード間の垂直余白のみ保持
   borderRadius: '16px',
   backgroundColor: '#fff',
   border: `1px solid rgba(0,0,0,0.08)`,

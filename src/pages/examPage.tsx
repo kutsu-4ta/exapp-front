@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react'
-import { LoadingSpinner } from '../components/common/LoadingSpinner'
-import { useSettingsStore } from '../lib/store/settings'
-import type { ExamSession } from '../types/exam'
-import type { ExamQuestionInput } from '../types/exam'
-import { createExamSession, completeExamSession, fetchExamSessions, fetchExamSession } from '../lib/api/exam'
+import {useEffect, useState} from 'react'
+import {LoadingSpinner} from '../components/common/LoadingSpinner'
+import {useSettingsStore} from '../lib/store/settings'
+import type {ExamQuestionInput, ExamSession} from '../types/exam'
+import {completeExamSession, createExamSession, fetchExamSession, fetchExamSessions,} from '../lib/api/exam'
 import AnalysisView from '../components/exam/AnalysisView'
 import ExamInputView from '../components/exam/ExamInputView'
-import { useTimer } from '../context/TimerContext'
-import { stopStopwatch } from '../lib/api/stopwatch'
-import { c, font } from '../styles/notion'
+import {useTimer} from '../context/TimerContext'
+import {stopStopwatch} from '../lib/api/stopwatch'
+import {c, font} from '../styles/notion'
 
 export default function ExamPage() {
   const subjects = useSettingsStore((s) => s.subjects)
@@ -79,8 +78,9 @@ export default function ExamPage() {
     setStoppingTimer(true)
     try {
       await stopStopwatch()
-    } catch { /* API失敗でもローカルは止める */ }
-    finally {
+    } catch {
+      /* API失敗でもローカルは止める */
+    } finally {
       toggleTimer()
       setStoppingTimer(false)
     }
@@ -112,7 +112,7 @@ export default function ExamPage() {
     sessionId: number,
     subject: string,
     examYear: string,
-    questions: ExamQuestionInput[],
+    questions: ExamQuestionInput[]
   ) => {
     await completeExamSession(sessionId, { subject, examYear, questions })
     setActiveSession(null)
@@ -124,17 +124,12 @@ export default function ExamPage() {
 
   if (activeSession) {
     return (
-      <ExamInputView
-        session={activeSession}
-        onComplete={handleComplete}
-        onCancel={handleCancel}
-      />
+      <ExamInputView session={activeSession} onComplete={handleComplete} onCancel={handleCancel} />
     )
   }
 
   return (
     <div style={page}>
-
       {/* ストップウォッチ実行中モーダル */}
       {showStopwatchModal && (
         <div style={overlay}>
@@ -142,13 +137,25 @@ export default function ExamPage() {
             <p style={sheetTitle}>ストップウォッチが動作中です</p>
             <p style={sheetBody}>タイマーが計測中です。停止してから試験を始めますか？</p>
             <div style={sheetActions}>
-              <button style={primaryBtn} onClick={handleStopTimerAndProceed} disabled={stoppingTimer}>
+              <button
+                style={primaryBtn}
+                onClick={handleStopTimerAndProceed}
+                disabled={stoppingTimer}
+              >
                 {stoppingTimer ? '停止中...' : '停止して進む'}
               </button>
-              <button style={secondaryBtn} onClick={handleProceedWithTimer} disabled={stoppingTimer}>
+              <button
+                style={secondaryBtn}
+                onClick={handleProceedWithTimer}
+                disabled={stoppingTimer}
+              >
                 そのまま進む
               </button>
-              <button style={ghostBtn} onClick={() => setShowStopwatchModal(false)} disabled={stoppingTimer}>
+              <button
+                style={ghostBtn}
+                onClick={() => setShowStopwatchModal(false)}
+                disabled={stoppingTimer}
+              >
                 キャンセル
               </button>
             </div>
@@ -163,9 +170,15 @@ export default function ExamPage() {
             <p style={sheetTitle}>中断したデータがあります</p>
             <p style={sheetBody}>前回作成した下書きが見つかりました。どうしますか？</p>
             <div style={sheetActions}>
-              <button style={primaryBtn} onClick={handleResume}>続きから再開</button>
-              <button style={dangerBtn} onClick={handleRestart}>破棄して初めから</button>
-              <button style={ghostBtn} onClick={() => setShowResumeModal(false)}>キャンセル</button>
+              <button style={primaryBtn} onClick={handleResume}>
+                続きから再開
+              </button>
+              <button style={dangerBtn} onClick={handleRestart}>
+                破棄して初めから
+              </button>
+              <button style={ghostBtn} onClick={() => setShowResumeModal(false)}>
+                キャンセル
+              </button>
             </div>
           </div>
         </div>
@@ -228,9 +241,12 @@ const errorMsg: React.CSSProperties = {
 // ── Modal (bottom sheet) ──────────────────────────────────────────────────────
 
 const overlay: React.CSSProperties = {
-  position: 'fixed', inset: 0,
+  position: 'fixed',
+  inset: 0,
   backgroundColor: 'rgba(0,0,0,0.25)',
-  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'center',
   zIndex: 1000,
 }
 

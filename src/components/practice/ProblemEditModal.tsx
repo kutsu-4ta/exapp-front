@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import { FAILURE_TYPE_VALUES, PROFICIENCY_VALUES, daysAgo } from '../../types/workspace'
-import type { FailureType, Problem, Proficiency } from '../../types/workspace'
-import { fetchProblem, updateProblem } from '../../lib/api/problem'
-import { c, font } from '../../styles/notion'
+import {useEffect, useState} from 'react'
+import type {FailureType, Problem, Proficiency} from '../../types/workspace'
+import {daysAgo, FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from '../../types/workspace'
+import {fetchProblem, updateProblem} from '../../lib/api/problem'
+import {c, font} from '../../styles/notion'
 
 type Props = {
   problemId: number
@@ -36,9 +36,7 @@ export function ProblemEditModal({ problemId, onClose }: Props) {
   }, [problemId])
 
   const toggleFt = (ft: FailureType) => {
-    setFailureTypes((prev) =>
-      prev.includes(ft) ? prev.filter((x) => x !== ft) : [...prev, ft]
-    )
+    setFailureTypes((prev) => (prev.includes(ft) ? prev.filter((x) => x !== ft) : [...prev, ft]))
   }
 
   const handleSave = async () => {
@@ -88,8 +86,17 @@ export function ProblemEditModal({ problemId, onClose }: Props) {
             </>
           )}
           <button style={closeBtn} onClick={onClose} aria-label="閉じる">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -154,7 +161,12 @@ export function ProblemEditModal({ problemId, onClose }: Props) {
             </div>
 
             <button
-              style={{ ...saveBtn, backgroundColor: prof.bg, color: prof.color, opacity: saving ? 0.6 : 1 }}
+              style={{
+                ...saveBtn,
+                backgroundColor: prof.bg,
+                color: prof.color,
+                opacity: saving ? 0.6 : 1,
+              }}
               onClick={handleSave}
               disabled={saving}
             >
@@ -168,19 +180,29 @@ export function ProblemEditModal({ problemId, onClose }: Props) {
 }
 
 const overlay: React.CSSProperties = {
-  position: 'fixed', inset: 0, zIndex: 300,
+  position: 'fixed',
+  inset: 0,
+  zIndex: 300,
   backgroundColor: 'rgba(0,0,0,0.45)',
-  display: 'flex', alignItems: 'flex-end',
+  display: 'flex',
+  alignItems: 'flex-end',
 }
 const sheet: React.CSSProperties = {
-  width: '100%', maxWidth: '600px', margin: '0 auto',
-  backgroundColor: '#fff', borderRadius: '20px 20px 0 0',
-  maxHeight: '85vh', overflowY: 'auto',
+  width: '100%',
+  maxWidth: '600px',
+  margin: '0 auto',
+  backgroundColor: '#fff',
+  borderRadius: '20px 20px 0 0',
+  maxHeight: '85vh',
+  overflowY: 'auto',
   paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
 }
 const handle: React.CSSProperties = {
-  width: '36px', height: '4px', borderRadius: '2px',
-  backgroundColor: 'rgba(55,53,47,0.15)', margin: '12px auto 0',
+  width: '36px',
+  height: '4px',
+  borderRadius: '2px',
+  backgroundColor: 'rgba(55,53,47,0.15)',
+  margin: '12px auto 0',
 }
 const sheetHeader: React.CSSProperties = {
   position: 'relative',
@@ -189,56 +211,115 @@ const sheetHeader: React.CSSProperties = {
   minHeight: '48px',
 }
 const closeBtn: React.CSSProperties = {
-  position: 'absolute', top: '14px', right: '16px',
-  background: 'none', border: 'none', cursor: 'pointer',
-  color: 'rgba(55,53,47,0.3)', padding: '4px', borderRadius: '4px',
-  display: 'flex', alignItems: 'center',
+  position: 'absolute',
+  top: '14px',
+  right: '16px',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: 'rgba(55,53,47,0.3)',
+  padding: '4px',
+  borderRadius: '4px',
+  display: 'flex',
+  alignItems: 'center',
 }
 const loadingText: React.CSSProperties = { fontSize: font.base, color: c.textHint, margin: 0 }
-const metaRow: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }
+const metaRow: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '6px',
+  marginBottom: '8px',
+}
 const subCatTag: React.CSSProperties = {
-  padding: '2px 8px', borderRadius: '4px', fontSize: font.xs,
-  fontWeight: 600, backgroundColor: 'rgba(55,53,47,0.06)', color: 'rgba(55,53,47,0.6)',
+  padding: '2px 8px',
+  borderRadius: '4px',
+  fontSize: font.xs,
+  fontWeight: 600,
+  backgroundColor: 'rgba(55,53,47,0.06)',
+  color: 'rgba(55,53,47,0.6)',
 }
 const materialTag: React.CSSProperties = {
-  padding: '2px 8px', borderRadius: '4px', fontSize: font.xs,
-  fontWeight: 500, backgroundColor: 'rgba(55,53,47,0.04)', color: 'rgba(55,53,47,0.4)',
+  padding: '2px 8px',
+  borderRadius: '4px',
+  fontSize: font.xs,
+  fontWeight: 500,
+  backgroundColor: 'rgba(55,53,47,0.04)',
+  color: 'rgba(55,53,47,0.4)',
 }
 const daysTag: React.CSSProperties = {
-  padding: '2px 8px', borderRadius: '4px', fontSize: font.xs,
-  fontWeight: 500, backgroundColor: 'rgba(55,53,47,0.03)', color: 'rgba(55,53,47,0.35)',
+  padding: '2px 8px',
+  borderRadius: '4px',
+  fontSize: font.xs,
+  fontWeight: 500,
+  backgroundColor: 'rgba(55,53,47,0.03)',
+  color: 'rgba(55,53,47,0.35)',
 }
 const questionRefStyle: React.CSSProperties = {
-  fontSize: '17px', fontWeight: 700, color: c.text, margin: 0, lineHeight: 1.4,
+  fontSize: '17px',
+  fontWeight: 700,
+  color: c.text,
+  margin: 0,
+  lineHeight: 1.4,
 }
 const body: React.CSSProperties = {
-  padding: '20px 20px 8px', display: 'flex', flexDirection: 'column', gap: '20px',
+  padding: '20px 20px 8px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '20px',
 }
 const fieldGroup: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '8px' }
 const fieldLabel: React.CSSProperties = {
-  fontSize: '11px', fontWeight: 700, color: 'rgba(55,53,47,0.35)',
-  letterSpacing: '0.06em', textTransform: 'uppercase', margin: 0,
+  fontSize: '11px',
+  fontWeight: 700,
+  color: 'rgba(55,53,47,0.35)',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  margin: 0,
 }
 const segControl: React.CSSProperties = {
-  display: 'flex', gap: '4px',
-  backgroundColor: 'rgba(55,53,47,0.05)', borderRadius: '8px', padding: '3px',
+  display: 'flex',
+  gap: '4px',
+  backgroundColor: 'rgba(55,53,47,0.05)',
+  borderRadius: '8px',
+  padding: '3px',
 }
 const segBtn: React.CSSProperties = {
-  flex: 1, border: 'none', borderRadius: '6px',
-  padding: '10px', fontSize: '18px', cursor: 'pointer', transition: 'all 0.15s',
+  flex: 1,
+  border: 'none',
+  borderRadius: '6px',
+  padding: '10px',
+  fontSize: '18px',
+  cursor: 'pointer',
+  transition: 'all 0.15s',
 }
 const pillBtn: React.CSSProperties = {
-  padding: '5px 14px', borderRadius: '6px', border: '1px solid',
-  fontSize: '13px', cursor: 'pointer', transition: 'all 0.1s',
+  padding: '5px 14px',
+  borderRadius: '6px',
+  border: '1px solid',
+  fontSize: '13px',
+  cursor: 'pointer',
+  transition: 'all 0.1s',
 }
 const noteArea: React.CSSProperties = {
-  width: '100%', border: `1px solid rgba(55,53,47,0.1)`,
-  borderRadius: '8px', padding: '10px 12px',
-  fontSize: '14px', lineHeight: '1.6', color: c.text,
-  outline: 'none', resize: 'none', backgroundColor: 'rgba(55,53,47,0.01)',
+  width: '100%',
+  border: `1px solid rgba(55,53,47,0.1)`,
+  borderRadius: '8px',
+  padding: '10px 12px',
+  fontSize: '14px',
+  lineHeight: '1.6',
+  color: c.text,
+  outline: 'none',
+  resize: 'none',
+  backgroundColor: 'rgba(55,53,47,0.01)',
   boxSizing: 'border-box',
 }
 const saveBtn: React.CSSProperties = {
-  width: '100%', padding: '14px', borderRadius: '10px', border: 'none',
-  fontSize: '16px', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s',
+  width: '100%',
+  padding: '14px',
+  borderRadius: '10px',
+  border: 'none',
+  fontSize: '16px',
+  fontWeight: 700,
+  cursor: 'pointer',
+  transition: 'opacity 0.15s',
 }
