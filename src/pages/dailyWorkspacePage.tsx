@@ -303,7 +303,11 @@ function WorkspaceDateContent() {
                         </div>
                         <StudyBlockList
                             date={log.date}
-                            sessions={log.studySessions}
+                            sessions={[...log.studySessions].sort(
+                                (a, b) =>
+                                    new Date(a.createdAt).getTime()
+                                    - new Date(b.createdAt).getTime()
+                            )}
                             readonly={log.isCompleted}
                             initialMinutes={initialMinutes}
                             initialSubject={initialSubject}
