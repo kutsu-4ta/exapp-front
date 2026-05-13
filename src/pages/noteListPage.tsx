@@ -100,10 +100,16 @@ export default function NoteListPage() {
         []
     )
 
-    // const handleUpdate = useCallback((updated: Problem) => {
-    //     setProblems((prev) => prev.map((p) => p.id === updated.id ? updated : p))
-    //     setQuickProblem(updated)
-    // }, [])
+    const handleUpdate = useCallback((updated: Problem) => {
+        setProblems((prev) =>
+            prev.map((p) =>
+                p.id === updated.id ? updated : p
+            )
+        )
+
+        setQuickProblem(updated)
+        invalidateCache('note-problems')
+    }, [])
 
     const handleCopyForGemini = useCallback(async () => {
         setCopyState('loading')
@@ -321,6 +327,7 @@ export default function NoteListPage() {
                     problem={quickProblem}
                     onClose={() => setQuickProblem(null)}
                     onDelete={handleDelete}
+                    onUpdate={handleUpdate}
                 />
             )}
 
