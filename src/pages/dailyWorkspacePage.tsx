@@ -126,7 +126,7 @@ function WorkspaceSkeleton({ onBack }: { onBack: () => void }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function WorkspaceDatePage() {
+export default function DailyWorkspacePage() {
     return (
         <Suspense fallback={<LoadingSpinner fullPage />}>
             <WorkspaceDateContent/>

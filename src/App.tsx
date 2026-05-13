@@ -11,7 +11,7 @@ import {TopBar} from "@/shell/TopBar";
 // Pages — ルート単位で遅延ロード
 const DashboardPage      = lazy(() => import('./pages/dashboardPage'));
 const DailyLogsPage      = lazy(() => import('./pages/dailyLogsPage'));
-const WorkspaceDatePage  = lazy(() => import('./pages/workspaceDatePage'));
+const WorkspaceDatePage  = lazy(() => import('./pages/./DailyWorkspacePage'));
 const ExamPage           = lazy(() => import('./pages/examPage'));
 const WeakPage           = lazy(() => import('./pages/./NoteListsPage'));
 const PracticeSessionPage  = lazy(() => import('./pages/practiceSessionPage'));
