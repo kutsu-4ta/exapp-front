@@ -27,7 +27,6 @@ export function AddProblemModal({
     const [problem, setProblem] = useState<Problem | null>(null)
 
     async function handleMetaNext(input: ProblemInput) {
-        console.log('modal handleMetaNext')
         const created = await onSubmit(input)
 
         setProblem(created)

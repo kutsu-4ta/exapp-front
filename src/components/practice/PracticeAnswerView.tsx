@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import type { QuestionDraft, Rank } from '@/types/exam.ts'
 import { ANSWER_OPTIONS, RANKS } from '@/types/exam.ts'
 import { DoubtIcon } from '@/lib/icon/DoubtIcon.tsx'
@@ -18,9 +18,10 @@ import {
     confirmHeader, backToEditBtn, confirmActions, addProblemBtn, nextBtn,
 } from './PracticeAnswerView.styles'
 import { AddProblemModal } from '../note/AddProblemModal.tsx'
-import { addProblem } from '@/lib/api/problem.ts'
+import {addProblem, updateProblem} from '@/lib/api/problem.ts'
 import type { ProblemInput } from '@/types/workspace.ts'
 import { useSettingsStore } from '@/lib/store/settings.ts'
+import {invalidateCache} from "@/lib/pageCache.ts";
 
 type ViewPhase = 'input' | 'confirm'
 
@@ -88,6 +89,7 @@ export function PracticeAnswerView({
     onRemoveSubQuestion,
 }: Props) {
     const targets = subQuestions.length > 0 ? subQuestions : [question]
+    const materialName = useSettingsStore((s) => s.materials)[0] // TODO: 直近で選択したものをStoreに持つように改修する
 
     const [phase, setPhase] = useState<ViewPhase>('input')
     const [answers, setAnswers] = useState<AnswerState[]>(() =>
@@ -173,10 +175,21 @@ export function PracticeAnswerView({
         return parts.join('\n\n')
     }
 
-    const handleAddProblem = async (input: ProblemInput) => {
-        await addProblem(input)
-        setShowModal(false)
+    const handleAddProblem = async (
+        input: ProblemInput
+    ) => {
+        const created = await addProblem(input)
+        return created
     }
+
+    const handleProblemUpdate = useCallback(
+        async (id: number, input: ProblemInput) => {
+            const updated = await updateProblem(id, input)
+            invalidateCache('note-problems')
+            return updated
+        },
+        []
+    )
 
     // ── 確認フェーズ ─────────────────────────────────────────────────────────
     if (phase === 'confirm') {
@@ -298,10 +311,12 @@ export function PracticeAnswerView({
                 {showModal && (
                     <AddProblemModal
                         onSubmit={handleAddProblem}
+                        onUpdate={handleProblemUpdate}
                         onClose={() => setShowModal(false)}
                         subCategories={subCategories}
                         initial={{
                             subject,
+                            materialName,
                             solvedAt: new Date().toISOString().slice(0, 10),
                             note: buildMemoNote() || null,
                         }}

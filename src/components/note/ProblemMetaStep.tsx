@@ -43,7 +43,6 @@ export function ProblemMetaStep({
             (initial?.failureTypes as FailureType[]) ?? []
         )
 
-    const [saveDefault, setSaveDefault] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -72,9 +71,6 @@ export function ProblemMetaStep({
         setLoading(true)
 
         try {
-            // TODO:
-            // saveDefault === true の場合
-            // 科目ごとの default material を保存するAPI
             console.log('step1 submit')
             await onNext({
                 subject: subject.trim(),
@@ -128,6 +124,20 @@ export function ProblemMetaStep({
             </section>
 
             <section>
+                <label>教材</label>
+                <input
+                    list="materials"
+                    value={material}
+                    onChange={(e) => setMaterial(e.target.value)}
+                />
+                <datalist id="materials">
+                    {materials.map((m) => (
+                        <option key={m} value={m} />
+                    ))}
+                </datalist>
+            </section>
+
+            <section>
                 <label>小分類（必須）</label>
                 <input
                     list="subcats"
@@ -141,31 +151,6 @@ export function ProblemMetaStep({
                             <option key={x.id} value={x.name} />
                         ))}
                 </datalist>
-            </section>
-
-            <section>
-                <label>教材</label>
-                <input
-                    list="materials"
-                    value={material}
-                    onChange={(e) => setMaterial(e.target.value)}
-                />
-                <datalist id="materials">
-                    {materials.map((m) => (
-                        <option key={m} value={m} />
-                    ))}
-                </datalist>
-
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={saveDefault}
-                        onChange={(e) =>
-                            setSaveDefault(e.target.checked)
-                        }
-                    />
-                    デフォルトに設定
-                </label>
             </section>
 
             <section>

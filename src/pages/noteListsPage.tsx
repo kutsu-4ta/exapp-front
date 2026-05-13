@@ -77,13 +77,11 @@ export default function NoteListsPage() {
         return () => clearTimeout(timer)
     }, [filterSubject, filterQuery])
 
-    const handleAdd = useCallback(async (input: ProblemInput) => {
-        console.log('parent handleAdd')
+    const handleAddProblem = useCallback(async (input: ProblemInput) => {
         const p = await addProblem(input)
 
         setProblems((prev) => [p, ...prev])
         invalidateCache('note-problems')
-        console.log(p);
         return p
     }, [])
 
@@ -283,7 +281,7 @@ export default function NoteListsPage() {
             <div style={mainContent}>
                 {showAddForm &&
                     <AddProblemModal
-                        onSubmit={handleAdd}
+                        onSubmit={handleAddProblem}
                         onUpdate={handleProblemUpdate}
                         onClose={() => setShowAddForm(false)}
                         subCategories={subCategories}
