@@ -9,47 +9,52 @@ type Props = {
 export function FailureTypeSelector({ value, onChange }: Props) {
   function toggle(ft: FailureType) {
     const next = value.includes(ft) ? value.filter((x) => x !== ft) : [...value, ft]
-
     onChange(next)
   }
 
   return (
-    <>
-      {FAILURE_TYPE_VALUES.map((ft) => {
-        const selected = value.includes(ft)
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {FAILURE_TYPE_VALUES.map((ft) => {
+          const selected = value.includes(ft)
 
-        const colorMap = {
-          定義: {
-            color: '#2563eb',
-            bg: selected ? 'rgba(37,99,235,.12)' : 'rgba(37,99,235,.05)',
-          },
-          解法: {
-            color: '#d73a49',
-            bg: selected ? 'rgba(215,58,73,.12)' : 'rgba(215,58,73,.05)',
-          },
-          ケアレス: {
-            color: '#d29922',
-            bg: selected ? 'rgba(210,153,34,.12)' : 'rgba(210,153,34,.05)',
-          },
-        } as const
+          // 選択時のみ各カラーを適用し、未選択時は一貫して控えめなグレーにする
+          const styleConfig = {
+            定義: {
+              color: selected ? '#2563eb' : 'rgba(55, 53, 47, 0.5)',
+              bg: selected ? 'rgba(37,99,235, 0.1)' : 'transparent',
+              borderColor: selected ? 'rgba(37,99,235, 0.2)' : 'rgba(55, 53, 47, 0.12)',
+            },
+            解法: {
+              color: selected ? '#d73a49' : 'rgba(55, 53, 47, 0.5)',
+              bg: selected ? 'rgba(215,58,73, 0.1)' : 'transparent',
+              borderColor: selected ? 'rgba(215,58,73, 0.2)' : 'rgba(55, 53, 47, 0.12)',
+            },
+            ケアレス: {
+              color: selected ? '#d29922' : 'rgba(55, 53, 47, 0.5)',
+              bg: selected ? 'rgba(210,153,34, 0.1)' : 'transparent',
+              borderColor: selected ? 'rgba(210,153,34, 0.2)' : 'rgba(55, 53, 47, 0.12)',
+            },
+          } as const
 
-        return (
-          <button
-            key={ft}
-            type="button"
-            onClick={() => toggle(ft)}
-            style={{
-              ...failureTypePill,
-              color: colorMap[ft].color,
-              backgroundColor: colorMap[ft].bg,
-              opacity: selected ? 1 : 0.65,
-            }}
-          >
-            {ft}
-          </button>
-        )
-      })}
-    </>
+          const current = styleConfig[ft]
+
+          return (
+              <button
+                  key={ft}
+                  type="button"
+                  onClick={() => toggle(ft)}
+                  style={{
+                    ...failureTypePill,
+                    color: current.color,
+                    backgroundColor: current.bg,
+                    borderColor: current.borderColor,
+                  }}
+              >
+                {ft}
+              </button>
+          )
+        })}
+      </div>
   )
 }
 
@@ -59,12 +64,10 @@ const failureTypePill = {
   justifyContent: 'center',
   padding: '4px 10px',
   borderRadius: '4px',
-  border: '1px solid rgba(55, 53, 47, 0.12)',
-  background: 'transparent',
+  border: '1px solid', // 枠線は維持
   cursor: 'pointer',
   fontSize: '12px',
   fontWeight: 500,
   lineHeight: '1.2',
-  color: 'rgba(55, 53, 47, 0.65)',
-  transition: 'background 20ms ease-in 0s',
+  transition: 'all 20ms ease-in 0s',
 } as const

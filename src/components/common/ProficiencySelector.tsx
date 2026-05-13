@@ -8,19 +8,19 @@ type Props = {
 
 const COLOR_MAP = {
   '○': {
-    color: '#2ea043',
-    activeBg: 'rgba(46,160,67,.12)',
-    inactiveBg: 'rgba(46,160,67,.05)',
+    color: '#37352f', // テキスト色
+    activeBg: 'rgba(55,53,47,0.08)',
+    border: 'rgba(55,53,47,0.16)',
   },
   '△': {
-    color: '#d29922',
-    activeBg: 'rgba(210,153,34,.12)',
-    inactiveBg: 'rgba(210,153,34,.05)',
+    color: '#d29922', // 注意だけは色を残す
+    activeBg: 'rgba(210,153,34,0.12)',
+    border: 'rgba(210,153,34,0.2)',
   },
   '×': {
-    color: '#d73a49',
-    activeBg: 'rgba(215,58,73,.12)',
-    inactiveBg: 'rgba(215,58,73,.05)',
+    color: '#eb5757', // 警告
+    activeBg: 'rgba(235,87,87,0.1)',
+    border: 'rgba(235,87,87,0.2)',
   },
 } as const
 
