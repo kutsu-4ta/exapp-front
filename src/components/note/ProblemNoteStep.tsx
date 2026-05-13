@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ProblemInput } from '../../types/workspace'
+import type {Problem} from '../../types/workspace'
 
 type Props = {
-    problem: ProblemInput
+    problem: Problem
     onAutoSave: (note: string) => Promise<void>
     onClose: () => void
 }
@@ -15,18 +15,18 @@ export function ProblemNoteStep({
     const [note, setNote] = useState(problem.note ?? '')
     const [saved, setSaved] = useState(true)
 
-    const timerRef = useRef<number>()
+    const timerRef = useRef<number | null>(null)
 
     useEffect(() => {
         return () => {
-            window.clearTimeout(timerRef.current)
+            window.clearTimeout(timerRef?.current ?? 0)
         }
     }, [])
 
     function scheduleSave(value: string) {
         setSaved(false)
 
-        window.clearTimeout(timerRef.current)
+        window.clearTimeout(timerRef?.current ?? 0)
 
         timerRef.current = window.setTimeout(async () => {
             await onAutoSave(value)

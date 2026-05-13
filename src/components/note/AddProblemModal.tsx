@@ -31,6 +31,8 @@ export function AddProblemModal({
 
         setProblem(created)
         setStep('note')
+
+        return created
     }
 
     async function handleNoteSave(note: string) {

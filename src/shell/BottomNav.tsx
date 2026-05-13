@@ -49,7 +49,7 @@ function IconExam({ active }: { active: boolean }) {
 const TABS = [
     { href: '/', label: 'ホーム', Icon: IconHome, matchPrefix: '/', exact: true },
     { href: '/workspace/daily-logs', label: 'デイリー', Icon: IconLog, matchPrefix: '/workspace', exact: false },
-    { href: '/note', label: 'ノート', Icon: IconWeak, matchPrefix: '/note', exact: false },
+    { href: '/notelist', label: 'ノート', Icon: IconWeak, matchPrefix: '/note', exact: false },
     { href: '/exam', label: '過去問', Icon: IconExam, matchPrefix: '/exam', exact: false },
 ]
 

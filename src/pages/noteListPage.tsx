@@ -33,7 +33,7 @@ function SkeletonCard() {
 }
 
 
-export default function NoteListsPage() {
+export default function NoteListPage() {
     const subjects = useSettingsStore((s) => s.subjects)
     const subCategories = useSettingsStore((s) => s.subCategories)
     const [problems, setProblems] = useState<Problem[]>([])

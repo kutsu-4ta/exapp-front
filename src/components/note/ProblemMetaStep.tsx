@@ -223,12 +223,13 @@ const actions = {
     gap: 8,
     marginTop: 24,
 }
+
 const pillWrap = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '6px',
     marginTop: '6px',
-}
+} as const
 
 const pillBtn = {
     padding: '4px 12px',

@@ -11,9 +11,9 @@ import {TopBar} from "@/shell/TopBar";
 // Pages — ルート単位で遅延ロード
 const DashboardPage      = lazy(() => import('./pages/dashboardPage'));
 const DailyLogsPage      = lazy(() => import('./pages/dailyLogsPage'));
-const DailyWorkspacePage  = lazy(() => import('./pages/./DailyWorkspacePage'));
+const DailyWorkspacePage  = lazy(() => import('./pages/./dailyWorkspacePage'));
 const ExamPage           = lazy(() => import('./pages/examPage'));
-const NotePage           = lazy(() => import('./pages/./NoteListsPage'));
+const NoteListPage           = lazy(() => import('./pages/noteListPage'));
 const PracticeSessionPage  = lazy(() => import('./pages/practiceSessionPage'));
 const MorningBugfixPage   = lazy(() => import('./pages/morningBugfixPage'));
 const FlashBugfixPage     = lazy(() => import('./pages/flashBugfixPage'));
@@ -90,7 +90,7 @@ function App() {
                         <Route path="/workspace/daily-logs" element={<DailyLogsPage />} />
                         <Route path="/workspace/:date" element={<DailyWorkspacePage />} />
                         <Route path="/exam" element={<ExamPage />} />
-                        <Route path="/note" element={<NotePage />} />
+                        <Route path="/notelist" element={<NoteListPage />} />
                         <Route path="/profile" element={<ProfilePage />} />
                         <Route path="/subjects/:name" element={<SubjectPage />} />
                         <Route path="/practice/:subject" element={<PracticeSessionPage />} />
