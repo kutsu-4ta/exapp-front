@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react'
 import {useState} from 'react'
+import {subjectUi} from "@/styles/subjectUI.ts";
 
 export function SubCategoryList({
                                     subjectName,
@@ -55,7 +56,7 @@ export function SubCategoryList({
     }
 
     return (
-        <div style={container}>
+        <div style={subjectUi.subContainer}>
             <div style={sectionHeader}>
                 <span style={sectionTitle}>SUB CATEGORIES</span>
             </div>
@@ -146,10 +147,6 @@ export function SubCategoryList({
     )
 }
 // ── Styles ──────────────────────────────────────────────────────────
-
-const container: CSSProperties = {
-    marginBottom: '40px',
-}
 
 const sectionHeader: CSSProperties = {
     marginBottom: '8px',

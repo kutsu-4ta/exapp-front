@@ -3,6 +3,7 @@ import {useEffect, useState} from "react";
 import type {Flashcard} from "@/types/workspace.ts";
 import {fetchFlashcards} from "@/lib/api/subjects.ts";
 import {c} from "@/styles/notion.ts";
+import {subjectUi} from "@/styles/subjectUI.ts";
 
 export function TodaysFive({
                               subjectName,
@@ -29,9 +30,9 @@ export function TodaysFive({
     }, [subjectName]);
 
     return (
-        <div style={todaysFiveUi.container}>
-            <div style={todaysFiveUi.sectionHeadingWrap}>
-                <span style={todaysFiveUi.sectionHeading}>TODAY'S FIVE</span>
+        <div style={subjectUi.subContainer}>
+            <div style={subjectUi.sectionHeadingWrap}>
+                <span style={subjectUi.sectionHeading}>TODAY'S FIVE</span>
             </div>
 
             {loading ? (
@@ -95,24 +96,6 @@ export function TodaysFive({
 // ── Styles ──────────────────────────────────────────────────────────
 
 const todaysFiveUi = {
-    container: {
-        marginBottom: '32px',
-    } as CSSProperties,
-
-    sectionHeadingWrap: {
-        marginBottom: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-    } as CSSProperties,
-
-    sectionHeading: {
-        fontSize: '11px',
-        fontWeight: 700,
-        color: 'rgba(55, 53, 47, 0.35)',
-        letterSpacing: '0.06em',
-    } as CSSProperties,
-
     block: {
         border: `1px solid rgba(55, 53, 47, 0.08)`,
         borderRadius: '10px',
