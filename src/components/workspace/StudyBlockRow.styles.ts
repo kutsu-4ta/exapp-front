@@ -89,10 +89,23 @@ export const notionSaveBtn: React.CSSProperties = {
   fontWeight: 500,
   padding: '4px 10px',
   borderRadius: '3px',
-  border: `1px solid rgba(55, 53, 47, 0.16)`,
+  border: '1px solid rgba(55, 53, 47, 0.16)',
   cursor: 'pointer',
   background: '#fff',
-  transition: 'background 0.2s',
+  transition: 'all 0.15s ease',
+  color: '#37352f',
+}
+
+export const notionDisabledSaveBtn: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 500,
+  padding: '4px 10px',
+  borderRadius: '3px',
+  border: '1px solid rgba(55, 53, 47, 0.08)',
+  cursor: 'not-allowed',
+  background: 'rgba(55, 53, 47, 0.08)',
+  color: 'rgba(55, 53, 47, 0.35)',
+  pointerEvents: 'none',
 }
 
 export const notionDeleteBtn: React.CSSProperties = {
@@ -102,27 +115,6 @@ export const notionDeleteBtn: React.CSSProperties = {
   border: 'none',
   cursor: 'pointer',
   padding: '4px 8px',
-}
-
-export const notionDeleteConfirmBtn: React.CSSProperties = {
-  fontSize: '12px',
-  fontWeight: 600,
-  color: '#fff',
-  background: c.red,
-  border: 'none',
-  borderRadius: '3px',
-  cursor: 'pointer',
-  padding: '4px 8px',
-}
-
-export const notionDeleteCancelBtn: React.CSSProperties = {
-  fontSize: '12px',
-  color: c.textSub,
-  background: 'none',
-  border: `1px solid rgba(55, 53, 47, 0.16)`,
-  borderRadius: '3px',
-  cursor: 'pointer',
-  padding: '3px 7px',
 }
 
 export const readonlyRow: React.CSSProperties = {

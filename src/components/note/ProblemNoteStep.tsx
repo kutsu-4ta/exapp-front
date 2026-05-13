@@ -73,7 +73,6 @@ export function ProblemNoteStep({ problem, onAutoSave, onClose }: Props) {
       }
 
       <div style={actions}>
-        <button onClick={onClose}>終了</button>
         <button onClick={onClose}>完了</button>
       </div>
     </>

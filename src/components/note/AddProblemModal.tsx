@@ -1,8 +1,9 @@
 import {useState} from 'react'
-import type {Problem, ProblemInput, SubCategory} from '../../types/workspace'
+import type {AnalysisResponse, Problem, ProblemInput, SubCategory} from '../../types/workspace'
 import {c} from '../../styles/notion'
 import {ProblemNoteStep} from '@/components/note/ProblemNoteStep'
 import {ProblemMetaStep} from '@/components/note/ProblemMetaStep'
+import {analyzeImage} from "@/lib/api/problem.ts";
 
 type Props = {
   onClose: () => void
@@ -34,6 +35,20 @@ export function AddProblemModal({
     return created
   }
 
+  async function handleMetaNextWithAI(input: ProblemInput, file:File) {
+    const created = await onSubmit(input)
+
+    // AI解析でnote生成
+    const result: AnalysisResponse = await analyzeImage(file, created.id)
+
+    created.note = result.note
+
+    setProblem(created)
+    setStep('note')
+
+    return created
+  }
+
   async function handleNoteSave(note: string) {
     if (!problem) return
 
@@ -53,6 +68,7 @@ export function AddProblemModal({
           subCategories={subCategories}
           onCancel={onClose}
           onNext={handleMetaNext}
+          onNextWithAI={handleMetaNextWithAI}
         />
       </ModalShell>
     )

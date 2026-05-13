@@ -2372,18 +2372,14 @@ paths:
       tags: [AI]
       description: |
         アップロードされた試験問題の画像を Gemini 1.5 Flash でマルチモーダル解析し、
-        科目・問題番号・要点・失敗タイプを自動抽出して苦手問題 (Problem) として保存する。
-
-        - 習熟度は `×`（未習得）で固定
-        - `solved_at` は本日の日付
-        - 科目が未登録の場合は自動作成
+        苦手問題 (Problem)のメタ情報を補足要素として解説画像を読み取り、noteに保存する。
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [image]
+              required: [ image, problemId ]
               properties:
                 image:
                   type: string

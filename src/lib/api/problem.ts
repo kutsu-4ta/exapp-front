@@ -62,10 +62,19 @@ export async function explainProblem(id: number): Promise<string> {
 }
 
 // POST /api/ai/analysis — multipart/form-data で画像を送信し、解析済み Problem を返す
-export async function analyzeImage(image: File): Promise<AnalysisResponse> {
+export async function analyzeImage(
+    image: File,
+    problemId: number | null
+): Promise<AnalysisResponse> {
   const form = new FormData()
   form.append('image', image)
+
+  if (problemId != null) {
+    form.append('id', String(problemId))
+  }
+
   const res = await apiUpload('/api/ai/analysis', form)
   if (!res.ok) throw new Error('画像解析に失敗しました')
+
   return res.json()
 }
