@@ -5,6 +5,7 @@ import {CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tool
 import {fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
 import type {DailyLogSummary} from '../types/workspace'
 import {getCached, setCached} from '../lib/pageCache'
+import {StatusBadge} from "@/components/common/StatusBadge.tsx";
 
 type ViewMode = 'list' | 'chart'
 
@@ -254,11 +255,13 @@ export default function DailyLogsPage() {
                       {hours}h {mins}m
                     </div>
                     <div style={itemStatus}>
-                      {log.isCompleted ? (
-                        <span style={statusDone}>Done</span>
-                      ) : (
-                        <span style={statusDoing}>Open</span>
-                      )}
+                      <StatusBadge
+                          status={
+                            log.isCompleted
+                                ? 'done'
+                                : 'open'
+                          }
+                      />
                     </div>
                   </Link>
                 )
@@ -466,22 +469,6 @@ const itemTime: React.CSSProperties = {
   fontFamily: 'monospace',
 }
 const itemStatus: React.CSSProperties = { flex: 1, textAlign: 'center' }
-const statusDone: React.CSSProperties = {
-  backgroundColor: '#e6f6eb',
-  color: '#19a576',
-  padding: '2px 8px',
-  borderRadius: '4px',
-  fontSize: '11px',
-  fontWeight: 700,
-}
-const statusDoing: React.CSSProperties = {
-  backgroundColor: '#fff5e0',
-  color: '#f2ab26',
-  padding: '2px 8px',
-  borderRadius: '4px',
-  fontSize: '11px',
-  fontWeight: 700,
-}
 const emptyMessage: React.CSSProperties = {
   padding: '40px',
   textAlign: 'center',

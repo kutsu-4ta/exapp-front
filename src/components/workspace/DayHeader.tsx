@@ -1,5 +1,6 @@
 import type {DailyLog} from '../../types/workspace'
 import {formatDate, formatMinutes} from '../../types/workspace'
+import {StatusBadge} from "@/components/common/StatusBadge.tsx";
 
 function IconCalendar() {
   return (
@@ -40,21 +41,7 @@ export function DayHeader({ log }: Props) {
           <IconCalendar />
           <h1 style={titleText}>{formatDate(log.date)}</h1>
         </div>
-        <div style={log.isCompleted ? statusBadgeCompleted : statusBadgeOpen}>
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          {log.isCompleted ? 'Completed' : 'Open'}
-        </div>
+        <StatusBadge status={log.isCompleted ? 'done' : 'open'} />
       </div>
 
       <div style={metaRow}>
@@ -104,29 +91,6 @@ const titleText: React.CSSProperties = {
   color: '#37352f',
   margin: 0,
   letterSpacing: '-0.02em',
-}
-
-const statusBadgeBase: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '5px',
-  padding: '4px 10px',
-  borderRadius: '12px',
-  fontSize: '12px',
-  fontWeight: 600,
-  transition: 'all 0.2s ease',
-}
-
-const statusBadgeCompleted: React.CSSProperties = {
-  ...statusBadgeBase,
-  backgroundColor: 'rgba(35, 131, 226, 0.1)',
-  color: '#2383e2',
-}
-
-const statusBadgeOpen: React.CSSProperties = {
-  ...statusBadgeBase,
-  backgroundColor: 'rgba(55, 53, 47, 0.08)',
-  color: 'rgba(55, 53, 47, 0.5)',
 }
 
 const metaRow: React.CSSProperties = {
