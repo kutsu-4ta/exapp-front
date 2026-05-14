@@ -126,21 +126,38 @@ export default function NoteListPage() {
 
   const grouped = useMemo(() => {
     const filtered = problems
-      .filter((p) => filterSubject === 'all' || p.subject === filterSubject)
-      .filter((p) => filterProficiency === 'all' || p.proficiency === filterProficiency)
-      .filter(
-        (p) =>
-          filterFailureType === 'all' || p.failureTypes.includes(filterFailureType as FailureType)
-      )
+        .filter((p) => filterSubject === 'all' || p.subject === filterSubject)
+        .filter((p) => filterProficiency === 'all' || p.proficiency === filterProficiency)
+        .filter(
+            (p) =>
+                filterFailureType === 'all' || p.failureTypes.includes(filterFailureType as FailureType)
+        )
+
+    // All のときは科目分けせず、そのまま降順
+    if (filterSubject === 'all') {
+      return [
+        {
+          subject: 'all',
+          items: [...filtered].sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() -
+              new Date(a.createdAt).getTime()
+          ),
+        },
+      ]
+    }
+
+    // 個別科目のときは今まで通り
     const subjectList =
-      subjects.length > 0 ? subjects : [...new Set(filtered.map((p) => p.subject))]
+        subjects.length > 0 ? subjects : [...new Set(filtered.map((p) => p.subject))]
+
     return subjectList
-      .map((s) => ({
-        subject: s,
-        items: filtered.filter((p) => p.subject === s),
-      }))
-      .filter((g) => g.items.length > 0)
-  }, [problems, filterSubject, filterQuery, filterProficiency, filterFailureType, subjects])
+        .map((s) => ({
+          subject: s,
+          items: filtered.filter((p) => p.subject === s),
+        }))
+        .filter((g) => g.items.length > 0)
+  }, [problems, filterSubject, filterProficiency, filterFailureType, subjects])
 
   return (
     <div style={container}>
@@ -296,11 +313,13 @@ export default function NoteListPage() {
         )}
 
         {grouped.map(({ subject, items }) => (
-          <section key={subject} style={section}>
-            <div style={sectionHeader}>
-              <span style={sectionLabel}>{subject}</span>
-              <span style={badge}>{items.length}</span>
-            </div>
+            <section key={subject} style={section}>
+              {subject !== 'all' && (
+                  <div style={sectionHeader}>
+                    <span style={sectionLabel}>{subject}</span>
+                    <span style={badge}>{items.length}</span>
+                  </div>
+              )}
             <div style={cardGrid}>
               {items.map((p) => (
                 <ProblemCard key={p.id} problem={p} onClick={() => setQuickProblem(p)} />
