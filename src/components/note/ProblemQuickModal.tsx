@@ -4,9 +4,8 @@ import {useEffect, useRef, useState} from 'react'
 import type {Problem} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {deleteProblem, updateProblem} from '../../lib/api/problem'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import {Copy, Eye, EyeOff} from 'lucide-react'
+import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
 
 type Props = {
   problem: Problem
@@ -287,9 +286,9 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
 
                   {preview ? (
                       <div style={markdownPreview}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        <MarkdownContent>
                           {note || ''}
-                        </ReactMarkdown>
+                        </MarkdownContent>
                       </div>
                   ) : (
                       <textarea

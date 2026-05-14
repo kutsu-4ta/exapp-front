@@ -1,5 +1,8 @@
 import {useEffect, useRef, useState} from 'react'
 import type {Problem} from '../../types/workspace'
+import {Eye, EyeOff} from 'lucide-react'
+import {c} from '../../styles/notion'
+import {MarkdownContent} from '@/components/common/MarkdownContent'
 
 type Props = {
   problem: Problem
@@ -7,15 +10,27 @@ type Props = {
   onClose: () => void
 }
 
-export function ProblemNoteStep({ problem, onAutoSave, onClose }: Props) {
+export function ProblemNoteStep({
+                                  problem,
+                                  onAutoSave,
+                                  onClose,
+                                }: Props) {
   const [note, setNote] = useState(problem.note ?? '')
+  const [preview, setPreview] = useState(false)
   const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
+
   const successTimerRef = useRef<number | null>(null)
   const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
     return () => {
-      window.clearTimeout(timerRef?.current ?? 0)
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current)
+      }
+
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current)
+      }
     }
   }, [])
 
@@ -38,44 +53,61 @@ export function ProblemNoteStep({ problem, onAutoSave, onClose }: Props) {
       successTimerRef.current = window.setTimeout(() => {
         setSaveSuccessVisible(false)
       }, 3000)
-
     }, 500)
   }
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current)
-      if (successTimerRef.current) window.clearTimeout(successTimerRef.current)
-    }
-  }, [])
-
   return (
-    <>
-      <div style={header}>
-        {problem.subject} / {problem.subCategory} / {problem.materialName} / {problem.questionRef}
-      </div>
+      <>
+        <div style={header}>
+          {problem.subject} / {problem.subCategory} / {problem.materialName} /{' '}
+          {problem.questionRef}
+        </div>
 
-      <textarea
-        value={note}
-        onChange={(e) => {
-          setNote(e.target.value)
-        }}
-        onBlur={() => {
-          scheduleSave(note)
-        }}
-        style={textarea}
-      />
+        <div style={toolbar}>
+          <button
+              onClick={() => setPreview((v) => !v)}
+              style={toggleBtn}
+              title={preview ? '編集に戻る' : 'プレビュー'}
+          >
+            {preview ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
 
-      {saveSuccessVisible ?
-          <div style={saveLabelSuccess}>
-            自動保存済み
-          </div> : <span>&nbsp;</span>
-      }
+        {preview ? (
+            <div style={markdownPreview}>
+              <MarkdownContent>
+                {note || ''}
+              </MarkdownContent>
+            </div>
+        ) : (
+            <textarea
+                value={note}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setNote(value)
+                }}
+                onBlur={() => {
+                  scheduleSave(note)
+                }}
+                style={textarea}
+                placeholder="ノートを書く..."
+            />
+        )}
 
-      <div style={actions}>
-        <button onClick={onClose}>完了</button>
-      </div>
-    </>
+        {saveSuccessVisible ? (
+            <div style={saveLabelSuccess}>
+              自動保存済み
+            </div>
+        ) : (
+            <span>&nbsp;</span>
+        )}
+
+        <div style={actions}>
+          <button onClick={onClose}>
+            完了
+          </button>
+        </div>
+      </>
   )
 }
 
@@ -85,10 +117,38 @@ const header = {
   color: 'rgba(55,53,47,.55)',
 }
 
+const toolbar = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  marginBottom: 8,
+}
+
+const toggleBtn = {
+  border: 'none',
+  background: 'none',
+  color: c.blue,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+}
+
 const textarea = {
   width: '100%',
   minHeight: 240,
   padding: 16,
+  fontSize: 15,
+  lineHeight: 1.7,
+  borderRadius: 8,
+  border: `1px solid ${c.border}`,
+  resize: 'vertical' as const,
+}
+
+const markdownPreview = {
+  minHeight: 240,
+  padding: 16,
+  borderRadius: 8,
+  border: `1px solid ${c.border}`,
+  background: '#fff',
   fontSize: 15,
   lineHeight: 1.7,
 }

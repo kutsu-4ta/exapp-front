@@ -1,7 +1,6 @@
 import type {Problem, Proficiency} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
 
 type Props = {
   problem: Problem
@@ -28,14 +27,9 @@ export function ProblemCard({ problem, onClick }: Props) {
       </div>
 
       {/* Main Content (Note) */}
-      <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            p: ({ children }) => <p style={{ margin: 0 }}>{children}</p>,
-          }}
-      >
+      <MarkdownContent>
         {problem.note}
-      </ReactMarkdown>
+      </MarkdownContent>
 
       {/* Hashtags: #Failure, #Material, #QuestionRef */}
       <div style={tagRow}>
