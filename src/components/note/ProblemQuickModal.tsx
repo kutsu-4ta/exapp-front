@@ -4,7 +4,7 @@ import {useEffect, useRef, useState} from 'react'
 import type {Problem} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {deleteProblem, updateProblem} from '../../lib/api/problem'
-import {Copy, Eye, EyeOff} from 'lucide-react'
+import {Copy, Eye, EyeOff, Pencil} from 'lucide-react'
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
 
 type Props = {
@@ -23,7 +23,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   const [note, setNote] = useState(problem.note ?? '')
   const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
   const [preview, setPreview] = useState(true)
-
+  const [isSaving, setIsSaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const timerRef = useRef<number | null>(null)
@@ -52,22 +52,29 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
   function scheduleSave(value: string) {
     setSaveSuccessVisible(false)
 
+    setIsSaving(true)
     window.clearTimeout(timerRef.current ?? 0)
 
     timerRef.current = window.setTimeout(async () => {
-      const updated = await updateProblem(problem.id, {
-        ...problem,
-        note: value,
-      })
+      try{
 
-      onUpdate(updated)
+        const updated = await updateProblem(problem.id, {
+          ...problem,
+          note: value,
+        })
 
-      setSaveSuccessVisible(true)
+        onUpdate(updated)
 
-      successTimerRef.current = window.setTimeout(() => {
-        setSaveSuccessVisible(false)
-      }, 3000)
+        setSaveSuccessVisible(true)
 
+        successTimerRef.current = window.setTimeout(() => {
+          setSaveSuccessVisible(false)
+        }, 3000)
+      }catch{
+
+      } finally {
+        setIsSaving(false)
+      }
     }, 500)
   }
 
@@ -112,14 +119,55 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
           <div style={handle} />
 
           <div style={header}>
-            <button style={closeBtn} onClick={onClose}>×</button>
-
             <button
-                style={editBtn}
-                onClick={() => setEditing(v => !v)}
+                onClick={onClose}
+                disabled={isSaving}
+                style={{
+                  ...closeBtn,
+                  opacity: isSaving ? 0.7 : 1,
+                }}
             >
-              {editing ? 'キャンセル' : '問題情報を編集する'}
+              ×
             </button>
+
+            <div style={headerRight}>
+              {(isSaving || saveSuccessVisible) && (
+                  <span
+                      style={
+                        isSaving
+                            ? saveLabelSaving
+                            : saveLabelSuccess
+                      }
+                  >
+          {isSaving ? '保存中…' : '自動保存済み'}
+        </span>
+              )}
+
+              {/* プレビュー切替 */}
+              {isEditing ? <span/> :
+                  <button
+                  onClick={() => setPreview(v => !v)}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    color: c.blue,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title={preview ? 'プレビュー' : '編集'}
+              >
+                {preview ? <Eye size={18} /> : <EyeOff size={18} /> }
+              </button>
+              }
+              <button
+                  style={iconBtn}
+                  onClick={() => setEditing(v => !v)}
+                  title={editing ? 'キャンセル' : '問題情報を編集'}
+              >
+                {editing ? 'キャンセル' : <Pencil size={18} />}
+              </button>
+            </div>
           </div>
 
           <div style={body}>
@@ -264,23 +312,6 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
                             >✓</span>
                         )}
                       </button>
-
-                      {/* プレビュー切替 */}
-                      <button
-                          onClick={() => setPreview(v => !v)}
-                          style={{
-                            border: 'none',
-                            background: 'none',
-                            color: c.blue,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
-                          title={preview ? 'プレビュー' : '編集'}
-                      >
-                        {preview ? <Eye size={18} /> : <EyeOff size={18} /> }
-                      </button>
-
                     </div>
                   </div>
 
@@ -302,10 +333,6 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
                           style={noteTextarea}
                           placeholder="ノートをとる..."
                       />
-                  )}
-
-                  {saveSuccessVisible && (
-                      <div style={saveLabelSuccess}>自動保存済み</div>
                   )}
                 </div>
             )}
@@ -484,6 +511,13 @@ const saveLabelSuccess = {
   fontWeight: 500,
 }
 
+const saveLabelSaving = {
+  marginTop: '6px',
+  fontSize: '12px',
+  color: '#19a576',
+  fontWeight: 500,
+}
+
 const saveMetaBtn = {
   width: '100%',
   marginTop: '16px',
@@ -513,4 +547,21 @@ const markdownPreview: React.CSSProperties = {
   fontSize: '15px',
   lineHeight: 1.7,
   color: c.text,
+}
+
+const headerRight: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+}
+
+const iconBtn: React.CSSProperties = {
+  border: 'none',
+  background: 'none',
+  color: c.blue,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '4px',
 }

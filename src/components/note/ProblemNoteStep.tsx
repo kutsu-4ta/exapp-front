@@ -18,6 +18,7 @@ export function ProblemNoteStep({
   const [note, setNote] = useState(problem.note ?? '')
   const [preview, setPreview] = useState(false)
   const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const successTimerRef = useRef<number | null>(null)
   const timerRef = useRef<number | null>(null)
@@ -36,23 +37,29 @@ export function ProblemNoteStep({
 
   function scheduleSave(value: string) {
     setSaveSuccessVisible(false)
+    setIsSaving(true)
 
     if (timerRef.current) {
       window.clearTimeout(timerRef.current)
     }
 
     timerRef.current = window.setTimeout(async () => {
-      await onAutoSave(value)
+      try {
 
-      if (successTimerRef.current) {
-        window.clearTimeout(successTimerRef.current)
+        await onAutoSave(value)
+
+        if (successTimerRef.current) {
+          window.clearTimeout(successTimerRef.current)
+        }
+
+        setSaveSuccessVisible(true)
+
+        successTimerRef.current = window.setTimeout(() => {
+          setSaveSuccessVisible(false)
+        }, 3000)
+      } finally {
+        setIsSaving(false)
       }
-
-      setSaveSuccessVisible(true)
-
-      successTimerRef.current = window.setTimeout(() => {
-        setSaveSuccessVisible(false)
-      }, 3000)
     }, 500)
   }
 
@@ -108,7 +115,14 @@ export function ProblemNoteStep({
             )}
 
             <div style={actions}>
-              <button onClick={onClose}>
+              <button
+                  onClick={onClose}
+                  disabled={isSaving}
+                  style={{
+                    ...textarea,
+                    opacity: isSaving ? 0.7 : 1,
+                  }}
+              >
                 完了
               </button>
             </div>
