@@ -4,12 +4,15 @@ import {useSettingsStore} from '../lib/store/settings'
 import {ProblemCard} from '../components/note/ProblemCard'
 import {ProblemQuickModal} from '../components/note/ProblemQuickModal'
 import {addProblem, fetchProblems, updateProblem} from '../lib/api/problem'
-import {fetchFlashcards} from '../lib/api/subjects'
 import {getCached, invalidateCache, setCached} from '../lib/pageCache'
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {FilterPill} from '../components/note/FilterPill'
 import {AddProblemModal} from '../components/note/AddProblemModal'
 import {c, font, pageHeading} from '../styles/notion'
+import {flashBugfixBtn} from "@/styles/flashBugficUI.ts";
+import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts";
+import {useNavigate} from "react-router-dom";
+import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx";
 
 function SkeletonCard() {
   return (
@@ -31,6 +34,8 @@ function SkeletonCard() {
 }
 
 export default function NoteListPage() {
+  const navigate = useNavigate()
+
   const subjects = useSettingsStore((s) => s.subjects)
   const subCategories = useSettingsStore((s) => s.subCategories)
   const [problems, setProblems] = useState<Problem[]>([])
@@ -39,8 +44,6 @@ export default function NoteListPage() {
   const [error, setError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
-  const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [quizCount, setQuizCount] = useState(10)
 
   const didMountRef = useRef(false)
 
@@ -48,6 +51,13 @@ export default function NoteListPage() {
   const [filterQuery, setFilterQuery] = useState<string>('')
   const [filterProficiency, setFilterProficiency] = useState<Proficiency | 'all'>('all')
   const [filterFailureType, setFilterFailureType] = useState<FailureType | 'all'>('all')
+
+  const items = subCategories.filter((sc) => sc.subject === filterSubject)
+  const [showFlashConfig, setShowFlashConfig] = useState(false)
+  const handleFlashStart = (config: FlashBugfixConfig) => {
+    setShowFlashConfig(false)
+    navigate(`/subjects/${encodeURIComponent(filterSubject)}/flash-bugfix`, { state: { config } })
+  }
 
   // 初回ロード
   useEffect(() => {
@@ -108,66 +118,6 @@ export default function NoteListPage() {
     invalidateCache('note-problems')
   }, [])
 
-  const handleCopyForGemini = useCallback(async () => {
-    setCopyState('loading')
-    try {
-      const subject = filterSubject === 'all' ? undefined : filterSubject
-      const label = filterSubject === 'all' ? '全科目' : filterSubject
-      const count = quizCount
-
-      const buildStats = (cards: Awaited<ReturnType<typeof fetchFlashcards>>) => {
-        const weak = cards.filter((c) => c.back.proficiency === '△' || c.back.proficiency === '×')
-        const bySubject = new Map<
-          string,
-          { 定義: number; 解法: number; ケアレス: number; total: number }
-        >()
-        for (const c of weak) {
-          if (!bySubject.has(c.subject))
-            bySubject.set(c.subject, { 定義: 0, 解法: 0, ケアレス: 0, total: 0 })
-          const s = bySubject.get(c.subject)!
-          for (const ft of c.back.failureTypes) {
-            if (ft === '定義' || ft === '解法' || ft === 'ケアレス') {
-              s[ft]++
-              s.total++
-            }
-          }
-        }
-        return [...bySubject.entries()].map(([subj, s]) => ({
-          subject: subj,
-          total: s.total,
-          定義: s.total > 0 ? `${((s['定義'] / s.total) * 100).toFixed(0)}%` : '0%',
-          解法: s.total > 0 ? `${((s['解法'] / s.total) * 100).toFixed(0)}%` : '0%',
-          ケアレス: s.total > 0 ? `${((s['ケアレス'] / s.total) * 100).toFixed(0)}%` : '0%',
-        }))
-      }
-
-      const buildText = (cards: Awaited<ReturnType<typeof fetchFlashcards>>) => {
-        const stats = buildStats(cards)
-        return `以下は私の苦手問題データ（${label}）です。${count}問の4択クイズを作成してください。\n\n【生成ルール】\n- 表（Front）: 問題の核心となる概念・公式・判断軸を簡潔に記載\n- 裏（Back）: 解法のポイント、ミスしやすい理由、注意事項を具体的に記載\n- 復習ノート（note）がある場合はその内容を活かす\n- 習熟度が△・×の問題を優先して質の高いカードを作成\n- 出力形式は、必ず専用のクイズアプリ形式（JSON）で出力してください。\n\n【科目別ミス割合（習熟度△・×のみ）】\n${JSON.stringify(stats, null, 2)}\n\n【フラッシュカードデータ】\n${JSON.stringify(cards, null, 2)}`
-      }
-
-      // iOS Safariはawait後にclipboard.writeTextを呼ぶとユーザージェスチャーコンテキストが失われる。
-      // ClipboardItemにPromiseを渡すことで、ジェスチャーを保持したまま非同期コピーが可能。
-      if (typeof ClipboardItem !== 'undefined') {
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'text/plain': fetchFlashcards(subject, count).then(
-              (cards) => new Blob([buildText(cards)], { type: 'text/plain' })
-            ),
-          }),
-        ])
-      } else {
-        const cards = await fetchFlashcards(subject, count)
-        await navigator.clipboard.writeText(buildText(cards))
-      }
-      setCopyState('done')
-    } catch {
-      setCopyState('error')
-    } finally {
-      setTimeout(() => setCopyState('idle'), 2000)
-    }
-  }, [filterSubject, quizCount])
-
   const handleDelete = useCallback((id: number) => {
     setProblems((prev) => prev.filter((p) => p.id !== id))
     setQuickProblem(null)
@@ -214,81 +164,21 @@ export default function NoteListPage() {
           >
             <h1 style={{ ...pageHeading, marginBottom: 0 }}>Note</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={quizCount}
-                onChange={(e) => {
-                  const v = Math.max(1, Math.min(50, Number(e.target.value)))
-                  setQuizCount(isNaN(v) ? 10 : v)
-                }}
-                style={countInput}
-                title="クイズの問題数（1〜50）"
-              />
-              <span style={{ fontSize: '11px', color: c.textSub, whiteSpace: 'nowrap' }}>問</span>
-              <button
-                style={copyBtn(copyState)}
-                onClick={handleCopyForGemini}
-                disabled={copyState === 'loading'}
-                title="Gemini用プロンプトをコピー"
+              <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: '24px',
+                    marginBottom: '8px',
+                  }}
               >
-                {copyState === 'loading' && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    style={{ animation: 'spin 0.8s linear infinite' }}
-                  >
-                    <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
-                    <path d="M12 2a10 10 0 0 1 10 10" />
-                  </svg>
-                )}
-                {copyState === 'done' && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-                {copyState === 'error' && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                )}
-                {copyState === 'idle' && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                )}
-                <span style={{ fontSize: '11px' }}>
-                  {copyState === 'done' ? 'コピー済' : copyState === 'error' ? 'エラー' : 'Gemini'}
-                </span>
-              </button>
+                {filterSubject === 'all' ? (<p></p>) :
+                  <button style={flashBugfixBtn} onClick={() => setShowFlashConfig(true)}>
+                    ⚡ Flash Bugfix
+                  </button>
+                }
+              </div>
             </div>
           </div>
 
@@ -444,6 +334,14 @@ export default function NoteListPage() {
           </svg>
         </button>
       )}
+      {showFlashConfig && (
+          <FlashBugfixConfigModal
+              subjectName={filterSubject}
+              subCategories={items}
+              onClose={() => setShowFlashConfig(false)}
+              onStart={handleFlashStart}
+          />
+      )}
     </div>
   )
 }
@@ -468,37 +366,6 @@ const headerContent: React.CSSProperties = {
 }
 const controls: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center' }
 
-const countInput: React.CSSProperties = {
-  width: '44px',
-  padding: '4px 6px',
-  fontSize: '12px',
-  borderRadius: '4px',
-  border: '1px solid rgba(55, 53, 47, 0.16)',
-  backgroundColor: 'transparent',
-  color: '#6366f1',
-  outline: 'none',
-  textAlign: 'center',
-}
-
-const copyBtn = (state: 'idle' | 'loading' | 'done' | 'error'): React.CSSProperties => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '4px',
-  padding: '4px 8px',
-  fontSize: '12px',
-  borderRadius: '4px',
-  border: `1px solid ${state === 'done' ? 'rgba(55,131,84,0.4)' : state === 'error' ? 'rgba(211,61,61,0.4)' : 'rgba(55, 53, 47, 0.16)'}`,
-  backgroundColor:
-    state === 'done'
-      ? 'rgba(55,131,84,0.08)'
-      : state === 'error'
-        ? 'rgba(211,61,61,0.08)'
-        : 'transparent',
-  color: state === 'done' ? 'rgb(55,131,84)' : state === 'error' ? 'rgb(211,61,61)' : '#6366f1',
-  cursor: state === 'loading' ? 'default' : 'pointer',
-  transition: 'all 0.15s',
-  whiteSpace: 'nowrap' as const,
-})
 const select: React.CSSProperties = {
   padding: '4px 8px',
   fontSize: '12px',

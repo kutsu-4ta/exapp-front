@@ -71,3 +71,10 @@ const failureTypePill = {
   lineHeight: '1.2',
   transition: 'all 20ms ease-in 0s',
 } as const
+
+export const FAILURE_COLORS: Record<string, string> = {
+  定義: '#2383e2',
+  解法: '#eb5757',
+  ケアレス: '#f2ab26',
+}
+export const FAILURE_TYPES = ['定義', '解法', 'ケアレス'] as const

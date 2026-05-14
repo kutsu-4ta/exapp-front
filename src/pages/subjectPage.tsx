@@ -1,6 +1,5 @@
 import {useNavigate, useParams} from "react-router-dom";
 import {useSettingsStore} from "@/lib/store/settings.ts";
-import {c} from "@/styles/notion.ts";
 import {useEffect, useState} from "react";
 import {addSubCategory, deleteSubCategory, updateSubCategory} from "@/lib/api/subcategory.ts";
 import {SubjectDangerZone} from "@/components/subject/SubjectDangerZone.tsx";
@@ -22,6 +21,9 @@ import {subjectUi} from "@/styles/subjectUI.ts";
 import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts";
 import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx";
 import {StrategySection} from "@/components/subject/StrategySection.tsx";
+import {flashBugfixBtn} from "@/styles/flashBugficUI.ts";
+import {PROF_COLORS} from "@/components/common/ProficiencySelector.tsx";
+import {FAILURE_COLORS, FAILURE_TYPES} from "@/components/common/FailureTypeSlecter.tsx";
 
 
 export default function SubjectPage() {
@@ -52,18 +54,6 @@ export default function SubjectPage() {
     const handleFlashStart = (config: FlashBugfixConfig) => {
         setShowFlashConfig(false)
         navigate(`/subjects/${encodeURIComponent(subjectName)}/flash-bugfix`, { state: { config } })
-    }
-    const FAILURE_COLORS: Record<string, string> = {
-        定義: '#2383e2',
-        解法: '#eb5757',
-        ケアレス: '#f2ab26',
-    }
-    const FAILURE_TYPES = ['定義', '解法', 'ケアレス'] as const
-
-    const PROF_COLORS: Record<string, string> = {
-        '○': '#27ae60',
-        '△': '#f2ab26',
-        '×': '#eb5757',
     }
 
     const prevMonth = () => {
@@ -323,16 +313,6 @@ const subSectionLabel: React.CSSProperties = {
     fontWeight: 600,
     color: 'rgba(55,53,47,0.5)',
     marginBottom: '8px',
-}
-const flashBugfixBtn: React.CSSProperties = {
-    padding: '5px 10px',
-    backgroundColor: 'rgba(35,131,226,0.07)',
-    color: c.blue,
-    border: `1px solid rgba(35,131,226,0.2)`,
-    borderRadius: '6px',
-    fontSize: '11px',
-    fontWeight: 700,
-    cursor: 'pointer',
 }
 const block: React.CSSProperties = {
     border: `1px solid rgba(55, 53, 47, 0.08)`,

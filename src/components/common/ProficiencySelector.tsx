@@ -13,26 +13,6 @@ type Props =
   onChange: (value: Proficiency[]) => void
 }
 
-const COLOR_MAP = {
-  '○': {
-    color: '#37352f',
-    activeBg: 'rgba(55,53,47,0.08)',
-    inactiveBg: 'transparent',
-    border: 'rgba(55,53,47,0.16)',
-  },
-  '△': {
-    color: '#d29922',
-    activeBg: 'rgba(210,153,34,0.12)',
-    inactiveBg: 'rgba(210,153,34,0.04)',
-    border: 'rgba(210,153,34,0.2)',
-  },
-  '×': {
-    color: '#eb5757',
-    activeBg: 'rgba(235,87,87,0.1)',
-    inactiveBg: 'rgba(235,87,87,0.04)',
-    border: 'rgba(235,87,87,0.2)',
-  },
-} as const
 
 export function ProficiencySelector(props: Props) {
   const multi = props.mode === 'multi'
@@ -106,3 +86,30 @@ const pill = {
   lineHeight: 1.2,
   transition: 'all 120ms ease',
 } as const
+
+export const COLOR_MAP = {
+  '○': {
+    color: '#37352f',
+    activeBg: 'rgba(55,53,47,0.08)',
+    inactiveBg: 'transparent',
+    border: 'rgba(55,53,47,0.16)',
+  },
+  '△': {
+    color: '#d29922',
+    activeBg: 'rgba(210,153,34,0.12)',
+    inactiveBg: 'rgba(210,153,34,0.04)',
+    border: 'rgba(210,153,34,0.2)',
+  },
+  '×': {
+    color: '#eb5757',
+    activeBg: 'rgba(235,87,87,0.1)',
+    inactiveBg: 'rgba(235,87,87,0.04)',
+    border: 'rgba(235,87,87,0.2)',
+  },
+} as const
+
+export const PROF_COLORS: Record<string, string> = {
+  '○': '#27ae60',
+  '△': '#f2ab26',
+  '×': '#eb5757',
+}
