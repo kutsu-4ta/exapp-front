@@ -28,6 +28,26 @@ export function MarkdownContent({ children }: Props) {
                 code: ({ children }) => (
                     <code style={mdCode}>{children}</code>
                 ),
+
+                // table
+                table: ({ children }) => (
+                    <div style={mdTableWrapper}>
+                        <table style={mdTable}>{children}</table>
+                    </div>
+                ),
+                thead: ({ children }) => (
+                    <thead style={mdThead}>{children}</thead>
+                ),
+                tbody: ({ children }) => (
+                    <tbody>{children}</tbody>
+                ),
+                tr: ({ children }) => <tr>{children}</tr>,
+                th: ({ children }) => (
+                    <th style={mdTh}>{children}</th>
+                ),
+                td: ({ children }) => (
+                    <td style={mdTd}>{children}</td>
+                ),
             }}
         >
             {String(children ?? '')}
@@ -101,4 +121,37 @@ const mdCode: React.CSSProperties = {
     padding: '2px 6px',
     borderRadius: '4px',
     backgroundColor: 'rgba(55,53,47,0.08)',
+}
+
+// table styles
+const mdTableWrapper: React.CSSProperties = {
+    overflowX: 'auto',
+    margin: '12px 0',
+    border: '1px solid rgba(55,53,47,0.09)',
+    borderRadius: '8px',
+}
+
+const mdTable: React.CSSProperties = {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '14px',
+    color: c.text,
+}
+
+const mdThead: React.CSSProperties = {
+    backgroundColor: 'rgba(55,53,47,0.03)',
+}
+
+const mdTh: React.CSSProperties = {
+    padding: '10px 12px',
+    textAlign: 'left',
+    fontWeight: 600,
+    borderBottom: '1px solid rgba(55,53,47,0.09)',
+    whiteSpace: 'nowrap',
+}
+
+const mdTd: React.CSSProperties = {
+    padding: '10px 12px',
+    borderBottom: '1px solid rgba(55,53,47,0.06)',
+    lineHeight: 1.5,
 }
