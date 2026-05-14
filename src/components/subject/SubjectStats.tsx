@@ -24,9 +24,7 @@ export function SubjectStats({
 
     const handleFlashStart = (config: FlashBugfixConfig) => {
         setShowFlashConfig(false)
-        navigate(`/subjects/${encodeURIComponent(subjectName)}/flash-bugfix`, {
-            state: { config },
-        })
+        navigate(`/flash-bugfix/${encodeURIComponent(subjectName)}`, {state: { config },})
     }
 
     const FAILURE_COLORS: Record<string, string> = {

@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {useLocation, useNavigate, useParams} from 'react-router-dom'
 import {
   fetchFlashBugfix,
@@ -8,11 +8,9 @@ import {
 } from '@/lib/api/morningQuiz'
 import {ProblemEditModal} from '@/components/practice/ProblemEditModal'
 import {addStudySession, createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
-import type {FailureType, Proficiency, TimeSlot} from '@/types/workspace'
+import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
-import {FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
-import {ProficiencySelector} from "@/components/common/ProficiencySelector.tsx";
 import {SUBJECT_PALETTE} from "@/styles/subjectUI.ts";
 import {OPTION_LABELS} from "@/styles/practiceUI.ts";
 
@@ -30,7 +28,7 @@ function currentTimeSlot(): TimeSlot {
   return 'night'
 }
 
-type Phase = 'init' | 'active' | 'error' | 'result' | 'saving'
+type Phase = 'loading' | 'active' | 'error' | 'result' | 'saving'
 
 type QuestionResult = {
   question: MorningQuizQuestion
@@ -52,7 +50,7 @@ export default function FlashBugfixPage() {
     proficiency: ['△', '×'],
   }
 
-  const [phase, setPhase] = useState<Phase>('init')
+  const [phase, setPhase] = useState<Phase>('loading')
   const [session, setSession] = useState<MorningQuizSession | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -62,14 +60,6 @@ export default function FlashBugfixPage() {
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null)
   const startTimeRef = useRef<number>(Date.now())
   const configRef = useRef<FlashBugfixConfig>(config)
-
-  const [failureTypes, setFailureTypes] = useState<FailureType[]>(
-      config.failureTypes as FailureType[],
-  )
-
-  const [proficiency, setProficiency] = useState<Proficiency[]>(
-      (config.proficiency as Proficiency[]) ?? ['△'],
-  )
 
   const total = session?.questions.length ?? 5
   const currentQ = session?.questions[currentIdx]
@@ -124,65 +114,47 @@ export default function FlashBugfixPage() {
   const palette = subjectPalette(subjectName)
 
   const startQuiz = async () => {
-    setPhase('init')
+    setPhase('loading')
+
+    await new Promise(requestAnimationFrame)
 
     try {
       const existing = await fetchDailyLog(todayString())
-      if (!existing) await createDailyLog(todayString())
+
+      if (!existing) {
+        await createDailyLog(todayString())
+      }
 
       startTimeRef.current = Date.now()
 
-      const sess = await fetchFlashBugfix(subjectName, {
-        ...configRef.current,
-        failureTypes,
-        proficiency,
-      })
+      const sess = await fetchFlashBugfix(
+          subjectName,
+          configRef.current,
+      )
 
       setSession(sess)
       setPhase('active')
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')
+      setErrorMsg(
+          e instanceof Error
+              ? e.message
+              : 'エラーが発生しました',
+      )
       setPhase('error')
     }
   }
 
-  // ── INIT ────────────────────────────────────────────────────────────────────
-  if (phase === 'init') {
+  useEffect(() => {
+    startQuiz()
+  }, [])
+
+  // ── LOADING ────────────────────────────────────────────────────────────────────
+  if (phase === 'loading') {
     return (
-        <div style={page}>
-          <div style={centerBox}>
-
-            <div style={{ width: '100%', marginBottom: '20px' }}>
-              <div style={{ fontSize: 12, marginBottom: 6, color: c.textHint }}>
-                不具合タイプ
-              </div>
-              <FailureTypeSelector
-                  value={failureTypes}
-                  onChange={setFailureTypes}
-              />
-            </div>
-
-            <div style={{ width: '100%', marginBottom: '20px' }}>
-              <div style={{ fontSize: 12, marginBottom: 6, color: c.textHint }}>
-                習熟度
-              </div>
-              <ProficiencySelector
-                  value={proficiency}
-                  onChange={setProficiency}
-                  mode="multi"
-              />
-            </div>
-
-            <button
-                style={{
-                  ...completeBtn,
-                  width: '100%',
-                }}
-                onClick={startQuiz}
-            >
-              開始する
-            </button>
-
+        <div style={loadingPage}>
+          <div style={loadingBox}>
+            <div style={loadingSpinner} />
+            <p style={loadingText}>問題を準備しています...</p>
           </div>
         </div>
     )
@@ -623,4 +595,31 @@ const completeBtn: React.CSSProperties = {
   fontWeight: 800,
   cursor: 'pointer',
   transition: 'opacity 0.15s',
+}
+const loadingSpinner: React.CSSProperties = {
+  width: '28px',
+  height: '28px',
+  border: '3px solid rgba(55,53,47,0.12)',
+  borderTop: `3px solid ${c.blue}`,
+  borderRadius: '50%',
+  animation: 'spin 0.8s linear infinite',
+}
+
+const loadingText: React.CSSProperties = {
+  fontSize: font.base,
+  color: c.textSub,
+}
+const loadingPage: React.CSSProperties = {
+  backgroundColor: c.bg,
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}
+
+const loadingBox: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '12px',
 }
