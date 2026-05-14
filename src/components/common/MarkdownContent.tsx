@@ -88,17 +88,22 @@ const mdH3: React.CSSProperties = {
 const mdUl: React.CSSProperties = {
     margin: '6px 0',
     paddingLeft: '20px',
+    listStyleType: 'disc',
+    listStylePosition: 'outside',
 }
 
 const mdOl: React.CSSProperties = {
     margin: '6px 0',
     paddingLeft: '20px',
+    listStyleType: 'decimal',
+    listStylePosition: 'outside',
 }
 
 const mdLi: React.CSSProperties = {
     marginBottom: '4px',
     lineHeight: 1.6,
     color: c.text,
+    display: 'list-item',
 }
 
 const mdStrong: React.CSSProperties = {
