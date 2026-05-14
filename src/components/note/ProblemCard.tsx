@@ -1,5 +1,7 @@
 import type {Problem, Proficiency} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 type Props = {
   problem: Problem
@@ -26,11 +28,14 @@ export function ProblemCard({ problem, onClick }: Props) {
       </div>
 
       {/* Main Content (Note) */}
-      {problem.note && (
-        <div style={contentBody}>
-          <p style={noteText}>{problem.note}</p>
-        </div>
-      )}
+      <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            p: ({ children }) => <p style={{ margin: 0 }}>{children}</p>,
+          }}
+      >
+        {problem.note}
+      </ReactMarkdown>
 
       {/* Hashtags: #Failure, #Material, #QuestionRef */}
       <div style={tagRow}>
@@ -107,19 +112,6 @@ const dotSeparator: React.CSSProperties = {
 const dateText: React.CSSProperties = {
   fontSize: font.sm,
   color: c.textSub,
-}
-
-const contentBody: React.CSSProperties = {
-  marginTop: '2px',
-}
-
-const noteText: React.CSSProperties = {
-  fontSize: font.base,
-  color: c.text,
-  margin: 0,
-  lineHeight: 1.5,
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
 }
 
 const tagRow: React.CSSProperties = {

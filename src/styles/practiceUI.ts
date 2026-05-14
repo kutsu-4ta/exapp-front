@@ -1,0 +1,1 @@
+export const OPTION_LABELS = ['ア', 'イ', 'ウ', 'エ']

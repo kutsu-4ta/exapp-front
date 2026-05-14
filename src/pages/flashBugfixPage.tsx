@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react'
+import {useRef, useState} from 'react'
 import {useLocation, useNavigate, useParams} from 'react-router-dom'
 import {
   fetchFlashBugfix,
@@ -8,20 +8,13 @@ import {
 } from '@/lib/api/morningQuiz'
 import {ProblemEditModal} from '@/components/practice/ProblemEditModal'
 import {addStudySession, createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
-import type {TimeSlot} from '@/types/workspace'
+import type {FailureType, Proficiency, TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
-
-const OPTION_LABELS = ['ア', 'イ', 'ウ', 'エ']
-
-const SUBJECT_PALETTE = [
-  { bg: 'rgba(35,131,226,0.1)', color: '#2383e2' },
-  { bg: 'rgba(235,87,87,0.1)', color: '#eb5757' },
-  { bg: 'rgba(242,171,38,0.1)', color: '#d4920f' },
-  { bg: 'rgba(39,174,96,0.1)', color: '#19a576' },
-  { bg: 'rgba(155,89,182,0.1)', color: '#8e44ad' },
-  { bg: 'rgba(230,126,34,0.1)', color: '#c0392b' },
-]
+import {FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
+import {ProficiencySelector} from "@/components/common/ProficiencySelector.tsx";
+import {SUBJECT_PALETTE} from "@/styles/subjectUI.ts";
+import {OPTION_LABELS} from "@/styles/practiceUI.ts";
 
 function subjectPalette(subject: string) {
   let h = 0
@@ -70,26 +63,13 @@ export default function FlashBugfixPage() {
   const startTimeRef = useRef<number>(Date.now())
   const configRef = useRef<FlashBugfixConfig>(config)
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const existing = await fetchDailyLog(todayString())
-        if (!existing) await createDailyLog(todayString())
-      } catch {}
+  const [failureTypes, setFailureTypes] = useState<FailureType[]>(
+      config.failureTypes as FailureType[],
+  )
 
-      startTimeRef.current = Date.now()
-
-      try {
-        const sess = await fetchFlashBugfix(subjectName, configRef.current)
-        setSession(sess)
-        setPhase('active')
-      } catch (e) {
-        setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')
-        setPhase('error')
-      }
-    }
-    init()
-  }, [subjectName])
+  const [proficiency, setProficiency] = useState<Proficiency[]>(
+      (config.proficiency as Proficiency[]) ?? ['△'],
+  )
 
   const total = session?.questions.length ?? 5
   const currentQ = session?.questions[currentIdx]
@@ -143,25 +123,68 @@ export default function FlashBugfixPage() {
 
   const palette = subjectPalette(subjectName)
 
+  const startQuiz = async () => {
+    setPhase('init')
+
+    try {
+      const existing = await fetchDailyLog(todayString())
+      if (!existing) await createDailyLog(todayString())
+
+      startTimeRef.current = Date.now()
+
+      const sess = await fetchFlashBugfix(subjectName, {
+        ...configRef.current,
+        failureTypes,
+        proficiency,
+      })
+
+      setSession(sess)
+      setPhase('active')
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')
+      setPhase('error')
+    }
+  }
+
   // ── INIT ────────────────────────────────────────────────────────────────────
   if (phase === 'init') {
     return (
-      <div style={page}>
-        <div style={centerBox}>
-          <svg
-            style={{ animation: 'spin 1s linear infinite' }}
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={c.textHint}
-            strokeWidth="2.5"
-          >
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-          </svg>
-          <span style={{ fontSize: font.base, color: c.textHint }}>準備しています...</span>
+        <div style={page}>
+          <div style={centerBox}>
+
+            <div style={{ width: '100%', marginBottom: '20px' }}>
+              <div style={{ fontSize: 12, marginBottom: 6, color: c.textHint }}>
+                不具合タイプ
+              </div>
+              <FailureTypeSelector
+                  value={failureTypes}
+                  onChange={setFailureTypes}
+              />
+            </div>
+
+            <div style={{ width: '100%', marginBottom: '20px' }}>
+              <div style={{ fontSize: 12, marginBottom: 6, color: c.textHint }}>
+                習熟度
+              </div>
+              <ProficiencySelector
+                  value={proficiency}
+                  onChange={setProficiency}
+                  mode="multi"
+              />
+            </div>
+
+            <button
+                style={{
+                  ...completeBtn,
+                  width: '100%',
+                }}
+                onClick={startQuiz}
+            >
+              開始する
+            </button>
+
+          </div>
         </div>
-      </div>
     )
   }
 

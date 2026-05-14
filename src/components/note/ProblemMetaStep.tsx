@@ -215,7 +215,11 @@ export function ProblemMetaStep({
             <div style={{ marginTop: '12px' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <span style={tinyLabel}>習熟度</span>
-                    <ProficiencySelector value={proficiency} onChange={setProficiency} />
+                    <ProficiencySelector
+                        mode="single"
+                        value={proficiency}
+                        onChange={setProficiency}
+                    />
                 </div>
             </div>
 

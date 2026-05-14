@@ -1,9 +1,16 @@
-import type {Proficiency} from '@/types/workspace.ts'
-import {PROFICIENCY_VALUES} from '@/types/workspace.ts'
+import type {Proficiency} from '@/types/workspace'
+import {PROFICIENCY_VALUES} from '@/types/workspace'
 
-type Props = {
+type Props =
+    | {
+  mode?: 'single'
   value: Proficiency
   onChange: (value: Proficiency) => void
+}
+    | {
+  mode: 'multi'
+  value: Proficiency[]
+  onChange: (value: Proficiency[]) => void
 }
 
 const COLOR_MAP = {
@@ -27,20 +34,40 @@ const COLOR_MAP = {
   },
 } as const
 
-export function ProficiencySelector({
-                                      value,
-                                      onChange,
-                                    }: Props) {
+export function ProficiencySelector(props: Props) {
+  const multi = props.mode === 'multi'
+
+  const isSelected = (p: Proficiency) => {
+    if (multi) {
+      return props.value.includes(p)
+    }
+    return props.value === p
+  }
+
+  const handleClick = (p: Proficiency) => {
+    if (multi) {
+      const current = props.value
+      const next = current.includes(p)
+          ? current.filter((x) => x !== p)
+          : [...current, p]
+
+      props.onChange(next)
+      return
+    }
+
+    props.onChange(p)
+  }
+
   return (
       <div style={wrap}>
         {PROFICIENCY_VALUES.map((p) => {
-          const selected = value === p
+          const selected = isSelected(p)
 
           return (
               <button
                   key={p}
                   type="button"
-                  onClick={() => onChange(p)}
+                  onClick={() => handleClick(p)}
                   style={{
                     ...pill,
                     color: COLOR_MAP[p].color,

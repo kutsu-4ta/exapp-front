@@ -4,6 +4,9 @@ import {useEffect, useRef, useState} from 'react'
 import type {Problem} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {deleteProblem, updateProblem} from '../../lib/api/problem'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import {Copy, Eye, EyeOff} from 'lucide-react'
 
 type Props = {
   problem: Problem
@@ -20,6 +23,9 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
 
   const [note, setNote] = useState(problem.note ?? '')
   const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
+  const [preview, setPreview] = useState(true)
+
+  const [copied, setCopied] = useState(false)
 
   const timerRef = useRef<number | null>(null)
   const successTimerRef = useRef<number | null>(null)
@@ -70,6 +76,19 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
     const updated = await updateProblem(problem.id, draft)
     onUpdate(updated)
     setEditing(false)
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(note || '')
+      setCopied(true)
+
+      window.setTimeout(() => {
+        setCopied(false)
+      }, 1500)
+    } catch (e) {
+      console.error('copy failed', e)
+    }
   }
 
   async function handleDelete() {
@@ -216,19 +235,75 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate }: Prop
             {/* ===== NOTE ===== */}
             {!editing && (
                 <div style={section}>
-                  <p style={sectionLbl}>メモ</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={sectionLbl}>ノート</p>
 
-                  <textarea
-                      ref={noteRef}
-                      value={note}
-                      onChange={(e) => {
-                        const v = e.target.value
-                        setNote(v)
-                        scheduleSave(v)
-                      }}
-                      style={noteTextarea}
-                      placeholder="メモを書く..."
-                  />
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+
+                      {/* コピー */}
+                      <button
+                          onClick={handleCopy}
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            color: c.blue,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                          title="コピー"
+                      >
+                        <Copy size={18} />
+                        {copied && (
+                            <span
+                                style={{
+                                  fontSize: '12px',
+                                  color: '#19a576',
+                                  lineHeight: 1,
+                                }}
+                            >✓</span>
+                        )}
+                      </button>
+
+                      {/* プレビュー切替 */}
+                      <button
+                          onClick={() => setPreview(v => !v)}
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            color: c.blue,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                          title={preview ? 'プレビュー' : '編集'}
+                      >
+                        {preview ? <Eye size={18} /> : <EyeOff size={18} /> }
+                      </button>
+
+                    </div>
+                  </div>
+
+                  {preview ? (
+                      <div style={markdownPreview}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {note || ''}
+                        </ReactMarkdown>
+                      </div>
+                  ) : (
+                      <textarea
+                          ref={noteRef}
+                          value={note}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            setNote(v)
+                            scheduleSave(v)
+                          }}
+                          style={noteTextarea}
+                          placeholder="ノートをとる..."
+                      />
+                  )}
 
                   {saveSuccessVisible && (
                       <div style={saveLabelSuccess}>自動保存済み</div>
@@ -430,3 +505,13 @@ const deleteBtn: React.CSSProperties = {
   cursor: "pointer",
   fontWeight: 500,
 };
+
+const markdownPreview: React.CSSProperties = {
+  padding: '12px',
+  borderRadius: '8px',
+  border: `1px solid ${c.border}`,
+  minHeight: '500px',
+  fontSize: '15px',
+  lineHeight: 1.7,
+  color: c.text,
+}

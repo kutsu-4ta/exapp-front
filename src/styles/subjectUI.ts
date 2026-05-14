@@ -1,5 +1,14 @@
 import type {CSSProperties} from "react"
 
+export const SUBJECT_PALETTE = [
+    { bg: 'rgba(35,131,226,0.1)', color: '#2383e2' },
+    { bg: 'rgba(235,87,87,0.1)', color: '#eb5757' },
+    { bg: 'rgba(242,171,38,0.1)', color: '#d4920f' },
+    { bg: 'rgba(39,174,96,0.1)', color: '#19a576' },
+    { bg: 'rgba(155,89,182,0.1)', color: '#8e44ad' },
+    { bg: 'rgba(230,126,34,0.1)', color: '#c0392b' },
+]
+
 export const subjectUi = {
     page: {
         background: "#fafafa",
