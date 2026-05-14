@@ -1,9 +1,10 @@
 import {useState} from 'react'
-import type {AnalysisResponse, Problem, ProblemInput, SubCategory} from '../../types/workspace'
+import type {Problem, ProblemInput, SubCategory} from '../../types/workspace'
 import {c} from '../../styles/notion'
 import {ProblemNoteStep} from '@/components/note/ProblemNoteStep'
 import {ProblemMetaStep} from '@/components/note/ProblemMetaStep'
 import {analyzeImage, deleteProblem} from "@/lib/api/problem.ts";
+import imageCompression from 'browser-image-compression'
 
 type Props = {
   onClose: () => void
@@ -35,19 +36,42 @@ export function AddProblemModal({
     return created
   }
 
-  async function handleMetaNextWithAI(input: ProblemInput, file:File) {
+  async function convertToJpeg(file: File): Promise<File> {
+    const compressed = await imageCompression(file, {
+      maxSizeMB: 2,
+      maxWidthOrHeight: 1920,
+      useWebWorker: false,
+      fileType: 'image/jpeg',
+      initialQuality: 0.85,
+    })
+
+    return new File(
+        [compressed],
+        file.name.replace(/\.[^.]+$/, '.jpg'),
+        { type: 'image/jpeg' }
+    )
+  }
+
+  async function handleMetaNextWithAI(
+      input: ProblemInput,
+      file: File
+  ) {
     const created = await onSubmit(input)
 
-    // AI解析でnote生成
-    try{
-      const result: AnalysisResponse = await analyzeImage(file, created.id)
+    try {
+      const jpeg = await convertToJpeg(file)
+
+      const result = await analyzeImage(
+          jpeg,
+          created.id
+      )
+
       created.note = result.note
       setProblem(created)
       setStep('note')
 
       return created
     } catch (error) {
-      // DBのデータを削除する
       console.error(error)
       await deleteProblem(created.id)
       throw error
