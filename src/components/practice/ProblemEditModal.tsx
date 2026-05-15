@@ -21,6 +21,7 @@ export function ProblemEditModal({ problemId, onClose, initialProblem }: Props) 
     (initialProblem?.failureTypes as FailureType[]) ?? []
   )
   const [note, setNote] = useState(initialProblem?.note ?? '')
+  const [isFormula, setIsFormula] = useState(initialProblem?.isFormula ?? false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export function ProblemEditModal({ problemId, onClose, initialProblem }: Props) 
         setProficiency(p.proficiency as Proficiency)
         setFailureTypes(p.failureTypes as FailureType[])
         setNote(p.note ?? '')
+        setIsFormula(p.isFormula)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -55,7 +57,7 @@ export function ProblemEditModal({ problemId, onClose, initialProblem }: Props) 
         proficiency,
         failureTypes,
         isGoodQuestion: problem.isGoodQuestion,
-        isFormula: problem.isFormula,
+        isFormula,
         solvedAt: problem.solvedAt,
       })
       onClose()
@@ -147,6 +149,24 @@ export function ProblemEditModal({ problemId, onClose, initialProblem }: Props) 
                     </button>
                   )
                 })}
+              </div>
+            </div>
+
+            {/* Formula */}
+            <div style={fieldGroup}>
+              <p style={fieldLabel}>公式フラグ</p>
+              <div>
+                <button
+                  onClick={() => setIsFormula((v) => !v)}
+                  style={{
+                    ...pillBtn,
+                    backgroundColor: isFormula ? 'rgba(35,131,226,0.07)' : 'transparent',
+                    borderColor: isFormula ? 'rgba(35,131,226,0.4)' : 'rgba(55,53,47,0.1)',
+                    color: isFormula ? 'rgba(35,131,226,1)' : 'rgba(55,53,47,0.4)',
+                  }}
+                >
+                  公式
+                </button>
               </div>
             </div>
 
