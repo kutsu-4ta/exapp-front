@@ -8,7 +8,7 @@ type SubjectData = {
   recentMinutes: number
 }
 
-type AlertEntry = SubjectData & { condition: 1 | 2 }
+type AlertEntry = SubjectData & { condition: 1 | 2; minutesThresholdDays: number }
 
 type Props = {
   warningSubjects: SubjectData[]
@@ -16,23 +16,22 @@ type Props = {
 
 export function AlertWidget({ warningSubjects }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(true)
-  const alertSettings = useSettingsStore((s) => s.alertSettings)
   const subjectAlertSettings = useSettingsStore((s) => s.subjectAlertSettings)
 
   const alerts: AlertEntry[] = warningSubjects.flatMap((item): AlertEntry[] => {
-    const subSettings = subjectAlertSettings[item.subject] ?? DEFAULT_SUBJECT_ALERT_SETTINGS
+    const s = subjectAlertSettings[item.subject] ?? DEFAULT_SUBJECT_ALERT_SETTINGS
 
     const cond1 =
-      subSettings.touchAlertEnabled &&
-      (!item.lastDate ? alertSettings.includeUntouched : daysAgo(item.lastDate) >= alertSettings.thresholdDays)
+      s.touchAlertEnabled &&
+      (!item.lastDate ? s.includeUntouched : daysAgo(item.lastDate) >= s.thresholdDays)
 
     const cond2 =
-      subSettings.minutesAlertEnabled &&
-      item.recentMinutes < alertSettings.minutesThreshold
+      s.minutesAlertEnabled &&
+      item.recentMinutes < s.minutesThreshold
 
     // 条件1が優先
-    if (cond1) return [{ ...item, condition: 1 as const }]
-    if (cond2) return [{ ...item, condition: 2 as const }]
+    if (cond1) return [{ ...item, condition: 1 as const, minutesThresholdDays: s.minutesThresholdDays }]
+    if (cond2) return [{ ...item, condition: 2 as const, minutesThresholdDays: s.minutesThresholdDays }]
     return []
   })
 
@@ -62,11 +61,7 @@ export function AlertWidget({ warningSubjects }: Props) {
         <div className="px-4 pb-4 border-t border-[var(--nt-red-border)]">
           <div className="flex flex-wrap gap-2 pt-3">
             {alerts.map((item) => (
-              <AlertCard
-                key={item.subject}
-                item={item}
-                minutesThresholdDays={alertSettings.minutesThresholdDays}
-              />
+              <AlertCard key={item.subject} item={item} />
             ))}
           </div>
           <p className="text-[11px] text-n-red/60 mt-3 italic">
@@ -78,19 +73,13 @@ export function AlertWidget({ warningSubjects }: Props) {
   )
 }
 
-function AlertCard({
-  item,
-  minutesThresholdDays,
-}: {
-  item: AlertEntry
-  minutesThresholdDays: number
-}) {
+function AlertCard({ item }: { item: AlertEntry }) {
   const subLabel =
     item.condition === 1
       ? item.lastDate
         ? `${daysAgo(item.lastDate)}日前`
         : '未学習'
-      : `直近${minutesThresholdDays}日 ${item.recentMinutes}分`
+      : `直近${item.minutesThresholdDays}日 ${item.recentMinutes}分`
 
   return (
     <div className="flex flex-col px-3 py-2 bg-white border border-[var(--nt-red-border)] rounded-md min-w-[88px]">

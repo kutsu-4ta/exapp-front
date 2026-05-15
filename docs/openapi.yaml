@@ -124,17 +124,23 @@ components:
       type: string
       description: ユーザーが定義した教材名
 
-    AlertSettings:
+    SubjectAlertSettings:
       type: object
-      required: [ thresholdDays, includeUntouched, minutesThresholdDays, minutesThreshold ]
+      required: [ touchAlertEnabled, thresholdDays, includeUntouched, minutesAlertEnabled, minutesThresholdDays, minutesThreshold ]
       properties:
+        touchAlertEnabled:
+          type: boolean
+          description: '条件1（未接触アラート）をこの科目で有効にするか'
         thresholdDays:
           type: integer
           minimum: 1
           description: '条件1: 何日間学習がなければ警告するか'
         includeUntouched:
           type: boolean
-          description: '条件1: 一度も学習していない科目も警告対象に含めるか'
+          description: '条件1: 一度も学習していない場合も警告対象にするか'
+        minutesAlertEnabled:
+          type: boolean
+          description: '条件2（学習時間不足アラート）をこの科目で有効にするか'
         minutesThresholdDays:
           type: integer
           minimum: 1
@@ -143,17 +149,6 @@ components:
           type: integer
           minimum: 1
           description: '条件2: 何分未満なら警告するか'
-
-    SubjectAlertSettings:
-      type: object
-      required: [ touchAlertEnabled, minutesAlertEnabled ]
-      properties:
-        touchAlertEnabled:
-          type: boolean
-          description: '条件1（未接触アラート）をこの科目で有効にするか'
-        minutesAlertEnabled:
-          type: boolean
-          description: '条件2（学習時間不足アラート）をこの科目で有効にするか'
 
     SubjectSettings:
       type: object
@@ -1190,40 +1185,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
-  # ── Alert Settings ──────────────────────────────────────────────────────────
-
-  /alert-settings:
-    get:
-      summary: アラート設定を取得
-      tags: [Alert Settings]
-      description: ユーザーのアラート通知設定を返す。未設定の場合はデフォルト値を返す。
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/AlertSettings' }
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-    put:
-      summary: アラート設定を保存
-      tags: [Alert Settings]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/AlertSettings' }
-      responses:
-        '200':
-          description: 保存成功
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/AlertSettings' }
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
 
   # ── Sub Categories ──────────────────────────────────────────────────────────
 

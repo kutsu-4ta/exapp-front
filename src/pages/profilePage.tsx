@@ -17,7 +17,6 @@ export default function ProfilePage() {
 
   const materials = useSettingsStore((s) => s.materials)
   const setMaterials = useSettingsStore((s) => s.setMaterials)
-  const loadAlertSettings = useSettingsStore((s) => s.loadAlertSettings)
 
   // ── User Profile settings (General) ──────────────────────────────────────
   const [nickname, setNickname] = useState('')
@@ -77,7 +76,6 @@ export default function ProfilePage() {
     }
 
     loadProfile()
-    loadAlertSettings()
     fetchGeminiSettings()
       .then((s) => {
         if (s.geminiModel) {

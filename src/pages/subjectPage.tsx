@@ -49,7 +49,6 @@ export default function SubjectPage() {
     const [settingsLoaded, setSettingsLoaded] = useState(false)
 
     const setSubjectAlertSettings = useSettingsStore((s) => s.setSubjectAlertSettings)
-    const alertSettings = useSettingsStore((s) => s.alertSettings)
     const [subjectAlertSettings, setLocalSubjectAlertSettings] = useState<SubjectAlertSettings>(DEFAULT_SUBJECT_ALERT_SETTINGS)
     const [alertSaving, setAlertSaving] = useState(false)
     const [alertSaved, setAlertSaved] = useState(false)
@@ -302,33 +301,96 @@ export default function SubjectPage() {
                 {/* ALERT SETTINGS */}
                 <section style={subjectUi.card}>
                     <h3 style={subjectUi.title}>ALERT</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <label style={alertToggleRow}>
-                            <input
-                                type="checkbox"
-                                checked={subjectAlertSettings.touchAlertEnabled}
-                                onChange={(e) =>
-                                    setLocalSubjectAlertSettings((s) => ({ ...s, touchAlertEnabled: e.target.checked }))
-                                }
-                                style={{ marginRight: '8px' }}
-                            />
-                            <span style={alertToggleLabel}>
-                                条件1: 直近{alertSettings.thresholdDays}日間未接触で警告
-                            </span>
-                        </label>
-                        <label style={alertToggleRow}>
-                            <input
-                                type="checkbox"
-                                checked={subjectAlertSettings.minutesAlertEnabled}
-                                onChange={(e) =>
-                                    setLocalSubjectAlertSettings((s) => ({ ...s, minutesAlertEnabled: e.target.checked }))
-                                }
-                                style={{ marginRight: '8px' }}
-                            />
-                            <span style={alertToggleLabel}>
-                                条件2: 直近{alertSettings.minutesThresholdDays}日間で{alertSettings.minutesThreshold}分未満で警告
-                            </span>
-                        </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                        {/* 条件1 */}
+                        <div style={alertConditionBlock}>
+                            <label style={alertToggleRow}>
+                                <input
+                                    type="checkbox"
+                                    checked={subjectAlertSettings.touchAlertEnabled}
+                                    onChange={(e) =>
+                                        setLocalSubjectAlertSettings((s) => ({ ...s, touchAlertEnabled: e.target.checked }))
+                                    }
+                                    style={{ marginRight: '8px' }}
+                                />
+                                <span style={alertToggleLabel}>条件1: 未接触アラート</span>
+                            </label>
+                            {subjectAlertSettings.touchAlertEnabled && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '24px' }}>
+                                    <div style={alertInputRow}>
+                                        <span style={alertUnit}>直近</span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={30}
+                                            value={subjectAlertSettings.thresholdDays}
+                                            onChange={(e) =>
+                                                setLocalSubjectAlertSettings((s) => ({ ...s, thresholdDays: Number(e.target.value) }))
+                                            }
+                                            style={alertNumberInput}
+                                        />
+                                        <span style={alertUnit}>日間未接触で警告</span>
+                                    </div>
+                                    <label style={alertToggleRow}>
+                                        <input
+                                            type="checkbox"
+                                            checked={subjectAlertSettings.includeUntouched}
+                                            onChange={(e) =>
+                                                setLocalSubjectAlertSettings((s) => ({ ...s, includeUntouched: e.target.checked }))
+                                            }
+                                            style={{ marginRight: '8px' }}
+                                        />
+                                        <span style={alertUnit}>未学習の科目も対象にする</span>
+                                    </label>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 条件2 */}
+                        <div style={alertConditionBlock}>
+                            <label style={alertToggleRow}>
+                                <input
+                                    type="checkbox"
+                                    checked={subjectAlertSettings.minutesAlertEnabled}
+                                    onChange={(e) =>
+                                        setLocalSubjectAlertSettings((s) => ({ ...s, minutesAlertEnabled: e.target.checked }))
+                                    }
+                                    style={{ marginRight: '8px' }}
+                                />
+                                <span style={alertToggleLabel}>条件2: 学習時間不足アラート</span>
+                            </label>
+                            {subjectAlertSettings.minutesAlertEnabled && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '24px' }}>
+                                    <div style={alertInputRow}>
+                                        <span style={alertUnit}>直近</span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={30}
+                                            value={subjectAlertSettings.minutesThresholdDays}
+                                            onChange={(e) =>
+                                                setLocalSubjectAlertSettings((s) => ({ ...s, minutesThresholdDays: Number(e.target.value) }))
+                                            }
+                                            style={alertNumberInput}
+                                        />
+                                        <span style={alertUnit}>日間で</span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={600}
+                                            value={subjectAlertSettings.minutesThreshold}
+                                            onChange={(e) =>
+                                                setLocalSubjectAlertSettings((s) => ({ ...s, minutesThreshold: Number(e.target.value) }))
+                                            }
+                                            style={alertNumberInput}
+                                        />
+                                        <span style={alertUnit}>分未満で警告</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <button
                                 style={subjectUi.button}
@@ -422,6 +484,10 @@ const ftDot: React.CSSProperties = { width: '6px', height: '6px', borderRadius: 
 const ftLabelText: React.CSSProperties = { fontSize: '10px', color: 'rgba(55,53,47,0.5)' }
 const ftLabelPct: React.CSSProperties = { fontSize: '10px', fontWeight: 700 }
 
+const alertConditionBlock: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '8px' }
 const alertToggleRow: React.CSSProperties = { display: 'flex', alignItems: 'center', cursor: 'pointer' }
-const alertToggleLabel: React.CSSProperties = { fontSize: '13px', color: 'rgba(55,53,47,0.8)' }
+const alertToggleLabel: React.CSSProperties = { fontSize: '13px', fontWeight: 600, color: 'rgba(55,53,47,0.8)' }
+const alertInputRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px' }
+const alertNumberInput: React.CSSProperties = { width: '52px', padding: '4px 6px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.12)', fontSize: '13px', textAlign: 'center' }
+const alertUnit: React.CSSProperties = { fontSize: '12px', color: 'rgba(55,53,47,0.6)' }
 const alertSavedText: React.CSSProperties = { fontSize: '12px', color: '#19a576' }

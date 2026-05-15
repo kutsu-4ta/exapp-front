@@ -10,21 +10,22 @@ export type SubjectMonthlyGoal = {
 
 export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 
-export type AlertSettings = {
+export type SubjectAlertSettings = {
+  touchAlertEnabled: boolean
   thresholdDays: number
   includeUntouched: boolean
+  minutesAlertEnabled: boolean
   minutesThresholdDays: number
   minutesThreshold: number
 }
 
-export type SubjectAlertSettings = {
-  touchAlertEnabled: boolean
-  minutesAlertEnabled: boolean
-}
-
 export const DEFAULT_SUBJECT_ALERT_SETTINGS: SubjectAlertSettings = {
   touchAlertEnabled: true,
+  thresholdDays: 3,
+  includeUntouched: true,
   minutesAlertEnabled: false,
+  minutesThresholdDays: 7,
+  minutesThreshold: 30,
 }
 
 export type SubCategory = {
