@@ -305,18 +305,6 @@ export default function SubjectPage() {
                     )}
                 </section>
 
-                {/* SUB CATEGORIES */}
-                <section>
-                    <SubCategoryList
-                        subjectName={subjectName}
-                        subCategories={subCategories}
-                        setSubCategories={setSubCategories}
-                        addSubCategory={addSubCategory}
-                        updateSubCategory={updateSubCategory}
-                        deleteSubCategory={deleteSubCategory}
-                    />
-                </section>
-
                 {/* ALERT SETTINGS */}
                 <section style={subjectUi.card}>
                     <h3 style={subjectUi.title}>ALERT</h3>
@@ -351,17 +339,6 @@ export default function SubjectPage() {
                                         />
                                         <span style={alertUnit}>日間未接触で警告</span>
                                     </div>
-                                    <label style={alertToggleRow}>
-                                        <input
-                                            type="checkbox"
-                                            checked={subjectAlertSettings.includeUntouched}
-                                            onChange={(e) =>
-                                                setLocalSubjectAlertSettings((s) => ({ ...s, includeUntouched: e.target.checked }))
-                                            }
-                                            style={{ marginRight: '8px' }}
-                                        />
-                                        <span style={alertUnit}>未学習の科目も対象にする</span>
-                                    </label>
                                 </div>
                             )}
                         </div>
@@ -421,6 +398,27 @@ export default function SubjectPage() {
                             {alertSaved && <span style={alertSavedText}>保存しました</span>}
                         </div>
                     </div>
+                </section>
+
+                {/* SUB CATEGORIES */}
+                <section style={subjectUi.card}>
+                    <details style={subCategoryDetails}>
+                        <summary style={subCategorySummary}>
+                            <span>SUB CATEGORIES</span>
+                            <span style={summaryHint}>開く</span>
+                        </summary>
+
+                        <div style={subCategoryContent}>
+                            <SubCategoryList
+                                subjectName={subjectName}
+                                subCategories={subCategories}
+                                setSubCategories={setSubCategories}
+                                addSubCategory={addSubCategory}
+                                updateSubCategory={updateSubCategory}
+                                deleteSubCategory={deleteSubCategory}
+                            />
+                        </div>
+                    </details>
                 </section>
 
                 {/* DANGER */}
@@ -491,6 +489,32 @@ const ftBarTrack: React.CSSProperties = {
     display: 'flex',
     backgroundColor: 'rgba(55,53,47,0.05)',
     marginBottom: '8px',
+}
+const subCategoryDetails: React.CSSProperties = {
+    width: '100%',
+}
+
+const subCategorySummary: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    cursor: 'pointer',
+    listStyle: 'none',
+    fontSize: '12px',
+    fontWeight: 700,
+    color: 'rgba(55,53,47,0.6)',
+    letterSpacing: '0.05em',
+    userSelect: 'none',
+}
+
+const subCategoryContent: React.CSSProperties = {
+    marginTop: '16px',
+}
+
+const summaryHint: React.CSSProperties = {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: 'rgba(55,53,47,0.35)',
 }
 const ftLabelRow: React.CSSProperties = { display: 'flex', gap: '10px', flexWrap: 'wrap' }
 const ftLabelCell: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '4px' }

@@ -30,8 +30,8 @@ export function StrategySection({
                     <div style={block}>
                         <label style={label}>最終目標</label>
 
-                        <input
-                            style={input}
+                        <textarea
+                            style={textarea}
                             value={settings.finalTarget ?? ''}
                             onChange={(e) =>
                                 setSettings((s: any) => ({
@@ -41,6 +41,7 @@ export function StrategySection({
                             }
                             onBlur={() => saveSubjectSettings(subjectName, settings)}
                             placeholder="ゴール設定"
+                            rows={2}
                         />
                     </div>
                 )}
@@ -66,12 +67,16 @@ const label: React.CSSProperties = {
     display: "block",
 }
 
-const input: React.CSSProperties = {
-    width: "100%",
-    border: "none",
-    outline: "none",
-    fontSize: "14px",
+const textarea: React.CSSProperties = {
+    width: '100%',
+    border: 'none',
+    outline: 'none',
+    fontSize: '14px',
     fontWeight: 600,
-    background: "transparent",
+    background: 'transparent',
+    resize: 'none',
+    lineHeight: 1.6,
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'break-word',
 }
 

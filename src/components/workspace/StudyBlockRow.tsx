@@ -249,7 +249,6 @@ export function StudyBlockRow({
                     value={subCategoryName}
                     onChange={(e) => {
                         setSubCategoryName(e.target.value)
-                        scheduleAutoSave()
                     }}
                     onBlur={save}
                     placeholder="小分類"

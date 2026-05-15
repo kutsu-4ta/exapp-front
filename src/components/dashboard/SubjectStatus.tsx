@@ -1,4 +1,5 @@
 import {useState} from 'react'
+import type {AlertStatusItem} from '../../types/workspace'
 import {daysAgo, formatHours} from '../../types/workspace'
 import {useNavigate} from 'react-router-dom'
 
@@ -13,6 +14,18 @@ type Props = {
   subjectMinutes: MinuteEntry[]
   allSubjectMinutes?: MinuteEntry[]
   todaySubjectMinutes?: MinuteEntry[]
+  alertItems?: AlertStatusItem[]
+}
+
+function formatDiff(diffMinutes: number): string {
+  const abs = Math.abs(diffMinutes)
+  const sign = diffMinutes >= 0 ? '+' : '−'
+  if (abs >= 60) {
+    const h = Math.floor(abs / 60)
+    const m = abs % 60
+    return m === 0 ? `${sign}${h}h` : `${sign}${h}h${m}m`
+  }
+  return `${sign}${abs}m`
 }
 
 export function SubjectStatus({
@@ -20,10 +33,13 @@ export function SubjectStatus({
   subjectMinutes,
   allSubjectMinutes = [],
   todaySubjectMinutes = [],
+  alertItems = [],
 }: Props) {
   const navigate = useNavigate()
   const [mode, setMode] = useState<ViewMode>('status')
   const [period, setPeriod] = useState<Period>('all')
+
+  const alertMap = Object.fromEntries(alertItems.map((a) => [a.subject, a]))
 
   const currentMinutes =
     period === 'all' ? allSubjectMinutes : period === 'month' ? subjectMinutes : todaySubjectMinutes
@@ -96,6 +112,22 @@ export function SubjectStatus({
           timeRows.map((entry) => {
             const minutes = minuteMap[entry.subject] ?? 0
             const pct = Math.round((minutes / maxMinutes) * 100)
+
+            const alert = alertMap[entry.subject]
+            const alertEnabled = alert?.settings.minutesAlertEnabled ?? false
+            const threshold = alert?.settings.minutesThreshold ?? 0
+            const thresholdDays = alert?.settings.minutesThresholdDays ?? 7
+            const recentMinutes = alert?.recentMinutes ?? 0
+            const diff = recentMinutes - threshold
+            const isBelow = alertEnabled && diff < 0
+
+            const barColor = alertEnabled ? (isBelow ? '#eb5757' : '#19a576') : '#2383e2'
+            const timeColor = alertEnabled
+              ? isBelow
+                ? '#eb5757'
+                : '#19a576'
+              : 'rgba(55,53,47,0.45)'
+
             return (
               <div
                 key={entry.subject}
@@ -109,17 +141,37 @@ export function SubjectStatus({
                 </button>
                 <div className="flex-1 h-[5px] bg-[rgba(55,53,47,0.07)] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-n-blue rounded-full transition-all duration-300"
-                    style={{ width: `${pct}%` }}
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%`, backgroundColor: barColor }}
                   />
                 </div>
-                <span
-                  className="text-[12px] font-semibold tabular-nums shrink-0"
-                  style={{ color: 'rgba(55,53,47,0.45)', minWidth: '44px', textAlign: 'right' }}
-                >
-                  {formatHours(minutes)}
-                </span>
-                <PracticeBtn subject={entry.subject} navigate={navigate} />
+                <div className="shrink-0 text-right" style={{ minWidth: '44px' }}>
+                  <div
+                    className="text-[12px] font-semibold tabular-nums"
+                    style={{ color: timeColor }}
+                  >
+                    {formatHours(minutes)}
+                  </div>
+                  {alertEnabled && (
+                    <div
+                      className="text-[9px] font-medium tabular-nums"
+                      style={{ color: 'rgba(55,53,47,0.3)' }}
+                    >
+                      目標 {threshold}m/{thresholdDays}d
+                    </div>
+                  )}
+                </div>
+                {alertEnabled ? (
+                  <span
+                    className="text-[11px] font-bold shrink-0 tabular-nums"
+                    style={{ color: isBelow ? '#eb5757' : '#19a576', minWidth: '40px', textAlign: 'right' }}
+                  >
+                    {formatDiff(diff)}
+                  </span>
+                ) : (
+                  <span style={{ minWidth: '40px' }} />
+                )}
+                {/*<PracticeBtn subject={entry.subject} navigate={navigate} />*/}
               </div>
             )
           })}

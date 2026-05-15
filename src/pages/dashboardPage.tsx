@@ -634,6 +634,7 @@ export default function DashboardPage() {
             subjectMinutes={stats?.subjectMinutes ?? []}
             allSubjectMinutes={stats?.allSubjectMinutes ?? []}
             todaySubjectMinutes={todaySubjects}
+            alertItems={alertItems}
           />
         )}
 
