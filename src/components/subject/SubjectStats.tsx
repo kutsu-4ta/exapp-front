@@ -2,7 +2,7 @@ import {useMemo, useState} from "react"
 import type {FailureType, Flashcard} from "@/types/workspace.ts"
 import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx"
 import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts"
-import {subjectUi} from "@/styles/subjectUI.ts"
+import {PROF_COLORS, subjectUi} from "@/styles/subjectUI.ts"
 import {c} from "@/styles/notion.ts";
 
 type Props = {
@@ -34,12 +34,6 @@ export function SubjectStats({
     }
 
     const FAILURE_TYPES = ["定義", "解法", "ケアレス"] as const
-
-    const PROF_COLORS: Record<string, string> = {
-        "○": "#27ae60",
-        "△": "#f2ab26",
-        "×": "#eb5757",
-    }
 
     const { profCounts, weakCards, ftCounts, ftTotal } = useMemo(() => {
         const profCounts = { "○": 0, "△": 0, "×": 0 }

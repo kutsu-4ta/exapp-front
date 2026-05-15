@@ -9,6 +9,28 @@ export const SUBJECT_PALETTE = [
     { bg: 'rgba(230,126,34,0.1)', color: '#c0392b' },
 ]
 
+export function subjectPalette(subject: string) {
+    let h = 0
+    for (let i = 0; i < subject.length; i++) h = (h * 31 + subject.charCodeAt(i)) & 0xffff
+    return SUBJECT_PALETTE[h % SUBJECT_PALETTE.length]
+}
+
+export function subjectBadgeText(subject: string): string {
+    return subject.charAt(0)
+}
+
+export const PROF_STYLE: Record<string, { color: string; bg: string }> = {
+    '○': { color: '#19a576', bg: 'rgba(39,174,96,0.1)' },
+    '△': { color: '#f2ab26', bg: '#fff5e0' },
+    '×': { color: '#eb5757', bg: 'rgba(235,87,87,0.1)' },
+}
+
+export const PROF_COLORS: Record<string, string> = {
+    '○': PROF_STYLE['○'].color,
+    '△': PROF_STYLE['△'].color,
+    '×': PROF_STYLE['×'].color,
+}
+
 export const subjectUi = {
     page: {
         background: "#fafafa",

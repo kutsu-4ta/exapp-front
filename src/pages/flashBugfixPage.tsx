@@ -11,14 +11,8 @@ import {addStudySession, createDailyLog, fetchDailyLog} from '@/lib/api/workspac
 import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
-import {SUBJECT_PALETTE} from "@/styles/subjectUI.ts";
+import {subjectPalette} from "@/styles/subjectUI.ts";
 import {OPTION_LABELS} from "@/styles/practiceUI.ts";
-
-function subjectPalette(subject: string) {
-  let h = 0
-  for (let i = 0; i < subject.length; i++) h = (h * 31 + subject.charCodeAt(i)) & 0xffff
-  return SUBJECT_PALETTE[h % SUBJECT_PALETTE.length]
-}
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()

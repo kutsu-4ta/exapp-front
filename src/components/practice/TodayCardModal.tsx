@@ -2,18 +2,13 @@ import {useState} from 'react'
 import type {FailureType, Problem, ProblemInput, Proficiency} from '../../types/workspace'
 import {daysAgo, FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
+import {PROF_STYLE} from '@/styles/subjectUI.ts'
 
 interface Props {
   problem: Problem
   cardIndex: number
   totalCards: number
   onConfirm: (input: ProblemInput) => Promise<void>
-}
-
-const PROF_STYLE: Record<string, { color: string; bg: string }> = {
-  '○': { color: '#19a576', bg: 'rgba(39,174,96,0.1)' },
-  '△': { color: '#d48806', bg: '#fff5e0' },
-  '×': { color: '#eb5757', bg: 'rgba(235,87,87,0.1)' },
 }
 
 export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Props) {

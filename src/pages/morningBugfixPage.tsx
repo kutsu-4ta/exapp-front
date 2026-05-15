@@ -8,23 +8,9 @@ import {useTimer} from '@/context/TimerContext'
 import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
+import {subjectPalette} from "@/styles/subjectUI.ts";
 
 const OPTION_LABELS = ['ア', 'イ', 'ウ', 'エ']
-
-const SUBJECT_PALETTE = [
-  { bg: 'rgba(35,131,226,0.1)', color: '#2383e2' },
-  { bg: 'rgba(235,87,87,0.1)', color: '#eb5757' },
-  { bg: 'rgba(242,171,38,0.1)', color: '#d4920f' },
-  { bg: 'rgba(39,174,96,0.1)', color: '#19a576' },
-  { bg: 'rgba(155,89,182,0.1)', color: '#8e44ad' },
-  { bg: 'rgba(230,126,34,0.1)', color: '#c0392b' },
-]
-
-function subjectPalette(subject: string) {
-  let h = 0
-  for (let i = 0; i < subject.length; i++) h = (h * 31 + subject.charCodeAt(i)) & 0xffff
-  return SUBJECT_PALETTE[h % SUBJECT_PALETTE.length]
-}
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()

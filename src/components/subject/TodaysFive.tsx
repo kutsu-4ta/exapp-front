@@ -3,7 +3,7 @@ import {useEffect, useState} from "react";
 import type {Flashcard} from "@/types/workspace.ts";
 import {fetchFlashcards} from "@/lib/api/subjects.ts";
 import {c} from "@/styles/notion.ts";
-import {subjectUi} from "@/styles/subjectUI.ts";
+import {PROF_COLORS, subjectUi} from "@/styles/subjectUI.ts";
 
 export function TodaysFive({
                               subjectName,
@@ -14,13 +14,6 @@ export function TodaysFive({
 }) {
     const [todayCards, setTodayCards] = useState<Flashcard[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // 習熟度に応じた色定義
-    const PROF_COLORS: Record<string, string> = {
-        '○': '#27ae60',
-        '△': '#f2ab26',
-        '×': '#eb5757',
-    };
 
     useEffect(() => {
         setLoading(true);

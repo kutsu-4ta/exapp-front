@@ -1,5 +1,6 @@
 import type {Proficiency} from '@/types/workspace'
 import {PROFICIENCY_VALUES} from '@/types/workspace'
+export {PROF_COLORS} from '@/styles/subjectUI.ts'
 
 type Props =
     | {
@@ -108,8 +109,3 @@ export const COLOR_MAP = {
   },
 } as const
 
-export const PROF_COLORS: Record<string, string> = {
-  '○': '#27ae60',
-  '△': '#f2ab26',
-  '×': '#eb5757',
-}

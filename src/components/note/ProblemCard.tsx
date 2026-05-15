@@ -1,29 +1,45 @@
-import type {Problem, Proficiency} from '../../types/workspace'
+import type {Problem} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
+import {PROF_COLORS, subjectBadgeText, subjectPalette} from "@/styles/subjectUI.ts";
 
 type Props = {
   problem: Problem
   onClick?: () => void
 }
 
-const PROF_COLOR: Record<Proficiency, string> = {
-  '○': '#19a576',
-  '△': '#f2ab26',
-  '×': c.red,
-}
-
 export function ProblemCard({ problem, onClick }: Props) {
-  const profColor = PROF_COLOR[problem.proficiency] ?? c.textSub
+  const profColor = PROF_COLORS[problem.proficiency] ?? c.textSub
+  const badgeText = subjectBadgeText(problem.subject)
+  const palette = subjectPalette(problem.subject)
 
   return (
     <div style={card} onClick={onClick}>
       {/* SNS Header: SubCategory @Subject */}
       <div style={topRow}>
-        <span style={subCatMain}>{problem.subCategory || '全般'}</span>
-        <span style={subjectHandle}>@{problem.subject}</span>
+        <div
+            style={{
+              ...avatar,
+              backgroundColor: palette.bg,
+              color: "black",
+            }}
+        >
+          {badgeText}
+        </div>
+
+        <span style={userName}>
+    {problem.subCategory || '全般'}
+  </span>
+
+        <span style={userHandle}>
+    @{problem.material}_{problem.questionRef}
+  </span>
+
         <span style={dotSeparator}>·</span>
-        <span style={dateText}>{problem.solvedAt.replace(/-/g, '/')}</span>
+
+        <span style={dateText}>
+    {problem.solvedAt.replace(/-/g, '/')}
+  </span>
       </div>
 
       {/* Main Content (Note) */}
@@ -77,33 +93,7 @@ const card: React.CSSProperties = {
   flexDirection: 'column',
   gap: '8px',
 }
-
-const topRow: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'baseline',
-  gap: '4px',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-}
-
-const subCatMain: React.CSSProperties = {
-  fontSize: font.base,
-  fontWeight: 800,
-  color: c.text,
-}
-
-const subjectHandle: React.CSSProperties = {
-  fontSize: font.sm,
-  fontWeight: 400,
-  color: c.textSub,
-}
-
 const dotSeparator: React.CSSProperties = {
-  fontSize: font.sm,
-  color: c.textSub,
-}
-
-const dateText: React.CSSProperties = {
   fontSize: font.sm,
   color: c.textSub,
 }
@@ -157,4 +147,41 @@ const starText: React.CSSProperties = {
 const profText: React.CSSProperties = {
   fontSize: '18px',
   fontWeight: 900,
+}
+
+const topRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+}
+
+const userName: React.CSSProperties = {
+  fontSize: font.base,
+  fontWeight: 700,
+  color: c.text,
+}
+
+const userHandle: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textSub,
+}
+
+const dateText: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textSub,
+  marginLeft: 'auto',
+}
+const avatar: React.CSSProperties = {
+  width: '32px',
+  height: '32px',
+  borderRadius: '50%',
+  color: '#fff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '14px',
+  fontWeight: 800,
+  flexShrink: 0,
 }
