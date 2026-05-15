@@ -14,6 +14,7 @@ type Props = {
   onClose: () => void;
   onDelete: (id: number) => void;
   onUpdate: (problem: Problem) => void;
+  hideQuizzes?: boolean;
 };
 
 export function ProblemQuickModal({
@@ -21,6 +22,7 @@ export function ProblemQuickModal({
                                     onClose,
                                     onDelete,
                                     onUpdate,
+                                    hideQuizzes = false,
                                   }: Props) {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -55,10 +57,11 @@ export function ProblemQuickModal({
   }, []);
 
   useEffect(() => {
+    if (hideQuizzes) return
     fetchProblemQuizzes(problem.id)
       .then(setQuizzes)
       .catch(() => {});
-  }, [problem.id]);
+  }, [problem.id, hideQuizzes]);
 
   async function handleDeleteQuiz(quizId: number) {
     await deleteProblemQuiz(problem.id, quizId);
@@ -342,7 +345,7 @@ export function ProblemQuickModal({
             </div>
 
             {/* 良問クイズ */}
-            {quizzes.length > 0 && (
+            {!hideQuizzes && quizzes.length > 0 && (
               <div style={section}>
                 <button style={goodQuizBtn} onClick={handleStartGoodQuizSession}>
                   <span style={goodQuizBtnLabel}>★ 良問クイズ</span>
