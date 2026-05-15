@@ -55,6 +55,7 @@ export function ProblemEditModal({ problemId, onClose, initialProblem }: Props) 
         proficiency,
         failureTypes,
         isGoodQuestion: problem.isGoodQuestion,
+        isFormula: problem.isFormula,
         solvedAt: problem.solvedAt,
       })
       onClose()

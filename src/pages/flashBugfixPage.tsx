@@ -7,6 +7,8 @@ import {font} from '@/styles/notion'
 import {subjectPalette} from '@/styles/subjectUI'
 import {type QuizSessionMode, useQuizSession} from '@/hooks/useQuizSession'
 import {QuizSessionView} from '@/components/practice/QuizSessionView'
+import {useFlashCardSession} from '@/hooks/useFlashCardSession'
+import {FlashCardSessionView} from '@/components/practice/FlashCardSessionView'
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -16,41 +18,16 @@ function currentTimeSlot(): TimeSlot {
   return 'night'
 }
 
-export default function FlashBugfixPage() {
-  const { name: encodedName } = useParams<{ name: string }>()
-  const subjectName = decodeURIComponent(encodedName ?? '')
-  const navigate = useNavigate()
-  const location = useLocation()
+type PageState = {
+  config?: FlashBugfixConfig
+  preloadedSession?: MorningQuizSession
+  mode?: 'deg'
+  degConfig?: DegBugfixConfig
+} | null
 
-  type LocationState = {
-    config?: FlashBugfixConfig
-    preloadedSession?: MorningQuizSession
-    mode?: 'deg'
-    degConfig?: DegBugfixConfig
-  } | null
-  const locationState = location.state as LocationState
-  const config: FlashBugfixConfig = locationState?.config ?? {
-    failureTypes: [],
-    subCategoryIds: [],
-    touchedOrder: null,
-    limit: 5,
-    proficiency: ['△', '×'],
-  }
-  const preloadedSession = locationState?.preloadedSession ?? null
-  const isDeg = locationState?.mode === 'deg'
-  const degConfig = locationState?.degConfig ?? null
-
-  const quizMode: QuizSessionMode = preloadedSession
-    ? {type: 'preloaded', session: preloadedSession}
-    : isDeg && degConfig
-      ? {type: 'deg', config: degConfig}
-      : {type: 'flash', subjectName, config}
-
-  const session = useQuizSession(quizMode)
-  const { phase, setPhase, startTimeRef } = session
-
+function makeHeaderBadge(subjectName: string) {
   const palette = subjectPalette(subjectName)
-  const headerBadge = (
+  return (
     <span style={{
       fontSize: font.sm,
       fontWeight: 700,
@@ -62,6 +39,22 @@ export default function FlashBugfixPage() {
       {subjectName}
     </span>
   )
+}
+
+// ── 一問一答ビュー ────────────────────────────────────────────────────────────
+
+function MultipleChoiceView({
+  subjectName,
+  quizSessionMode,
+  isDeg,
+}: {
+  subjectName: string
+  quizSessionMode: QuizSessionMode
+  isDeg: boolean
+}) {
+  const navigate = useNavigate()
+  const session = useQuizSession(quizSessionMode)
+  const {phase, setPhase, startTimeRef} = session
 
   const handleComplete = async () => {
     if (phase === 'saving') return
@@ -89,8 +82,94 @@ export default function FlashBugfixPage() {
     <QuizSessionView
       {...session}
       handleComplete={handleComplete}
-      headerBadge={headerBadge}
+      headerBadge={makeHeaderBadge(subjectName)}
       hideQuizzes={isDeg}
+    />
+  )
+}
+
+// ── 単語カードビュー ──────────────────────────────────────────────────────────
+
+function WordCardView({
+  subjectName,
+  config,
+}: {
+  subjectName: string
+  config: FlashBugfixConfig
+}) {
+  const navigate = useNavigate()
+  const cardSession = useFlashCardSession(subjectName, config)
+  const {phase, setPhase, startTimeRef} = cardSession
+
+  const handleComplete = async () => {
+    if (phase === 'saving') return
+    setPhase('saving')
+    try {
+      const elapsedMs = Date.now() - startTimeRef.current
+      const totalMinutes = Math.max(1, Math.ceil(elapsedMs / 60_000))
+      await addStudySession({
+        dailyLogDate: todayString(),
+        subject: subjectName,
+        material: 'FlashBugfix',
+        subCategory: null,
+        minutes: totalMinutes,
+        timeSlot: currentTimeSlot(),
+        memo: null,
+      })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      navigate(`/subjects/${encodeURIComponent(subjectName)}`)
+    }
+  }
+
+  return (
+    <FlashCardSessionView
+      {...cardSession}
+      handleComplete={handleComplete}
+      headerBadge={makeHeaderBadge(subjectName)}
+    />
+  )
+}
+
+// ── メインページ ──────────────────────────────────────────────────────────────
+
+export default function FlashBugfixPage() {
+  const {name: encodedName} = useParams<{name: string}>()
+  const subjectName = decodeURIComponent(encodedName ?? '')
+  const location = useLocation()
+
+  const locationState = location.state as PageState
+  const config: FlashBugfixConfig = locationState?.config ?? {
+    failureTypes: [],
+    subCategoryIds: [],
+    touchedOrder: null,
+    limit: 5,
+    proficiency: ['△', '×'],
+    quizMode: 'multiple_choice',
+    formulaOnly: false,
+  }
+  const preloadedSession = locationState?.preloadedSession ?? null
+  const isDeg = locationState?.mode === 'deg'
+  const degConfig = locationState?.degConfig ?? null
+
+  const isWordCard = !preloadedSession && !isDeg && config.quizMode === 'word_card'
+
+  if (isWordCard) {
+    return <WordCardView subjectName={subjectName} config={config} />
+  }
+
+  const quizSessionMode: QuizSessionMode = preloadedSession
+    ? {type: 'preloaded', session: preloadedSession}
+    : isDeg && degConfig
+      ? {type: 'deg', config: degConfig}
+      : {type: 'flash', subjectName, config}
+
+  return (
+    <MultipleChoiceView
+      subjectName={subjectName}
+      quizSessionMode={quizSessionMode}
+      isDeg={isDeg}
     />
   )
 }

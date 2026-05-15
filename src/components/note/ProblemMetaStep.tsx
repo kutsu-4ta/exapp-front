@@ -58,6 +58,8 @@ export function ProblemMetaStep({
         (initial?.proficiency as Proficiency) ?? '×'
     )
 
+    const [isFormula, setIsFormula] = useState(initial?.isFormula ?? false)
+
     const [loading, setLoading] = useState(false)
     const [analyzing, setAnalyzing] = useState(false)
     const [loadingMsgIdx, setLoadingMsgIdx] = useState<number>(0)
@@ -97,6 +99,7 @@ export function ProblemMetaStep({
             proficiency,
             failureTypes,
             isGoodQuestion: false,
+            isFormula,
             solvedAt: todayString(),
         }
     }
@@ -229,6 +232,27 @@ export function ProblemMetaStep({
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: '12px' }}>
                 <FailureTypeSelector value={failureTypes} onChange={setFailureTypes} />
+            </div>
+
+            <div style={{ marginTop: '10px' }}>
+                <button
+                    type="button"
+                    onClick={() => setIsFormula((v) => !v)}
+                    style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        borderColor: isFormula ? 'rgba(35,131,226,0.4)' : 'rgba(55,53,47,0.15)',
+                        backgroundColor: isFormula ? 'rgba(35,131,226,0.07)' : 'transparent',
+                        color: isFormula ? 'rgba(35,131,226,1)' : 'rgba(55,53,47,0.4)',
+                        transition: 'all 0.15s',
+                    }}
+                >
+                    公式
+                </button>
             </div>
 
             {error && <p style={errorStyle}>{error}</p>}

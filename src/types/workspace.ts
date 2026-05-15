@@ -164,6 +164,7 @@ export type Problem = {
   proficiency: Proficiency
   failureTypes: FailureType[]
   isGoodQuestion: boolean
+  isFormula: boolean
   solvedAt: string // YYYY-MM-DD
   lastTouchedAt: string | null // ISO datetime, updated on review
   createdAt: string
@@ -217,6 +218,7 @@ export type ProblemInput = {
   proficiency: string
   failureTypes: string[]
   isGoodQuestion: boolean
+  isFormula: boolean
   solvedAt: string
 }
 

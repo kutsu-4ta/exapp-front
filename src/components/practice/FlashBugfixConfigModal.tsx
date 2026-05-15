@@ -25,6 +25,8 @@ export function FlashBugfixConfigModal({
   const [touchedOrder, setTouchedOrder] = useState<'recent' | 'old' | null>(null)
   const [limit, setLimit] = useState(5)
   const [proficiency, setProficiency] = useState<Proficiency[]>(['△', '×'])
+  const [quizMode, setQuizMode] = useState<'multiple_choice' | 'word_card'>('multiple_choice')
+  const [formulaOnly, setFormulaOnly] = useState(false)
 
   const toggleSubCat = (id: number) =>
       setSubCategoryIds((prev) =>
@@ -54,6 +56,34 @@ export function FlashBugfixConfigModal({
             </div>
 
             <div style={body}>
+              <div style={fieldGroup}>
+                <p style={fieldLabel}>出題形式</p>
+                <div style={chipWrap}>
+                  <Chip
+                      selected={quizMode === 'multiple_choice'}
+                      onClick={() => setQuizMode('multiple_choice')}
+                  >
+                    一問一答
+                  </Chip>
+                  <Chip
+                      selected={quizMode === 'word_card'}
+                      onClick={() => setQuizMode('word_card')}
+                  >
+                    単語カード
+                  </Chip>
+                </div>
+                {quizMode === 'word_card' && (
+                    <div style={chipWrap}>
+                      <Chip
+                          selected={formulaOnly}
+                          onClick={() => setFormulaOnly((v) => !v)}
+                      >
+                        公式チェック
+                      </Chip>
+                    </div>
+                )}
+              </div>
+
               {subCategories.length > 0 && (
                   <div style={fieldGroup}>
                     <p style={fieldLabel}>論点</p>
@@ -137,6 +167,8 @@ export function FlashBugfixConfigModal({
                         touchedOrder,
                         limit,
                         proficiency,
+                        quizMode,
+                        formulaOnly: quizMode === 'word_card' ? formulaOnly : false,
                       })
                   }
               >

@@ -38,6 +38,8 @@ export type FlashBugfixConfig = {
   touchedOrder: 'recent' | 'old' | null
   limit: number
   proficiency: string[]
+  quizMode: 'multiple_choice' | 'word_card'
+  formulaOnly: boolean
 }
 
 export async function fetchFlashBugfix(
@@ -57,6 +59,23 @@ export async function fetchFlashBugfix(
 
   const res = await apiFetch(`/api/morning-bugfix?${q}`)
   if (!res.ok) throw new Error('クイズの取得に失敗しました')
+  return res.json()
+}
+
+export async function fetchFlashCard(
+  subject: string,
+  config: FlashBugfixConfig
+): Promise<MorningQuizSession> {
+  const q = new URLSearchParams({subject})
+  config.failureTypes.forEach((ft) => q.append('failureTypes[]', ft))
+  config.subCategoryIds.forEach((id) => q.append('subCategoryIds[]', String(id)))
+  config.proficiency.forEach((p) => q.append('proficiency[]', p))
+  if (config.touchedOrder) q.set('touchedOrder', config.touchedOrder)
+  q.set('limit', String(config.limit))
+  if (config.formulaOnly) q.set('formulaOnly', 'true')
+
+  const res = await apiFetch(`/api/flash-card?${q}`)
+  if (!res.ok) throw new Error('カードの取得に失敗しました')
   return res.json()
 }
 
