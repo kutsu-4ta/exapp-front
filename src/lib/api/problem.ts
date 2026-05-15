@@ -74,14 +74,14 @@ export async function addProblemQuiz(id: number, input: ProblemQuizInput): Promi
     method: 'POST',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('良問の登録に失敗しました')
+  if (!res.ok) throw new Error('クイズの登録に失敗しました')
   return res.json()
 }
 
 // DELETE /api/problems/:id/quizzes/:quizId
 export async function deleteProblemQuiz(id: number, quizId: number): Promise<void> {
   const res = await apiFetch(`/api/problems/${id}/quizzes/${quizId}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('良問の削除に失敗しました')
+  if (!res.ok) throw new Error('クイズの削除に失敗しました')
 }
 
 // POST /api/ai/analysis — multipart/form-data で画像を送信し、解析済み Problem を返す

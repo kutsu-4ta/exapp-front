@@ -73,7 +73,7 @@ export async function fetchDegBugfix(config: DegBugfixConfig): Promise<MorningQu
   const res = await apiFetch(`/api/deg-bugfix?${q}`)
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.message ?? '良問クイズの取得に失敗しました')
+    throw new Error(body.message ?? '保存済みクイズの取得に失敗しました')
   }
   return res.json()
 }

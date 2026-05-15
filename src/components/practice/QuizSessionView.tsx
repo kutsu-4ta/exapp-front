@@ -253,7 +253,7 @@ export function QuizSessionView({
               style={{ ...goodQuestionBtn, ...(isMarked ? goodQuestionBtnSaved : {}) }}
               onClick={handleToggleMark}
             >
-              {isMarked ? '★ 良問' : '☆ 良問'}
+              {isMarked ? '★ 保存済み' : '☆ 保存する'}
             </button>
             <button style={nextBtn} onClick={handleNext}>
               {currentIdx + 1 >= total ? '結果を見る' : '次の問題'}

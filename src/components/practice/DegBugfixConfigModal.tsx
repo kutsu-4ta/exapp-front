@@ -22,7 +22,7 @@ export function DegBugfixConfigModal({ subjects, initialSubject, onClose, onStar
           <div style={sheetHeader}>
             <div>
               <p style={modalTitle}>DegBugfix</p>
-              <p style={subjectLabel}>保存済みの良問クイズで練習</p>
+              <p style={subjectLabel}>保存済みのクイズで練習</p>
             </div>
             <button style={closeBtn} onClick={onClose}>×</button>
           </div>
