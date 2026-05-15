@@ -182,13 +182,9 @@ export function ProblemQuickModal({
 
             <div style={headerRight}>
               {(isSaving || saveSuccessVisible) && (
-                  <span
-                      style={
-                        isSaving ? saveLabelSaving : saveLabelSuccess
-                      }
-                  >
-                {isSaving ? "保存中…" : "自動保存済み"}
-              </span>
+                  <span style={isSaving ? saveLabelSaving : saveLabelSuccess}>
+              {isSaving ? "保存中…" : "自動保存済み"}
+            </span>
               )}
 
               <button
@@ -242,13 +238,14 @@ export function ProblemQuickModal({
                   </>
               ) : (
                   <>
-                <span style={subjectTag}>
-                  {problem.subject}
-                </span>
+              <span style={subjectTag}>
+                {problem.subject}
+              </span>
+
                     <span style={subCatTag}>
-                  {problem.materialName}{" "}
-                      {problem.questionRef}
-                </span>
+                {problem.materialName} {problem.questionRef}
+              </span>
+
                     {problem.isGoodQuestion && (
                         <span style={starTag}>★ 良問</span>
                     )}
@@ -276,17 +273,17 @@ export function ProblemQuickModal({
             <div style={section}>
               {editing ? (
                   <>
-                <textarea
-                    style={factorTextarea}
-                    value={draft.defeatReason ?? ""}
-                    onChange={(e) =>
-                        updateDraft(
-                            "defeatReason",
-                            e.target.value
-                        )
-                    }
-                    placeholder="敗因"
-                />
+              <textarea
+                  style={factorTextarea}
+                  value={draft.defeatReason ?? ""}
+                  onChange={(e) =>
+                      updateDraft(
+                          "defeatReason",
+                          e.target.value
+                      )
+                  }
+                  placeholder="敗因"
+              />
 
                     <FailureTypeSelector
                         value={draft.failureTypes}
@@ -326,8 +323,8 @@ export function ProblemQuickModal({
                                   key={ft}
                                   style={pill}
                               >
-                        {ft}
-                      </span>
+                      {ft}
+                    </span>
                           ))}
                         </div>
                     )}
@@ -343,31 +340,6 @@ export function ProblemQuickModal({
                   </>
               )}
             </div>
-
-            {/* 良問クイズ */}
-            {!hideQuizzes && quizzes.length > 0 && (
-              <div style={section}>
-                <button style={goodQuizBtn} onClick={handleStartGoodQuizSession}>
-                  <span style={goodQuizBtnLabel}>★ 良問クイズ</span>
-                  <span style={goodQuizBtnCount}>{quizzes.length}問</span>
-                  <span style={goodQuizBtnArrow}>→</span>
-                </button>
-                <div style={quizList}>
-                  {quizzes.map((q) => (
-                    <div key={q.id} style={quizRow}>
-                      <span style={quizRowText}>{q.question}</span>
-                      <button
-                        style={quizDeleteBtn}
-                        onClick={() => handleDeleteQuiz(q.id)}
-                        aria-label="削除"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* NOTE */}
             <div style={section}>
@@ -395,8 +367,8 @@ export function ProblemQuickModal({
                                 color: "#19a576",
                               }}
                           >
-                      ✓
-                    </span>
+                    ✓
+                  </span>
                       )}
                     </button>
                   </div>
@@ -406,9 +378,9 @@ export function ProblemQuickModal({
                   <textarea
                       value={note}
                       onChange={(e) => {
-                        const v = e.target.value;
-                        setNote(v);
-                        scheduleSave(v);
+                        const v = e.target.value
+                        setNote(v)
+                        scheduleSave(v)
                       }}
                       style={noteTextarea}
                       placeholder="ノートをとる..."
@@ -421,6 +393,46 @@ export function ProblemQuickModal({
                   </div>
               )}
             </div>
+
+            {/* 良問クイズ ← bottomへ移動 */}
+            {!hideQuizzes && quizzes.length > 0 && (
+                <div style={section}>
+                  <button
+                      style={goodQuizBtn}
+                      onClick={handleStartGoodQuizSession}
+                  >
+              <span style={goodQuizBtnLabel}>
+                保存済み問題
+              </span>
+                    <span style={goodQuizBtnCount}>
+                {quizzes.length}問
+              </span>
+                    <span style={goodQuizBtnArrow}>
+                →
+              </span>
+                  </button>
+
+                  <div style={quizList}>
+                    {quizzes.map((q) => (
+                        <div key={q.id} style={quizRow}>
+                  <span style={quizRowText}>
+                    {q.question}
+                  </span>
+
+                          <button
+                              style={quizDeleteBtn}
+                              onClick={() =>
+                                  handleDeleteQuiz(q.id)
+                              }
+                              aria-label="削除"
+                          >
+                            ×
+                          </button>
+                        </div>
+                    ))}
+                  </div>
+                </div>
+            )}
 
             <div style={{ paddingBottom: 32 }}>
               <LongPressButton
