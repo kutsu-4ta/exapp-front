@@ -1,5 +1,4 @@
 import {useNavigate, useParams} from "react-router-dom";
-import {useSettingsStore} from "@/lib/store/settings.ts";
 import {useEffect, useState} from "react";
 import {addSubCategory, deleteSubCategory, updateSubCategory} from "@/lib/api/subcategory.ts";
 import {SubjectDangerZone} from "@/components/subject/SubjectDangerZone.tsx";
@@ -16,8 +15,11 @@ import {SubCategoryList} from "@/components/subject/SubCategoryList.tsx";
 import {SubjectHeader} from "@/components/subject/SubjectHeader.tsx";
 import {TodaysFive} from "@/components/subject/TodaysFive.tsx";
 import {SubjectActivity} from "@/components/subject/SubjectActivity.tsx";
-import type {FailureType, Flashcard, SubjectSettings} from "@/types/workspace.ts";
+import type {FailureType, Flashcard, SubjectAlertSettings, SubjectSettings} from "@/types/workspace.ts";
+import {DEFAULT_SUBJECT_ALERT_SETTINGS} from "@/types/workspace.ts";
 import {subjectUi} from "@/styles/subjectUI.ts";
+import {fetchSubjectAlertSettings, updateSubjectAlertSettings} from "@/lib/api/subjectAlertSettings.ts";
+import {useSettingsStore} from "@/lib/store/settings.ts";
 import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts";
 import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx";
 import {StrategySection} from "@/components/subject/StrategySection.tsx";
@@ -45,6 +47,12 @@ export default function SubjectPage() {
 
     const [settings, setSettings] = useState<SubjectSettings>({ finalTarget: null })
     const [settingsLoaded, setSettingsLoaded] = useState(false)
+
+    const setSubjectAlertSettings = useSettingsStore((s) => s.setSubjectAlertSettings)
+    const alertSettings = useSettingsStore((s) => s.alertSettings)
+    const [subjectAlertSettings, setLocalSubjectAlertSettings] = useState<SubjectAlertSettings>(DEFAULT_SUBJECT_ALERT_SETTINGS)
+    const [alertSaving, setAlertSaving] = useState(false)
+    const [alertSaved, setAlertSaved] = useState(false)
 
     const [statsLoading, setStatsLoading] = useState(false);
 
@@ -90,6 +98,27 @@ export default function SubjectPage() {
             })
             .catch(() => setSettingsLoaded(true))
     }, [subjectName])
+
+    useEffect(() => {
+        fetchSubjectAlertSettings(subjectName)
+            .then((s) => setLocalSubjectAlertSettings(s))
+            .catch(() => {})
+    }, [subjectName])
+
+    const handleAlertSave = async () => {
+        setAlertSaving(true)
+        try {
+            const saved = await updateSubjectAlertSettings(subjectName, subjectAlertSettings)
+            setLocalSubjectAlertSettings(saved)
+            setSubjectAlertSettings(subjectName, saved)
+            setAlertSaved(true)
+            setTimeout(() => setAlertSaved(false), 2000)
+        } catch {
+            // silent fail
+        } finally {
+            setAlertSaving(false)
+        }
+    }
 
     useEffect(() => {
         setStatsLoading(true)
@@ -270,6 +299,49 @@ export default function SubjectPage() {
                     />
                 </section>
 
+                {/* ALERT SETTINGS */}
+                <section style={subjectUi.card}>
+                    <h3 style={subjectUi.title}>ALERT</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <label style={alertToggleRow}>
+                            <input
+                                type="checkbox"
+                                checked={subjectAlertSettings.touchAlertEnabled}
+                                onChange={(e) =>
+                                    setLocalSubjectAlertSettings((s) => ({ ...s, touchAlertEnabled: e.target.checked }))
+                                }
+                                style={{ marginRight: '8px' }}
+                            />
+                            <span style={alertToggleLabel}>
+                                条件1: 直近{alertSettings.thresholdDays}日間未接触で警告
+                            </span>
+                        </label>
+                        <label style={alertToggleRow}>
+                            <input
+                                type="checkbox"
+                                checked={subjectAlertSettings.minutesAlertEnabled}
+                                onChange={(e) =>
+                                    setLocalSubjectAlertSettings((s) => ({ ...s, minutesAlertEnabled: e.target.checked }))
+                                }
+                                style={{ marginRight: '8px' }}
+                            />
+                            <span style={alertToggleLabel}>
+                                条件2: 直近{alertSettings.minutesThresholdDays}日間で{alertSettings.minutesThreshold}分未満で警告
+                            </span>
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <button
+                                style={subjectUi.button}
+                                onClick={handleAlertSave}
+                                disabled={alertSaving}
+                            >
+                                {alertSaving ? '保存中...' : '保存'}
+                            </button>
+                            {alertSaved && <span style={alertSavedText}>保存しました</span>}
+                        </div>
+                    </div>
+                </section>
+
                 {/* DANGER */}
                 <section>
                     <SubjectDangerZone
@@ -349,3 +421,7 @@ const ftLabelCell: React.CSSProperties = { display: 'flex', alignItems: 'center'
 const ftDot: React.CSSProperties = { width: '6px', height: '6px', borderRadius: '50%' }
 const ftLabelText: React.CSSProperties = { fontSize: '10px', color: 'rgba(55,53,47,0.5)' }
 const ftLabelPct: React.CSSProperties = { fontSize: '10px', fontWeight: 700 }
+
+const alertToggleRow: React.CSSProperties = { display: 'flex', alignItems: 'center', cursor: 'pointer' }
+const alertToggleLabel: React.CSSProperties = { fontSize: '13px', color: 'rgba(55,53,47,0.8)' }
+const alertSavedText: React.CSSProperties = { fontSize: '12px', color: '#19a576' }

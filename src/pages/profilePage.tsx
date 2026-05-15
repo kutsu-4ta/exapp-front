@@ -4,7 +4,6 @@ import {useAuthStore} from '../lib/store/auth'
 import {useSettingsStore} from '../lib/store/settings'
 import {logout as apiLogout} from '../lib/api/authenticate'
 import {deleteMaterial, renameMaterial} from '../lib/api/materials'
-import {updateAlertSettings} from '../lib/api/alertSettings'
 import {backBtn, c, font, pageHeading} from '../styles/notion'
 import {fetchUserProfile, updateUserProfile} from '@/lib/api/profile'
 import {fetchGeminiSettings, GEMINI_MODEL_OPTIONS, type GeminiModel, updateGeminiSettings,} from '@/lib/api/gemini'
@@ -18,8 +17,6 @@ export default function ProfilePage() {
 
   const materials = useSettingsStore((s) => s.materials)
   const setMaterials = useSettingsStore((s) => s.setMaterials)
-  const alertSettings = useSettingsStore((s) => s.alertSettings)
-  const setAlertSettings = useSettingsStore((s) => s.setAlertSettings)
   const loadAlertSettings = useSettingsStore((s) => s.loadAlertSettings)
 
   // ── User Profile settings (General) ──────────────────────────────────────
@@ -57,13 +54,6 @@ export default function ProfilePage() {
   const [materialLoading, setMaterialLoading] = useState(false)
   const materialEditRef = useRef<HTMLInputElement>(null)
 
-  // ── Alert settings ───────────────────────────────────────────────────────
-  const [alertThreshold, setAlertThreshold] = useState(alertSettings.thresholdDays)
-  const [alertIncludeUntouched, setAlertIncludeUntouched] = useState(alertSettings.includeUntouched)
-  const [alertError, setAlertError] = useState<string | null>(null)
-  const [alertLoading, setAlertLoading] = useState(false)
-  const [alertSaved, setAlertSaved] = useState(false)
-
   // Initial Load
   useEffect(() => {
     const loadProfile = async () => {
@@ -97,11 +87,6 @@ export default function ProfilePage() {
       })
       .catch(() => {})
   }, [])
-
-  useEffect(() => {
-    setAlertThreshold(alertSettings.thresholdDays)
-    setAlertIncludeUntouched(alertSettings.includeUntouched)
-  }, [alertSettings])
 
   useEffect(() => {
     if (editingMaterial !== null) materialEditRef.current?.focus()
@@ -217,27 +202,6 @@ export default function ProfilePage() {
       setMaterialError(e instanceof Error ? e.message : '削除に失敗しました')
     } finally {
       setMaterialLoading(false)
-    }
-  }
-
-  // ── Alert settings handler ───────────────────────────────────────────────
-  const handleAlertSave = async () => {
-    if (alertThreshold < 1) return
-    setAlertLoading(true)
-    setAlertError(null)
-    setAlertSaved(false)
-    try {
-      const saved = await updateAlertSettings({
-        thresholdDays: alertThreshold,
-        includeUntouched: alertIncludeUntouched,
-      })
-      setAlertSettings(saved)
-      setAlertSaved(true)
-      setTimeout(() => setAlertSaved(false), 2000)
-    } catch (e) {
-      setAlertError(e instanceof Error ? e.message : '保存に失敗しました')
-    } finally {
-      setAlertLoading(false)
     }
   }
 
@@ -464,56 +428,6 @@ export default function ProfilePage() {
         {/* アプリ設定 */}
         <div style={sectionHeadingWrap}>
           <span style={sectionHeading}>アプリ設定</span>
-        </div>
-
-        {/* アラート設定 */}
-        <div style={settingsBlock}>
-          <p style={settingsSubLabel}>アラート設定</p>
-          <p style={settingsNote}>
-            ダッシュボードに表示する「学習の滞り」アラートの基準を設定します。
-          </p>
-
-          {alertError && <p style={errorText}>{alertError}</p>}
-
-          <div style={alertForm}>
-            <div style={alertField}>
-              <label style={alertLabel}>警告する滞り日数</label>
-              <div style={alertInputRow}>
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={alertThreshold}
-                  onChange={(e) => setAlertThreshold(Number(e.target.value))}
-                  style={numberInput}
-                  disabled={alertLoading}
-                />
-                <span style={alertUnit}>日以上</span>
-              </div>
-            </div>
-            <div style={alertField}>
-              <label style={alertCheckboxRow}>
-                <input
-                  type="checkbox"
-                  checked={alertIncludeUntouched}
-                  onChange={(e) => setAlertIncludeUntouched(e.target.checked)}
-                  disabled={alertLoading}
-                  style={{ marginRight: '8px' }}
-                />
-                <span style={alertLabel}>未学習の科目も対象にする</span>
-              </label>
-            </div>
-            <div style={alertSaveRow}>
-              <button
-                onClick={handleAlertSave}
-                disabled={alertLoading || alertThreshold < 1}
-                style={saveBtn}
-              >
-                {alertLoading ? '保存中...' : '保存'}
-              </button>
-              {alertSaved && <span style={savedText}>保存しました</span>}
-            </div>
-          </div>
         </div>
 
         {/* 教材管理 */}
@@ -810,29 +724,8 @@ const emptyText: React.CSSProperties = {
   padding: '12px 0',
 }
 
-const alertForm: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '16px' }
-const alertField: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '6px' }
-const alertLabel: React.CSSProperties = { fontSize: '13px', fontWeight: 500, color: c.text }
-const alertInputRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px' }
-const alertCheckboxRow: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  cursor: 'pointer',
-}
-const alertUnit: React.CSSProperties = { fontSize: font.sm, color: 'rgba(55, 53, 47, 0.6)' }
 const alertSaveRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '12px' }
 const savedText: React.CSSProperties = { fontSize: '12px', color: '#0f9d58', fontWeight: 500 }
-const numberInput: React.CSSProperties = {
-  width: '64px',
-  border: `1px solid rgba(55, 53, 47, 0.2)`,
-  borderRadius: '4px',
-  padding: '6px 8px',
-  fontSize: font.base,
-  color: c.text,
-  outline: 'none',
-  backgroundColor: 'rgba(55, 53, 47, 0.02)',
-  textAlign: 'center',
-}
 
 const logoutBtn: React.CSSProperties = {
   width: '100%',

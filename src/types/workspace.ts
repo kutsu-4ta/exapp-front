@@ -13,6 +13,18 @@ export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 export type AlertSettings = {
   thresholdDays: number
   includeUntouched: boolean
+  minutesThresholdDays: number
+  minutesThreshold: number
+}
+
+export type SubjectAlertSettings = {
+  touchAlertEnabled: boolean
+  minutesAlertEnabled: boolean
+}
+
+export const DEFAULT_SUBJECT_ALERT_SETTINGS: SubjectAlertSettings = {
+  touchAlertEnabled: true,
+  minutesAlertEnabled: false,
 }
 
 export type SubCategory = {
@@ -238,6 +250,6 @@ export type DashboardStats = {
   weeklyAvgMinutes: number
   subjectMinutes: { subject: string; minutes: number }[]
   allSubjectMinutes: { subject: string; minutes: number }[]
-  lastTouchedBySubject: { subject: string; lastdate: string | null }[]
+  lastTouchedBySubject: { subject: string; lastdate: string | null; recentMinutes: number }[]
   dailyMinutes: { date: string; minutes: number }[]
 }

@@ -1,7 +1,7 @@
 import type {ChartDataPoint, DailyLog, DailyLogSummary, DashboardStats} from '../types/workspace'
 import {daysAgo, formatHours, todayString} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
-import {useEffect, useMemo, useState} from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
 import {fetchGeminiContext} from '@/lib/api/gemini.ts'
 import {
   fetchAIAdvice,
@@ -68,7 +68,9 @@ function buildChartData(
 
 export default function DashboardPage() {
   const subjects = useSettingsStore((s) => s.subjects)
+  const loadAllSubjectAlertSettings = useSettingsStore((s) => s.loadAllSubjectAlertSettings)
   const navigate = useNavigate()
+  const alertSettingsLoadedRef = useRef(false)
   const now = new Date()
   const [practiceDrafts] = useState<Array<{ subject: string; draft: PracticeDraft }>>(() =>
     loadAllDrafts()
@@ -113,6 +115,12 @@ export default function DashboardPage() {
       .catch(console.error)
       .finally(() => setIsInitialLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (subjects.length === 0 || alertSettingsLoadedRef.current) return
+    alertSettingsLoadedRef.current = true
+    loadAllSubjectAlertSettings(subjects)
+  }, [subjects, loadAllSubjectAlertSettings])
 
   useEffect(() => {
     const cacheKey = `dashboard-monthly-${chartYear}-${chartMonth}`
@@ -199,9 +207,9 @@ export default function DashboardPage() {
   )
 
   const subjectTouched = useMemo(() => {
-    const raw = stats?.lastTouchedBySubject ?? subjects.map((s) => ({ subject: s, lastdate: null }))
+    const raw = stats?.lastTouchedBySubject ?? subjects.map((s) => ({ subject: s, lastdate: null, recentMinutes: 0 }))
     return raw
-      .map((item) => ({ subject: item.subject, lastDate: item.lastdate }))
+      .map((item) => ({ subject: item.subject, lastDate: item.lastdate, recentMinutes: item.recentMinutes ?? 0 }))
       .sort((a, b) => {
         if (!a.lastDate && !b.lastDate) return 0
         if (!a.lastDate) return 1
@@ -210,10 +218,7 @@ export default function DashboardPage() {
       })
   }, [stats, subjects])
 
-  const warningSubjects = useMemo(
-    () => subjectTouched.filter(({ lastDate }) => !lastDate || daysAgo(lastDate) >= 7),
-    [subjectTouched]
-  )
+  const warningSubjects = subjectTouched
 
   const todaySubjects = useMemo(() => {
     if (!todayLog?.studySessions.length) return []
@@ -231,12 +236,11 @@ export default function DashboardPage() {
 
   // ローディング完了を監視してフラグを立てる
   useEffect(() => {
-    if (!isInitialLoading && warningSubjects.length > 0) {
-      // 読み込み完了後、少し遅らせてピコンと出す
+    if (!isInitialLoading) {
       const timer = setTimeout(() => setShowAlert(true), 200)
       return () => clearTimeout(timer)
     }
-  }, [isInitialLoading, warningSubjects.length])
+  }, [isInitialLoading])
 
   const [statsCopied, setStatsCopied] = useState(false)
   const [statsCopying, setStatsCopying] = useState(false)

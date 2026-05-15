@@ -1,23 +1,42 @@
-import {daysAgo} from '../../types/workspace'
+import {daysAgo, DEFAULT_SUBJECT_ALERT_SETTINGS} from '../../types/workspace'
 import {useState} from 'react'
 import {useSettingsStore} from '../../lib/store/settings'
 
-type SubjectResponse = { subject: string; lastDate: string | null }
+type SubjectData = {
+  subject: string
+  lastDate: string | null
+  recentMinutes: number
+}
+
+type AlertEntry = SubjectData & { condition: 1 | 2 }
 
 type Props = {
-  warningSubjects: SubjectResponse[]
+  warningSubjects: SubjectData[]
 }
 
 export function AlertWidget({ warningSubjects }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(true)
   const alertSettings = useSettingsStore((s) => s.alertSettings)
+  const subjectAlertSettings = useSettingsStore((s) => s.subjectAlertSettings)
 
-  const filtered = warningSubjects.filter((item) => {
-    if (!item.lastDate) return alertSettings.includeUntouched
-    return daysAgo(item.lastDate) >= alertSettings.thresholdDays
+  const alerts: AlertEntry[] = warningSubjects.flatMap((item): AlertEntry[] => {
+    const subSettings = subjectAlertSettings[item.subject] ?? DEFAULT_SUBJECT_ALERT_SETTINGS
+
+    const cond1 =
+      subSettings.touchAlertEnabled &&
+      (!item.lastDate ? alertSettings.includeUntouched : daysAgo(item.lastDate) >= alertSettings.thresholdDays)
+
+    const cond2 =
+      subSettings.minutesAlertEnabled &&
+      item.recentMinutes < alertSettings.minutesThreshold
+
+    // 条件1が優先
+    if (cond1) return [{ ...item, condition: 1 as const }]
+    if (cond2) return [{ ...item, condition: 2 as const }]
+    return []
   })
 
-  if (filtered.length === 0) return null
+  if (alerts.length === 0) return null
 
   return (
     <div className="mb-6 rounded-lg overflow-hidden border border-[var(--nt-red-border)] bg-[var(--nt-red-bg)]">
@@ -30,7 +49,7 @@ export function AlertWidget({ warningSubjects }: Props) {
         <div className="flex items-center gap-2.5 min-w-0">
           <AlertIcon />
           <span className="text-[13px] font-semibold text-n-red truncate">
-            {filtered.length}科目の学習が滞っています
+            {alerts.length}科目の学習が滞っています
           </span>
         </div>
         <span className="text-[11px] font-semibold text-n-red/50 uppercase tracking-wide ml-3 shrink-0">
@@ -42,26 +61,41 @@ export function AlertWidget({ warningSubjects }: Props) {
       {!isCollapsed && (
         <div className="px-4 pb-4 border-t border-[var(--nt-red-border)]">
           <div className="flex flex-wrap gap-2 pt-3">
-            {filtered.map((item) => {
-              const days = item.lastDate ? `${daysAgo(item.lastDate)}日前` : '未学習'
-              return (
-                <div
-                  key={item.subject}
-                  className="flex flex-col px-3 py-2 bg-white border border-[var(--nt-red-border)] rounded-md min-w-[88px]"
-                >
-                  <span className="text-[12px] font-semibold text-n-text leading-none">
-                    {item.subject}
-                  </span>
-                  <span className="text-[10px] text-[var(--nt-text-sub)] mt-1">{days}</span>
-                </div>
-              )
-            })}
+            {alerts.map((item) => (
+              <AlertCard
+                key={item.subject}
+                item={item}
+                minutesThresholdDays={alertSettings.minutesThresholdDays}
+              />
+            ))}
           </div>
           <p className="text-[11px] text-n-red/60 mt-3 italic">
             「手薄な科目」を優先して、知識の風化を防ぎましょう。
           </p>
         </div>
       )}
+    </div>
+  )
+}
+
+function AlertCard({
+  item,
+  minutesThresholdDays,
+}: {
+  item: AlertEntry
+  minutesThresholdDays: number
+}) {
+  const subLabel =
+    item.condition === 1
+      ? item.lastDate
+        ? `${daysAgo(item.lastDate)}日前`
+        : '未学習'
+      : `直近${minutesThresholdDays}日 ${item.recentMinutes}分`
+
+  return (
+    <div className="flex flex-col px-3 py-2 bg-white border border-[var(--nt-red-border)] rounded-md min-w-[88px]">
+      <span className="text-[12px] font-semibold text-n-text leading-none">{item.subject}</span>
+      <span className="text-[10px] text-[var(--nt-text-sub)] mt-1">{subLabel}</span>
     </div>
   )
 }

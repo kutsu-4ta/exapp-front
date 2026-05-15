@@ -126,15 +126,34 @@ components:
 
     AlertSettings:
       type: object
-      required: [thresholdDays, includeUntouched]
+      required: [ thresholdDays, includeUntouched, minutesThresholdDays, minutesThreshold ]
       properties:
         thresholdDays:
           type: integer
           minimum: 1
-          description: '何日間学習がなければ警告するか'
+          description: '条件1: 何日間学習がなければ警告するか'
         includeUntouched:
           type: boolean
-          description: '一度も学習していない科目も警告対象に含めるか'
+          description: '条件1: 一度も学習していない科目も警告対象に含めるか'
+        minutesThresholdDays:
+          type: integer
+          minimum: 1
+          description: '条件2: 直近何日間の学習時間を判定するか'
+        minutesThreshold:
+          type: integer
+          minimum: 1
+          description: '条件2: 何分未満なら警告するか'
+
+    SubjectAlertSettings:
+      type: object
+      required: [ touchAlertEnabled, minutesAlertEnabled ]
+      properties:
+        touchAlertEnabled:
+          type: boolean
+          description: '条件1（未接触アラート）をこの科目で有効にするか'
+        minutesAlertEnabled:
+          type: boolean
+          description: '条件2（学習時間不足アラート）をこの科目で有効にするか'
 
     SubjectSettings:
       type: object
@@ -375,10 +394,13 @@ components:
           type: array
           items:
             type: object
-            required: [subject, lastDate]
+            required: [ subject, lastDate, recentMinutes ]
             properties:
               subject: { type: string }
               lastDate: { type: string, format: date, nullable: true }
+              recentMinutes:
+                type: integer
+                description: '直近 AlertSettings.minutesThresholdDays 日間の学習時間（分）'
         dailyMinutes:
           type: array
           items:
@@ -816,6 +838,48 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SubjectSettings' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /subjects/{name}/alert-settings:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        schema: { type: string }
+        description: URLエンコードされた科目名
+    get:
+      summary: 科目別アラート設定を取得
+      tags: [ Subjects ]
+      description: 未設定の場合は touchAlertEnabled=true, minutesAlertEnabled=false のデフォルト値を返す。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubjectAlertSettings' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: 科目別アラート設定を保存
+      tags: [ Subjects ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubjectAlertSettings' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubjectAlertSettings' }
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
