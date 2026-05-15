@@ -5,7 +5,7 @@ import {ProblemCard} from '../components/note/ProblemCard'
 import {ProblemQuickModal} from '../components/note/ProblemQuickModal'
 import {addProblem, fetchProblems, updateProblem} from '../lib/api/problem'
 import {getCached, invalidateCache, setCached} from '../lib/pageCache'
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {FilterPill} from '../components/note/FilterPill'
 import {AddProblemModal} from '../components/note/AddProblemModal'
 import {c, font, pageHeading} from '../styles/notion'
@@ -14,21 +14,18 @@ import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts";
 import {useNavigate} from "react-router-dom";
 import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx";
 
-function SkeletonCard() {
+function SkeletonCard({ isLast = false }: { isLast?: boolean }) {
   return (
-    <div style={skeletonCard}>
+    <div style={{ ...skeletonCard, borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.05)' }}>
       <style>{`@keyframes weakSkeleton{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
       <div style={skRow}>
-        <div style={{ ...sk, width: 72, height: 14 }} />
-        <div style={{ ...sk, width: 52, height: 12 }} />
-        <div style={{ ...sk, width: 44, height: 12 }} />
-      </div>
-      <div style={{ ...sk, width: '90%', height: 14 }} />
-      <div style={{ ...sk, width: '65%', height: 14 }} />
-      <div style={skRow}>
+        <div style={{ ...sk, width: 28, height: 28, borderRadius: '50%' }} />
         <div style={{ ...sk, width: 56, height: 12 }} />
-        <div style={{ ...sk, width: 72, height: 12 }} />
+        <div style={{ ...sk, width: 80, height: 12 }} />
+        <div style={{ ...sk, width: 44, height: 12, marginLeft: 'auto' }} />
       </div>
+      <div style={{ ...sk, width: '88%', height: 13 }} />
+      <div style={{ ...sk, width: '55%', height: 13 }} />
     </div>
   )
 }
@@ -299,9 +296,9 @@ export default function NoteListPage() {
         {error && <p style={errorText}>{error}</p>}
 
         {initialLoading && !error && (
-          <div>
+          <div style={cardGrid}>
             {[0, 1, 2, 3].map((i) => (
-              <SkeletonCard key={i} />
+              <SkeletonCard key={i} isLast={i === 3} />
             ))}
           </div>
         )}
@@ -321,8 +318,11 @@ export default function NoteListPage() {
                   </div>
               )}
             <div style={cardGrid}>
-              {items.map((p) => (
-                <ProblemCard key={p.id} problem={p} onClick={() => setQuickProblem(p)} />
+              {items.map((p, i) => (
+                <Fragment key={p.id}>
+                  <ProblemCard problem={p} onClick={() => setQuickProblem(p)} />
+                  {i < items.length - 1 && <div style={cardDivider} />}
+                </Fragment>
               ))}
             </div>
           </section>
@@ -451,7 +451,21 @@ const badge: React.CSSProperties = {
   borderRadius: '10px',
   fontWeight: 600,
 }
-const cardGrid: React.CSSProperties = { display: 'flex', flexDirection: 'column' }
+const cardGrid: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  backgroundColor: '#fff',
+  borderRadius: '12px',
+  border: '1px solid rgba(0,0,0,0.08)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+  overflow: 'hidden',
+}
+
+const cardDivider: React.CSSProperties = {
+  height: '1px',
+  backgroundColor: 'rgba(0,0,0,0.05)',
+  margin: '0 16px',
+}
 const fab: React.CSSProperties = {
   position: 'fixed',
   bottom: '80px',
@@ -484,15 +498,12 @@ const errorText: React.CSSProperties = {
 const emptyState: React.CSSProperties = { padding: '60px 0' }
 
 const skeletonCard: React.CSSProperties = {
-  padding: '16px',
-  marginBottom: '12px',
-  borderRadius: '16px',
-  backgroundColor: '#fff',
-  border: '1px solid rgba(0,0,0,0.08)',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+  height: '108px',
+  padding: '12px 16px',
   display: 'flex',
   flexDirection: 'column',
   gap: '10px',
+  overflow: 'hidden',
 }
 const skRow: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center' }
 const sk: React.CSSProperties = {
