@@ -1,7 +1,7 @@
-import type {ChartDataPoint, DailyLog, DailyLogSummary, DashboardStats} from '../types/workspace'
-import {daysAgo, formatHours, todayString} from '../types/workspace'
+import type {AlertStatusItem, ChartDataPoint, DailyLog, DailyLogSummary, DashboardStats} from '../types/workspace'
+import {formatHours, todayString} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import {fetchGeminiContext} from '@/lib/api/gemini.ts'
 import {
   fetchAIAdvice,
@@ -11,6 +11,7 @@ import {
   fetchMonthlySettings,
   updateMonthlySettings,
 } from '../lib/api/workspace'
+import {fetchAlertStatus} from '../lib/api/subjectAlertSettings'
 import {SubjectStatus} from '../components/dashboard/SubjectStatus'
 import {DashboardChart} from '../components/dashboard/DashboardChart'
 import {AlertWidget} from '../components/dashboard/AlertWidget'
@@ -68,9 +69,7 @@ function buildChartData(
 
 export default function DashboardPage() {
   const subjects = useSettingsStore((s) => s.subjects)
-  const loadAllSubjectAlertSettings = useSettingsStore((s) => s.loadAllSubjectAlertSettings)
   const navigate = useNavigate()
-  const alertSettingsLoadedRef = useRef(false)
   const now = new Date()
   const [practiceDrafts] = useState<Array<{ subject: string; draft: PracticeDraft }>>(() =>
     loadAllDrafts()
@@ -78,6 +77,7 @@ export default function DashboardPage() {
 
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
+  const [alertItems, setAlertItems] = useState<AlertStatusItem[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(true)
 
   // Chart month navigation
@@ -105,22 +105,17 @@ export default function DashboardPage() {
     // キャッシュがある場合でも初期ローディング状態は一度解除する
     if (cachedStats && cachedTodayLog) setIsInitialLoading(false)
 
-    Promise.all([fetchDashboardStats(), fetchDailyLog(todayString())])
-      .then(([s, log]) => {
+    Promise.all([fetchDashboardStats(), fetchDailyLog(todayString()), fetchAlertStatus()])
+      .then(([s, log, alert]) => {
         setStats(s)
         setCached('dashboard-stats', s)
         setTodayLog(log)
         setCached(todayKey, log)
+        setAlertItems(alert)
       })
       .catch(console.error)
       .finally(() => setIsInitialLoading(false))
   }, [])
-
-  useEffect(() => {
-    if (subjects.length === 0 || alertSettingsLoadedRef.current) return
-    alertSettingsLoadedRef.current = true
-    loadAllSubjectAlertSettings(subjects)
-  }, [subjects, loadAllSubjectAlertSettings])
 
   useEffect(() => {
     const cacheKey = `dashboard-monthly-${chartYear}-${chartMonth}`
@@ -207,9 +202,9 @@ export default function DashboardPage() {
   )
 
   const subjectTouched = useMemo(() => {
-    const raw = stats?.lastTouchedBySubject ?? subjects.map((s) => ({ subject: s, lastdate: null, recentMinutes: 0 }))
+    const raw = stats?.lastTouchedBySubject ?? subjects.map((s) => ({ subject: s, lastdate: null }))
     return raw
-      .map((item) => ({ subject: item.subject, lastDate: item.lastdate, recentMinutes: item.recentMinutes ?? 0 }))
+      .map((item) => ({ subject: item.subject, lastDate: item.lastdate }))
       .sort((a, b) => {
         if (!a.lastDate && !b.lastDate) return 0
         if (!a.lastDate) return 1
@@ -217,8 +212,6 @@ export default function DashboardPage() {
         return a.lastDate < b.lastDate ? 1 : -1
       })
   }, [stats, subjects])
-
-  const warningSubjects = subjectTouched
 
   const todaySubjects = useMemo(() => {
     if (!todayLog?.studySessions.length) return []
@@ -457,7 +450,7 @@ export default function DashboardPage() {
         {/* アラート */}
         {showAlert && (
           <div className="animate-pop">
-            <AlertWidget warningSubjects={warningSubjects} />
+            <AlertWidget alertItems={alertItems} />
           </div>
         )}
 

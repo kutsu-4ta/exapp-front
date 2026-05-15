@@ -1,9 +1,15 @@
 import {apiFetch} from '../client'
-import type {SubjectAlertSettings} from '../../types/workspace'
+import type {AlertStatusItem, SubjectAlertSettings} from '../../types/workspace'
 
 export async function fetchSubjectAlertSettings(subject: string): Promise<SubjectAlertSettings> {
   const res = await apiFetch(`/api/subjects/${encodeURIComponent(subject)}/alert-settings`)
   if (!res.ok) throw new Error('アラート設定の取得に失敗しました')
+  return res.json()
+}
+
+export async function fetchAlertStatus(): Promise<AlertStatusItem[]> {
+  const res = await apiFetch('/api/subjects/alert-status')
+  if (!res.ok) throw new Error('アラート状況の取得に失敗しました')
   return res.json()
 }
 

@@ -10,6 +10,13 @@ export type SubjectMonthlyGoal = {
 
 export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
 
+export type AlertStatusItem = {
+  subject: string
+  lastDate: string | null
+  recentMinutes: number
+  settings: SubjectAlertSettings
+}
+
 export type SubjectAlertSettings = {
   touchAlertEnabled: boolean
   thresholdDays: number
@@ -268,6 +275,6 @@ export type DashboardStats = {
   weeklyAvgMinutes: number
   subjectMinutes: { subject: string; minutes: number }[]
   allSubjectMinutes: { subject: string; minutes: number }[]
-  lastTouchedBySubject: { subject: string; lastdate: string | null; recentMinutes: number }[]
+  lastTouchedBySubject: { subject: string; lastdate: string | null }[]
   dailyMinutes: { date: string; minutes: number }[]
 }

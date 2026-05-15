@@ -1,25 +1,18 @@
-import {daysAgo, DEFAULT_SUBJECT_ALERT_SETTINGS} from '../../types/workspace'
+import type {AlertStatusItem} from '../../types/workspace'
+import {daysAgo} from '../../types/workspace'
 import {useState} from 'react'
-import {useSettingsStore} from '../../lib/store/settings'
 
-type SubjectData = {
-  subject: string
-  lastDate: string | null
-  recentMinutes: number
-}
-
-type AlertEntry = SubjectData & { condition: 1 | 2; minutesThresholdDays: number }
+type AlertEntry = AlertStatusItem & { condition: 1 | 2 }
 
 type Props = {
-  warningSubjects: SubjectData[]
+  alertItems: AlertStatusItem[]
 }
 
-export function AlertWidget({ warningSubjects }: Props) {
+export function AlertWidget({ alertItems }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(true)
-  const subjectAlertSettings = useSettingsStore((s) => s.subjectAlertSettings)
 
-  const alerts: AlertEntry[] = warningSubjects.flatMap((item): AlertEntry[] => {
-    const s = subjectAlertSettings[item.subject] ?? DEFAULT_SUBJECT_ALERT_SETTINGS
+  const alerts: AlertEntry[] = alertItems.flatMap((item): AlertEntry[] => {
+    const s = item.settings
 
     const cond1 =
       s.touchAlertEnabled &&
@@ -29,9 +22,8 @@ export function AlertWidget({ warningSubjects }: Props) {
       s.minutesAlertEnabled &&
       item.recentMinutes < s.minutesThreshold
 
-    // 条件1が優先
-    if (cond1) return [{ ...item, condition: 1 as const, minutesThresholdDays: s.minutesThresholdDays }]
-    if (cond2) return [{ ...item, condition: 2 as const, minutesThresholdDays: s.minutesThresholdDays }]
+    if (cond1) return [{ ...item, condition: 1 as const }]
+    if (cond2) return [{ ...item, condition: 2 as const }]
     return []
   })
 
@@ -79,7 +71,7 @@ function AlertCard({ item }: { item: AlertEntry }) {
       ? item.lastDate
         ? `${daysAgo(item.lastDate)}日前`
         : '未学習'
-      : `直近${item.minutesThresholdDays}日 ${item.recentMinutes}分`
+      : `直近${item.settings.minutesThresholdDays}日 ${item.recentMinutes}分`
 
   return (
     <div className="flex flex-col px-3 py-2 bg-white border border-[var(--nt-red-border)] rounded-md min-w-[88px]">
