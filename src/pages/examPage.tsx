@@ -1,10 +1,10 @@
-import {useEffect, useState} from 'react'
-import {LoadingSpinner} from '../components/common/LoadingSpinner'
+import {useState} from 'react'
 import {useSettingsStore} from '../lib/store/settings'
 import type {ExamQuestionInput, ExamSession} from '../types/exam'
-import {completeExamSession, createExamSession, fetchExamSession, fetchExamSessions,} from '../lib/api/exam'
+import {completeExamSession, createExamSession} from '../lib/api/exam'
 import AnalysisView from '../components/exam/AnalysisView'
 import ExamInputView from '../components/exam/ExamInputView'
+import {QuickScoreModal} from '../components/exam/QuickScoreModal'
 import {useTimer} from '../context/TimerContext'
 import {stopStopwatch} from '../lib/api/stopwatch'
 import {c, font} from '../styles/notion'
@@ -14,49 +14,18 @@ export default function ExamPage() {
   const { isActive: timerRunning, toggle: toggleTimer } = useTimer()
   const [activeSession, setActiveSession] = useState<ExamSession | null>(null)
   const [starting, setStarting] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [showStopwatchModal, setShowStopwatchModal] = useState(false)
   const [stoppingTimer, setStoppingTimer] = useState(false)
 
-  const [showResumeModal, setShowResumeModal] = useState(false)
-  const [pendingSessionId, setPendingSessionId] = useState<number | null>(null)
-
-  useEffect(() => {
-    const checkInProgress = async () => {
-      try {
-        const sessions = await fetchExamSessions('in_progress')
-        if (sessions.length > 0) {
-          const session = await fetchExamSession(sessions[0].id)
-          setActiveSession(session)
-        }
-      } catch {
-        // 取得失敗時は無視
-      } finally {
-        setLoading(false)
-      }
-    }
-    checkInProgress()
-  }, [])
+  const [showQuickScore, setShowQuickScore] = useState(false)
+  const [analysisKey, setAnalysisKey] = useState(0)
 
   const proceedToExam = async () => {
     setStarting(true)
     setError(null)
     try {
-      const sessions = await fetchExamSessions('in_progress')
-      if (sessions.length > 0) {
-        const sessionId = sessions[0].id
-        const hasDraft = localStorage.getItem(`exam_draft_${sessionId}`) !== null
-        if (hasDraft) {
-          setPendingSessionId(sessionId)
-          setShowResumeModal(true)
-          return
-        }
-        const session = await fetchExamSession(sessionId)
-        setActiveSession(session)
-        return
-      }
       const session = await createExamSession({ subject: subjects[0] ?? '', examYear: 'R07' })
       setActiveSession(session)
     } catch {
@@ -93,21 +62,6 @@ export default function ExamPage() {
     proceedToExam()
   }
 
-  const handleResume = async () => {
-    if (!pendingSessionId) return
-    const session = await fetchExamSession(pendingSessionId)
-    setActiveSession(session)
-    setShowResumeModal(false)
-  }
-
-  const handleRestart = async () => {
-    if (!pendingSessionId) return
-    localStorage.removeItem(`exam_draft_${pendingSessionId}`)
-    const session = await fetchExamSession(pendingSessionId)
-    setActiveSession(session)
-    setShowResumeModal(false)
-  }
-
   const handleComplete = async (
     sessionId: number,
     subject: string,
@@ -116,11 +70,10 @@ export default function ExamPage() {
   ) => {
     await completeExamSession(sessionId, { subject, examYear, questions })
     setActiveSession(null)
+    setAnalysisKey((k) => k + 1)
   }
 
   const handleCancel = () => setActiveSession(null)
-
-  if (loading) return <LoadingSpinner fullPage />
 
   if (activeSession) {
     return (
@@ -164,37 +117,33 @@ export default function ExamPage() {
       )}
 
       {/* 中断データ再開モーダル */}
-      {showResumeModal && (
-        <div style={overlay}>
-          <div style={sheet}>
-            <p style={sheetTitle}>中断したデータがあります</p>
-            <p style={sheetBody}>前回作成した下書きが見つかりました。どうしますか？</p>
-            <div style={sheetActions}>
-              <button style={primaryBtn} onClick={handleResume}>
-                続きから再開
-              </button>
-              <button style={dangerBtn} onClick={handleRestart}>
-                破棄して初めから
-              </button>
-              <button style={ghostBtn} onClick={() => setShowResumeModal(false)}>
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* クイックスコア入力モーダル */}
+      {showQuickScore && (
+        <QuickScoreModal
+          onClose={() => setShowQuickScore(false)}
+          onSaved={() => {
+            setShowQuickScore(false)
+            setAnalysisKey((k) => k + 1)
+          }}
+        />
       )}
 
       {/* ヘッダー */}
       <div style={sessionHeader}>
         <span style={pageTitle}>学習実績</span>
-        <button style={startBtn} onClick={handleStartExam} disabled={starting || stoppingTimer}>
-          {starting ? '確認中...' : '＋ 解答を入力する'}
-        </button>
+        <div style={headerButtons}>
+          <button style={quickBtn} onClick={() => setShowQuickScore(true)} disabled={starting || stoppingTimer}>
+            得点のみ記録
+          </button>
+          <button style={startBtn} onClick={handleStartExam} disabled={starting || stoppingTimer}>
+            {starting ? '確認中...' : '＋ 解答を入力する'}
+          </button>
+        </div>
       </div>
 
       {error && <p style={errorMsg}>{error}</p>}
 
-      <AnalysisView />
+      <AnalysisView key={analysisKey} />
     </div>
   )
 }
@@ -221,6 +170,12 @@ const pageTitle: React.CSSProperties = {
   color: c.text,
 }
 
+const headerButtons: React.CSSProperties = {
+  display: 'flex',
+  gap: '8px',
+  alignItems: 'center',
+}
+
 const startBtn: React.CSSProperties = {
   padding: '7px 14px',
   borderRadius: '8px',
@@ -229,6 +184,17 @@ const startBtn: React.CSSProperties = {
   color: '#fff',
   fontSize: font.sm,
   fontWeight: 700,
+  cursor: 'pointer',
+}
+
+const quickBtn: React.CSSProperties = {
+  padding: '7px 14px',
+  borderRadius: '8px',
+  border: `1px solid ${c.border}`,
+  background: '#fff',
+  color: c.textSub,
+  fontSize: font.sm,
+  fontWeight: 600,
   cursor: 'pointer',
 }
 

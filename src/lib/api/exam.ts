@@ -55,6 +55,20 @@ export async function completeExamSession(
   return res.json()
 }
 
+export async function quickScoreExamSession(input: {
+  subject: string
+  examYear: string
+  totalScore: number
+  pureScore?: number
+}): Promise<ExamSessionSummary> {
+  const res = await apiFetch('/api/exam-sessions/quick-score', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('スコアの記録に失敗しました')
+  return res.json()
+}
+
 export async function fetchSubjectStats(
   subject: string,
   year?: number,
