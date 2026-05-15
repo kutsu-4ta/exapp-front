@@ -1,6 +1,18 @@
 import {useEffect, useMemo, useState} from 'react'
 import {LoadingSpinner} from '../common/LoadingSpinner'
-import {CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import {useSettingsStore} from '../../lib/store/settings'
 import type {ExamSessionSummary} from '../../types/exam'
 import {fetchExamSessions} from '../../lib/api/exam'
@@ -27,13 +39,7 @@ function computeSubjectCards(
     const avgPure = list.reduce((s, x) => s + x.pureScore, 0) / list.length
     const status: SubjectCardData['status'] =
       avgPure >= 60 ? '安定' : avgPure >= 50 ? '注意' : '要強化'
-    return {
-      subject,
-      sessionCount: list.length,
-      avgTotalScore: avgTotal,
-      avgPureScore: avgPure,
-      status,
-    }
+    return { subject, sessionCount: list.length, avgTotalScore: avgTotal, avgPureScore: avgPure, status }
   })
 }
 
@@ -42,6 +48,43 @@ const statusStyle: Record<SubjectCardData['status'], React.CSSProperties> = {
   注意: { background: '#fff5e0', color: '#f2ab26' },
   要強化: { background: '#ffebe9', color: '#eb5757' },
   未受験: { background: '#f3f3f2', color: '#8a7b6e' },
+}
+
+const statusBarColor: Record<SubjectCardData['status'], string> = {
+  安定: '#19a576',
+  注意: '#f2ab26',
+  要強化: '#eb5757',
+  未受験: '#d0cfc9',
+}
+
+// ツールチップ（折れ線）
+function ProgressTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { date: string; examYear: string; total: number; pure: number } }> }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  return (
+    <div style={tooltipBox}>
+      <div style={tooltipHead}>{d.examYear} &nbsp;·&nbsp; {d.date}</div>
+      <div style={{ color: '#2383e2', ...tooltipRow }}>TOTAL<span style={tooltipVal}>{d.total}</span></div>
+      <div style={{ color: '#19a576', ...tooltipRow }}>PURE<span style={tooltipVal}>{d.pure}</span></div>
+    </div>
+  )
+}
+
+// ツールチップ（棒グラフ）
+function OverviewTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: SubjectCardData & { pure: number } }> }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  return (
+    <div style={tooltipBox}>
+      <div style={tooltipHead}>{d.subject}</div>
+      <div style={{ color: statusBarColor[d.status], ...tooltipRow }}>
+        Avg.PURE<span style={tooltipVal}>{d.pure.toFixed(1)}</span>
+      </div>
+      <div style={{ color: '#aaa', ...tooltipRow }}>
+        {d.sessionCount}回受験
+      </div>
+    </div>
+  )
 }
 
 interface AnalysisViewProps {
@@ -62,21 +105,33 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
       .finally(() => setLoading(false))
   }, [])
 
-  const chartData = useMemo(() => {
-    const filtered =
-      filterSubject === 'すべて' ? sessions : sessions.filter((s) => s.subject === filterSubject)
-    return filtered
-      .filter((s) => s.completedAt)
+  const subjectCards = useMemo(() => computeSubjectCards(sessions, subjects), [sessions, subjects])
+
+  // 概要グラフ（全科目比較）
+  const overviewData = useMemo(() =>
+    subjectCards
+      .filter((c) => c.sessionCount > 0)
+      .sort((a, b) => b.avgPureScore - a.avgPureScore)
+      .map((c) => ({ ...c, pure: Math.round(c.avgPureScore * 10) / 10 })),
+    [subjectCards]
+  )
+
+  // 推移グラフ（特定科目）
+  const progressData = useMemo(() => {
+    if (filterSubject === 'すべて') return []
+    return sessions
+      .filter((s) => s.subject === filterSubject && s.completedAt)
       .sort((a, b) => a.completedAt!.localeCompare(b.completedAt!))
-      .map((s) => ({
+      .map((s, i) => ({
+        label: `第${i + 1}回`,
         date: s.completedAt!.slice(5, 10).replace('-', '/'),
+        examYear: s.examYear,
         total: s.totalScore,
         pure: s.pureScore,
-        subject: s.subject,
       }))
   }, [sessions, filterSubject])
 
-  const subjectCards = useMemo(() => computeSubjectCards(sessions, subjects), [sessions, subjects])
+  const isOverview = filterSubject === 'すべて'
 
   if (selectedSubject) {
     return (
@@ -95,6 +150,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
 
   return (
     <div style={analysisContainer}>
+      {/* フィルター */}
       <div style={filterRow}>
         <select
           style={miniSelect}
@@ -103,55 +159,114 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
         >
           <option value="すべて">すべての科目</option>
           {subjects.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
       </div>
 
+      {/* チャートカード */}
       <div style={chartCard}>
-        <h3 style={cardTitle}>得点推移 (TOTAL vs PURE)</h3>
-        {chartData.length === 0 ? (
-          <p style={emptyText}>記録がありません</p>
+        <h3 style={cardTitle}>
+          {isOverview ? '科目別 Avg.PURE スコア' : `${filterSubject} の得点推移`}
+        </h3>
+
+        {isOverview ? (
+          // ── 全科目比較 横棒グラフ ──
+          overviewData.length === 0 ? (
+            <p style={emptyText}>記録がありません</p>
+          ) : (
+            <div style={{ width: '100%', height: Math.max(overviewData.length * 48, 120) }}>
+              <ResponsiveContainer>
+                <BarChart
+                  layout="vertical"
+                  data={overviewData}
+                  margin={{ top: 4, right: 36, left: 4, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    ticks={[0, 20, 40, 60, 80, 100]}
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="subject"
+                    width={72}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip content={<OverviewTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+                  <ReferenceLine
+                    x={60}
+                    stroke="#2383e2"
+                    strokeDasharray="5 5"
+                    label={{ value: '60', position: 'right', fontSize: 10, fill: '#2383e2' }}
+                  />
+                  <Bar dataKey="pure" name="Avg.PURE" radius={[0, 4, 4, 0]} maxBarSize={20}>
+                    {overviewData.map((entry) => (
+                      <Cell key={entry.subject} fill={statusBarColor[entry.status]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )
         ) : (
-          <div style={{ width: '100%', height: 240 }}>
-            <ResponsiveContainer>
-              <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <ReferenceLine
-                  y={60}
-                  stroke="#2383e2"
-                  strokeDasharray="5 5"
-                  label={{ value: '60', position: 'right', fontSize: 10, fill: '#2383e2' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="#2383e2"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  name="TOTAL"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="pure"
-                  stroke="#19a576"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  name="PURE"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          // ── 特定科目 推移折れ線 ──
+          progressData.length === 0 ? (
+            <p style={emptyText}>この科目の記録がありません</p>
+          ) : (
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <LineChart data={progressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="label" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
+                  <Tooltip content={<ProgressTooltip />} />
+                  <ReferenceLine
+                    y={60}
+                    stroke="#2383e2"
+                    strokeDasharray="5 5"
+                    label={{ value: '60', position: 'right', fontSize: 10, fill: '#2383e2' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#2383e2"
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: '#2383e2' }}
+                    activeDot={{ r: 6 }}
+                    name="TOTAL"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="pure"
+                    stroke="#19a576"
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: '#19a576' }}
+                    activeDot={{ r: 6 }}
+                    name="PURE"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )
+        )}
+
+        {/* 凡例 */}
+        {!isOverview && progressData.length > 0 && (
+          <div style={legend}>
+            <span style={legendDot('#2383e2')} />TOTAL
+            <span style={{ ...legendDot('#19a576'), marginLeft: 12 }} />PURE
           </div>
         )}
       </div>
 
+      {/* 科目カードグリッド */}
       <div style={detailGrid}>
         {subjectCards.map((card) => (
           <div key={card.subject} style={subjCard} onClick={() => setSelectedSubject(card.subject)}>
@@ -205,15 +320,49 @@ const chartCard: React.CSSProperties = {
 const cardTitle: React.CSSProperties = {
   fontSize: '13px',
   fontWeight: 800,
-  marginBottom: '20px',
+  marginBottom: '16px',
   color: '#888',
   letterSpacing: '0.05em',
 }
-const tooltipStyle = {
+const tooltipBox: React.CSSProperties = {
+  background: '#fff',
   borderRadius: '8px',
-  border: 'none',
+  padding: '8px 12px',
   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
   fontSize: '12px',
+  lineHeight: 1.6,
+}
+const tooltipHead: React.CSSProperties = {
+  fontWeight: 700,
+  color: '#37352f',
+  marginBottom: '4px',
+  fontSize: '11px',
+}
+const tooltipRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: '16px',
+  fontWeight: 600,
+}
+const tooltipVal: React.CSSProperties = { fontWeight: 900, color: 'inherit' }
+const legend: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  marginTop: '12px',
+  fontSize: '11px',
+  color: '#888',
+  fontWeight: 600,
+}
+function legendDot(color: string): React.CSSProperties {
+  return {
+    display: 'inline-block',
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    backgroundColor: color,
+    marginRight: '4px',
+  }
 }
 const detailGrid: React.CSSProperties = {
   display: 'grid',

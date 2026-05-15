@@ -28,7 +28,7 @@ export function StrategySection({
                     </div>
                 ) : (
                     <div style={block}>
-                        <label style={label}>最終目標</label>
+                        <label style={label}>GOAL</label>
 
                         <textarea
                             style={textarea}

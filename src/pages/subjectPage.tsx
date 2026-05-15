@@ -23,6 +23,7 @@ import {useSettingsStore} from "@/lib/store/settings.ts";
 import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts";
 import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx";
 import {StrategySection} from "@/components/subject/StrategySection.tsx";
+import {SubjectExamStats} from "@/components/subject/SubjectExamStats.tsx";
 import {flashBugfixBtn} from "@/styles/flashBugficUI.ts";
 import {PROF_COLORS} from "@/components/common/ProficiencySelector.tsx";
 import {FAILURE_COLORS, FAILURE_TYPES} from "@/components/common/FailureTypeSlecter.tsx";
@@ -231,7 +232,7 @@ export default function SubjectPage() {
                                     marginBottom: '8px',
                                 }}
                             >
-                                <p style={{ ...subSectionLabel, marginTop: 0, marginBottom: 0 }}>弱点分析</p>
+                                <p style={{ ...subSectionLabel, marginTop: 0, marginBottom: 0 }}>ANALYSIS</p>
                                 {flashcards.length > 0 && (
                                     <button style={flashBugfixBtn} onClick={() => setShowFlashConfig(true)}>
                                         ⚡ Flash Bugfix
@@ -304,6 +305,9 @@ export default function SubjectPage() {
                         </>
                     )}
                 </section>
+
+                {/* EXAM 分析 */}
+                <SubjectExamStats subjectName={subjectName} />
 
                 {/* ALERT SETTINGS */}
                 <section style={subjectUi.card}>
