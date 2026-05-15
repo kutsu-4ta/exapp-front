@@ -1,15 +1,17 @@
 import {useEffect, useState} from 'react'
 import {LoadingSpinner} from '../common/LoadingSpinner'
 import {fetchSubjectStats} from '../../lib/api/exam'
-import type {ExamSubjectStats, Rank} from '../../types/exam'
+import type {ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 
 interface SubjectDetailViewProps {
   subject: string
+  sessions: ExamSessionSummary[]
   onBack: () => void
+  onEdit?: (sessionId: number) => void
 }
 
-export default function SubjectDetailView({ subject, onBack }: SubjectDetailViewProps) {
+export default function SubjectDetailView({ subject, sessions, onBack, onEdit }: SubjectDetailViewProps) {
   const [stats, setStats] = useState<ExamSubjectStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +56,37 @@ export default function SubjectDetailView({ subject, onBack }: SubjectDetailView
               ))}
               {stats.rankStats.length === 0 && <p style={stateText}>データがありません</p>}
             </div>
+          </div>
+
+          <div style={sessionListCard}>
+            <div style={sessionListHeader}>
+              <h3 style={sectionLabel}>受験履歴</h3>
+            </div>
+            {sessions.length === 0 && <p style={stateText}>記録がありません</p>}
+            {[...sessions]
+              .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
+              .map((s) => (
+                <div key={s.id} style={sessionRow}>
+                  <div style={sessionRowLeft}>
+                    <span style={sessionDate}>
+                      {s.completedAt?.slice(5, 10).replace('-', '/') ?? '--'}
+                    </span>
+                    <span style={sessionYear}>{s.examYear}</span>
+                  </div>
+                  <div style={sessionRowScores}>
+                    <span style={scoreLabel}>TOTAL</span>
+                    <span style={scoreValue}>{s.totalScore}</span>
+                    <span style={scoreDivider}>|</span>
+                    <span style={scoreLabel}>PURE</span>
+                    <span style={scoreValue}>{s.pureScore}</span>
+                  </div>
+                  {onEdit && (
+                    <button style={editSessionBtn} onClick={() => onEdit(s.id)}>
+                      編集
+                    </button>
+                  )}
+                </div>
+              ))}
           </div>
 
           <h3 style={sectionLabel}>ノート・問題</h3>
@@ -173,3 +206,43 @@ const rankTag: React.CSSProperties = {
   fontWeight: 900,
 }
 const stateText: React.CSSProperties = { fontSize: '13px', color: '#aaa', padding: '8px 0' }
+const sessionListCard: React.CSSProperties = {
+  backgroundColor: '#fff',
+  padding: '16px',
+  borderRadius: '16px',
+  border: '1px solid #f0f0ef',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+}
+const sessionListHeader: React.CSSProperties = { marginBottom: '4px' }
+const sessionRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  padding: '8px 0',
+  borderBottom: '1px solid #f5f5f4',
+}
+const sessionRowLeft: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center', minWidth: '80px' }
+const sessionDate: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: '#aaa' }
+const sessionYear: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: '#37352f' }
+const sessionRowScores: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  flex: 1,
+}
+const scoreLabel: React.CSSProperties = { fontSize: '9px', fontWeight: 700, color: '#aaa' }
+const scoreValue: React.CSSProperties = { fontSize: '13px', fontWeight: 900, color: '#37352f' }
+const scoreDivider: React.CSSProperties = { fontSize: '10px', color: '#ddd', margin: '0 2px' }
+const editSessionBtn: React.CSSProperties = {
+  padding: '4px 10px',
+  border: '1px solid #e5e5e4',
+  borderRadius: '6px',
+  background: '#fff',
+  color: '#37352f',
+  fontSize: '11px',
+  fontWeight: 700,
+  cursor: 'pointer',
+  flexShrink: 0,
+}

@@ -44,7 +44,11 @@ const statusStyle: Record<SubjectCardData['status'], React.CSSProperties> = {
   未受験: { background: '#f3f3f2', color: '#8a7b6e' },
 }
 
-export default function AnalysisView() {
+interface AnalysisViewProps {
+  onEdit?: (sessionId: number) => void
+}
+
+export default function AnalysisView({ onEdit }: AnalysisViewProps) {
   const subjects = useSettingsStore((s) => s.subjects)
   const [sessions, setSessions] = useState<ExamSessionSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,7 +79,14 @@ export default function AnalysisView() {
   const subjectCards = useMemo(() => computeSubjectCards(sessions, subjects), [sessions, subjects])
 
   if (selectedSubject) {
-    return <SubjectDetailView subject={selectedSubject} onBack={() => setSelectedSubject(null)} />
+    return (
+      <SubjectDetailView
+        subject={selectedSubject}
+        sessions={sessions.filter((s) => s.subject === selectedSubject)}
+        onBack={() => setSelectedSubject(null)}
+        onEdit={onEdit}
+      />
+    )
   }
 
   if (loading) {

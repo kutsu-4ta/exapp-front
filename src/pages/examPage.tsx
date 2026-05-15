@@ -26,6 +26,7 @@ export default function ExamPage() {
   // 追加
   const [showResumeModal, setShowResumeModal] = useState(false)
   const [pendingSessionId, setPendingSessionId] = useState<number | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
 
   const proceedToExam = async () => {
     setStarting(true)
@@ -127,15 +128,30 @@ export default function ExamPage() {
     })
 
     setActiveSession(null)
+    setIsEditMode(false)
     setAnalysisKey((k) => k + 1)
   }
 
-  const handleCancel = () => setActiveSession(null)
+  const handleEditSession = async (sessionId: number) => {
+    try {
+      const session = await fetchExamSession(sessionId)
+      setIsEditMode(true)
+      setActiveSession(session)
+    } catch {
+      setError('セッションの読み込みに失敗しました')
+    }
+  }
+
+  const handleCancel = () => {
+    setActiveSession(null)
+    setIsEditMode(false)
+  }
 
   if (activeSession) {
     return (
         <ExamInputView
             session={activeSession}
+            isEditMode={isEditMode}
             onComplete={handleComplete}
             onCancel={handleCancel}
         />
@@ -246,7 +262,7 @@ export default function ExamPage() {
 
         {error && <p style={errorMsg}>{error}</p>}
 
-        <AnalysisView key={analysisKey} />
+        <AnalysisView key={analysisKey} onEdit={handleEditSession} />
       </div>
   )
 }

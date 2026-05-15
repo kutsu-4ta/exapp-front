@@ -147,6 +147,7 @@ function initQuestions(session: ExamSession, savedDraft: ExamDraft | null): Ques
 
 interface ExamInputViewProps {
   session: ExamSession
+  isEditMode?: boolean
   onComplete: (
     sessionId: number,
     subject: string,
@@ -156,12 +157,14 @@ interface ExamInputViewProps {
   onCancel: () => void
 }
 
-export default function ExamInputView({ session, onComplete, onCancel }: ExamInputViewProps) {
+export default function ExamInputView({ session, isEditMode, onComplete, onCancel }: ExamInputViewProps) {
   const savedDraft = useMemo(() => loadDraft(session.id), [session.id])
   const subjects = useSettingsStore((s) => s.subjects)
-  const [subject, setSubject] = useState(savedDraft?.subject ?? '')
+  const [subject, setSubject] = useState(savedDraft?.subject ?? session.subject)
   const [examYear, setExamYear] = useState(savedDraft?.examYear ?? session.examYear)
-  const [isScoring, setIsScoring] = useState(savedDraft?.isScoring ?? session.status === 'scoring')
+  const [isScoring, setIsScoring] = useState(
+    savedDraft?.isScoring ?? (isEditMode || session.status === 'scoring')
+  )
   const [saving, setSaving] = useState(false)
 
   const [questions, setQuestions] = useState<QuestionDraft[]>(() =>
