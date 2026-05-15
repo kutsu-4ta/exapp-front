@@ -4,6 +4,7 @@ import {useSettingsStore} from '../lib/store/settings'
 import {useEffect, useMemo, useState} from 'react'
 import {fetchGeminiContext} from '@/lib/api/gemini.ts'
 import {
+  completeDailyLog,
   fetchAIAdvice,
   fetchDailyLog,
   fetchDashboardStats,
@@ -80,6 +81,11 @@ export default function DashboardPage() {
   const [alertItems, setAlertItems] = useState<AlertStatusItem[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(true)
 
+  // 前日未完了バナー（4時以降のみ）
+  const isPastCutoff = now.getHours() >= 4
+  const [prevDayLog, setPrevDayLog] = useState<DailyLog | null>(null)
+  const [prevDayCompleting, setPrevDayCompleting] = useState(false)
+
   // Chart month navigation
   const [chartYear, setChartYear] = useState(now.getFullYear())
   const [chartMonth, setChartMonth] = useState(now.getMonth() + 1)
@@ -105,13 +111,28 @@ export default function DashboardPage() {
     // キャッシュがある場合でも初期ローディング状態は一度解除する
     if (cachedStats && cachedTodayLog) setIsInitialLoading(false)
 
-    Promise.all([fetchDashboardStats(), fetchDailyLog(todayString()), fetchAlertStatus()])
-      .then(([s, log, alert]) => {
+    // 前日の暦日付（4時以降のみ使用）
+    const calendarYesterday = (() => {
+      const d = new Date()
+      d.setDate(d.getDate() - 1)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })()
+
+    Promise.all([
+      fetchDashboardStats(),
+      fetchDailyLog(todayString()),
+      fetchAlertStatus(),
+      isPastCutoff ? fetchDailyLog(calendarYesterday) : Promise.resolve(null),
+    ])
+      .then(([s, log, alert, prevLog]) => {
         setStats(s)
         setCached('dashboard-stats', s)
         setTodayLog(log)
         setCached(todayKey, log)
         setAlertItems(alert)
+        if (prevLog && !prevLog.isCompleted && prevLog.totalMinutes > 0) {
+          setPrevDayLog(prevLog)
+        }
       })
       .catch(console.error)
       .finally(() => setIsInitialLoading(false))
@@ -150,6 +171,19 @@ export default function DashboardPage() {
       .catch(console.error)
       .finally(() => setChartLoading(false))
   }, [chartYear, chartMonth])
+
+  const handleCompletePrevDay = async () => {
+    if (!prevDayLog) return
+    setPrevDayCompleting(true)
+    try {
+      await completeDailyLog(prevDayLog.date)
+      setPrevDayLog(null)
+    } catch {
+      // silent fail
+    } finally {
+      setPrevDayCompleting(false)
+    }
+  }
 
   const handleOpenGoalEditor = () => {
     setEditMin(chartTargetMin)
@@ -404,6 +438,39 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
+        )}
+
+        {/* 前日未完了バナー */}
+        {prevDayLog && (
+          <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(242,171,38,0.3)] bg-[rgba(242,171,38,0.06)]">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f2ab26" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-[#37352f] leading-none mb-0.5">
+                昨日の記録が未完了です
+              </p>
+              <p className="text-[11px] text-[rgba(55,53,47,0.45)]">
+                {prevDayLog.date.replace(/-/g, '/')} &nbsp;·&nbsp; {prevDayLog.totalMinutes}分
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                to={`/workspace/${prevDayLog.date}`}
+                className="text-[11px] font-semibold text-[rgba(55,53,47,0.5)] border border-[rgba(55,53,47,0.15)] rounded-md px-2.5 py-1.5 no-underline hover:bg-[rgba(55,53,47,0.04)] transition-colors"
+              >
+                確認
+              </Link>
+              <button
+                onClick={handleCompletePrevDay}
+                disabled={prevDayCompleting}
+                className="text-[11px] font-semibold text-white bg-[#f2ab26] border-none rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {prevDayCompleting ? '...' : '完了にする'}
+              </button>
+            </div>
+          </div>
         )}
 
         {practiceDrafts.length > 0 && (

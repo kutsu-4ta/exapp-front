@@ -115,6 +115,8 @@ export function formatHours(minutes: number): string {
 
 export function todayString(): string {
   const now = new Date()
+  // 0:00〜3:59 は前日を「今日」扱い（深夜の学習を当日に帰属させる）
+  if (now.getHours() < 4) now.setDate(now.getDate() - 1)
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
