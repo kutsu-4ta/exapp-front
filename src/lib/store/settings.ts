@@ -13,10 +13,12 @@ interface SettingsState {
   subjectsLoaded: boolean
   materialsLoaded: boolean
   subCategoriesLoaded: boolean
+  lastUsedMaterial: string
   setSubjects: (subjects: string[]) => void
   setMaterials: (materials: string[]) => void
   setSubCategories: (subCategories: SubCategory[]) => void
   setSubjectAlertSettings: (subject: string, settings: SubjectAlertSettings) => void
+  setLastUsedMaterial: (material: string) => void
   loadSubjects: () => Promise<void>
   loadMaterials: () => Promise<void>
   loadSubCategories: () => Promise<void>
@@ -32,11 +34,16 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   subjectsLoaded: false,
   materialsLoaded: false,
   subCategoriesLoaded: false,
+  lastUsedMaterial: localStorage.getItem('lastUsedMaterial') ?? '',
   setSubjects: (subjects) => set({ subjects }),
   setMaterials: (materials) => set({ materials }),
   setSubCategories: (subCategories) => set({ subCategories }),
   setSubjectAlertSettings: (subject, settings) =>
     set((s) => ({ subjectAlertSettings: { ...s.subjectAlertSettings, [subject]: settings } })),
+  setLastUsedMaterial: (material) => {
+    localStorage.setItem('lastUsedMaterial', material)
+    set({ lastUsedMaterial: material })
+  },
   loadSubjects: async () => {
     if (get().subjectsLoaded) return
     try {

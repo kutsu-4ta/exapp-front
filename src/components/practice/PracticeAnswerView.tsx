@@ -135,7 +135,7 @@ export function PracticeAnswerView({
   onRemoveSubQuestion,
 }: Props) {
   const targets = subQuestions.length > 0 ? subQuestions : [question]
-  const materialName = useSettingsStore((s) => s.materials)[0] // TODO: 直近で選択したものをStoreに持つように改修する
+  const materialName = useSettingsStore((s) => s.lastUsedMaterial)
 
   const [phase, setPhase] = useState<ViewPhase>('input')
   const [answers, setAnswers] = useState<AnswerState[]>(() =>

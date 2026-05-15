@@ -47,6 +47,8 @@ export function StudyBlockRow({
     const uid = useId()
     const subjects = useSettingsStore((s) => s.subjects)
     const materials = useSettingsStore((s) => s.materials)
+    const lastUsedMaterial = useSettingsStore((s) => s.lastUsedMaterial)
+    const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial)
 
     const savedIdRef = useRef<number | null>(session?.id ?? null)
     const timerRef = useRef<number | null>(null)
@@ -54,7 +56,7 @@ export function StudyBlockRow({
 
     const [minutes, setMinutes] = useState(String(session?.minutes ?? initialMinutes ?? ''))
     const [subject, setSubject] = useState(session?.subject ?? initialSubject ?? '')
-    const [material, setMaterial] = useState(session?.material ?? initialMaterial ?? '')
+    const [material, setMaterial] = useState(session?.material ?? initialMaterial ?? lastUsedMaterial)
     const [subCategoryName, setSubCategoryName] = useState(session?.subCategory ?? '')
     const [memo, setMemo] = useState(session?.memo ?? '')
 
@@ -92,6 +94,7 @@ export function StudyBlockRow({
             const newId = await onSave(savedIdRef.current, payload)
             savedIdRef.current = newId
             lastSavedRef.current = hash
+            setLastUsedMaterial(payload.material)
 
             setSaveError(null)
 

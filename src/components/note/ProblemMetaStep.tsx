@@ -42,10 +42,12 @@ export function ProblemMetaStep({
                                 }: Props) {
     const subjects = useSettingsStore((s) => s.subjects)
     const materials = useSettingsStore((s) => s.materials)
+    const lastUsedMaterial = useSettingsStore((s) => s.lastUsedMaterial)
+    const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial)
 
     const [subject, setSubject] = useState(initial?.subject ?? '')
     const [subCategory, setSubCategory] = useState(initial?.subCategory ?? '')
-    const [material, setMaterial] = useState(initial?.materialName ?? '')
+    const [material, setMaterial] = useState(initial?.materialName ?? lastUsedMaterial)
     const [questionRef, setQuestionRef] = useState(initial?.questionRef ?? '')
 
     const [failureTypes, setFailureTypes] = useState<FailureType[]>(
@@ -106,7 +108,9 @@ export function ProblemMetaStep({
         setLoading(true)
 
         try {
-            await onNext(buildPayload())
+            const payload = buildPayload()
+            if (payload.materialName) setLastUsedMaterial(payload.materialName)
+            await onNext(payload)
         } catch (e) {
             setError(e instanceof Error ? e.message : '作成失敗')
         } finally {

@@ -8,6 +8,7 @@ import {deleteProblem, deleteProblemQuiz, fetchProblemQuizzes, updateProblem} fr
 import {Copy, Pencil} from "lucide-react";
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
 import {useNavigate} from "react-router-dom";
+import {useSettingsStore} from "../../lib/store/settings";
 
 type Props = {
   problem: Problem;
@@ -25,6 +26,7 @@ export function ProblemQuickModal({
                                     hideQuizzes = false,
                                   }: Props) {
   const navigate = useNavigate();
+  const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [quizzes, setQuizzes] = useState<ProblemQuiz[]>([]);
@@ -111,6 +113,7 @@ export function ProblemQuickModal({
         });
 
         onUpdate(updated);
+        if (updated.materialName) setLastUsedMaterial(updated.materialName);
 
         setSaveSuccessVisible(true);
 
