@@ -1,5 +1,5 @@
 import type {AlertStatusItem, ChartDataPoint, DailyLog, DailyLogSummary, DashboardStats} from '../types/workspace'
-import {formatHours, todayString} from '../types/workspace'
+import {daysAgo, formatHours, todayString} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
 import {useEffect, useMemo, useState} from 'react'
 import {fetchGeminiContext} from '@/lib/api/gemini.ts'

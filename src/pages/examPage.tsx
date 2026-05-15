@@ -267,16 +267,6 @@ const secondaryBtn: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-const dangerBtn: React.CSSProperties = {
-  padding: '14px',
-  border: `1px solid ${c.redBorder}`,
-  borderRadius: '10px',
-  background: '#fff',
-  color: c.red,
-  fontSize: font.base,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
 
 const ghostBtn: React.CSSProperties = {
   padding: '12px',
