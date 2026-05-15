@@ -1,11 +1,13 @@
 import {LongPressButton} from "@/components/common/LongPressButton.tsx";
 import {FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
 import {useEffect, useRef, useState} from "react";
-import type {Problem} from "../../types/workspace";
+import type {MorningQuizSession} from "../../lib/api/morningQuiz";
+import type {Problem, ProblemQuiz} from "../../types/workspace";
 import {c, font} from "../../styles/notion";
-import {deleteProblem, updateProblem} from "../../lib/api/problem";
+import {deleteProblem, deleteProblemQuiz, fetchProblemQuizzes, updateProblem} from "../../lib/api/problem";
 import {Copy, Pencil} from "lucide-react";
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
+import {useNavigate} from "react-router-dom";
 
 type Props = {
   problem: Problem;
@@ -20,8 +22,10 @@ export function ProblemQuickModal({
                                     onDelete,
                                     onUpdate,
                                   }: Props) {
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [quizzes, setQuizzes] = useState<ProblemQuiz[]>([]);
 
   const [draft, setDraft] = useState<Problem>(problem);
   const [note, setNote] = useState(problem.note ?? "");
@@ -49,6 +53,46 @@ export function ProblemQuickModal({
       window.clearTimeout(successTimerRef.current ?? 0);
     };
   }, []);
+
+  useEffect(() => {
+    fetchProblemQuizzes(problem.id)
+      .then(setQuizzes)
+      .catch(() => {});
+  }, [problem.id]);
+
+  async function handleDeleteQuiz(quizId: number) {
+    await deleteProblemQuiz(problem.id, quizId);
+    setQuizzes((prev) => prev.filter((q) => q.id !== quizId));
+  }
+
+  async function handleStartGoodQuizSession() {
+    const quizzes = await fetchProblemQuizzes(problem.id);
+    if (quizzes.length === 0) return;
+
+    const preloadedSession: MorningQuizSession = {
+      session_id: `good-quiz-${problem.id}`,
+      questions: quizzes.map((q) => ({
+        id: String(problem.id),
+        subject: problem.subject,
+        sub_category: problem.subCategory ?? "",
+        problem_context: {
+          original_ref: problem.questionRef,
+          user_memo: problem.note ?? "",
+        },
+        quiz: {
+          question: q.question,
+          options: q.options,
+          correct_index: q.correctIndex,
+          explanation: q.explanation,
+        },
+      })),
+    };
+
+    onClose();
+    navigate(`/subjects/${encodeURIComponent(problem.subject)}/flash-bugfix`, {
+      state: { preloadedSession },
+    });
+  }
 
   function scheduleSave(nextNote: string, nextDraft?: Problem) {
     setSaveSuccessVisible(false);
@@ -296,6 +340,31 @@ export function ProblemQuickModal({
                   </>
               )}
             </div>
+
+            {/* 良問クイズ */}
+            {quizzes.length > 0 && (
+              <div style={section}>
+                <button style={goodQuizBtn} onClick={handleStartGoodQuizSession}>
+                  <span style={goodQuizBtnLabel}>★ 良問クイズ</span>
+                  <span style={goodQuizBtnCount}>{quizzes.length}問</span>
+                  <span style={goodQuizBtnArrow}>→</span>
+                </button>
+                <div style={quizList}>
+                  {quizzes.map((q) => (
+                    <div key={q.id} style={quizRow}>
+                      <span style={quizRowText}>{q.question}</span>
+                      <button
+                        style={quizDeleteBtn}
+                        onClick={() => handleDeleteQuiz(q.id)}
+                        aria-label="削除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* NOTE */}
             <div style={section}>
@@ -566,4 +635,74 @@ const headerRight: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "12px",
+};
+
+const goodQuizBtn: React.CSSProperties = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "12px 14px",
+  borderRadius: "10px",
+  border: `1px solid rgba(234,179,8,0.35)`,
+  backgroundColor: "rgba(254,249,195,0.5)",
+  cursor: "pointer",
+  textAlign: "left",
+};
+
+const goodQuizBtnLabel: React.CSSProperties = {
+  flex: 1,
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#92400e",
+};
+
+const goodQuizBtnCount: React.CSSProperties = {
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "#a16207",
+  backgroundColor: "rgba(234,179,8,0.15)",
+  padding: "2px 8px",
+  borderRadius: "999px",
+};
+
+const goodQuizBtnArrow: React.CSSProperties = {
+  fontSize: "14px",
+  color: "#a16207",
+};
+
+const quizList: React.CSSProperties = {
+  marginTop: "6px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1px",
+};
+
+const quizRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "7px 10px",
+  borderRadius: "6px",
+  backgroundColor: "rgba(254,249,195,0.3)",
+};
+
+const quizRowText: React.CSSProperties = {
+  flex: 1,
+  fontSize: "12px",
+  color: c.textSub,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const quizDeleteBtn: React.CSSProperties = {
+  flexShrink: 0,
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "14px",
+  color: "rgba(55,53,47,0.3)",
+  padding: "0 2px",
+  lineHeight: 1,
 };

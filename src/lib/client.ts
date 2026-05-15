@@ -27,8 +27,11 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
   const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`
 
+  const method = (options.method ?? 'GET').toUpperCase()
+  const hasBody = method !== 'GET' && method !== 'HEAD' && method !== 'DELETE'
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
     Accept: 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   }

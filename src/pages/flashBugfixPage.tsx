@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState} from 'react'
 import {useLocation, useNavigate, useParams} from 'react-router-dom'
 import {
+  type DegBugfixConfig,
+  fetchDegBugfix,
   fetchFlashBugfix,
   type FlashBugfixConfig,
   type MorningQuizQuestion,
@@ -13,7 +15,7 @@ import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
 import {subjectPalette} from "@/styles/subjectUI.ts";
 import {OPTION_LABELS} from "@/styles/practiceUI.ts";
-import {fetchProblem} from '@/lib/api/problem';
+import {addProblemQuiz, fetchProblem} from '@/lib/api/problem';
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -36,14 +38,23 @@ export default function FlashBugfixPage() {
   const subjectName = decodeURIComponent(encodedName ?? '')
   const navigate = useNavigate()
   const location = useLocation()
-  const config: FlashBugfixConfig = (location.state as { config?: FlashBugfixConfig } | null)
-    ?.config ?? {
+  type LocationState = {
+    config?: FlashBugfixConfig
+    preloadedSession?: MorningQuizSession
+    mode?: 'deg'
+    degConfig?: DegBugfixConfig
+  } | null
+  const locationState = location.state as LocationState
+  const config: FlashBugfixConfig = locationState?.config ?? {
     failureTypes: [],
     subCategoryIds: [],
     touchedOrder: null,
     limit: 5,
     proficiency: ['△', '×'],
   }
+  const preloadedSession = locationState?.preloadedSession ?? null
+  const mode = locationState?.mode ?? null
+  const degConfig = locationState?.degConfig ?? null
 
   const [phase, setPhase] = useState<Phase>('loading')
   const [session, setSession] = useState<MorningQuizSession | null>(null)
@@ -54,6 +65,7 @@ export default function FlashBugfixPage() {
   const [results, setResults] = useState<QuestionResult[]>([])
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null)
   const [prefetchedProblems, setPrefetchedProblems] = useState<Record<number, Problem>>({})
+  const [markedIds, setMarkedIds] = useState<Set<number>>(new Set())
   const startTimeRef = useRef<number>(Date.now())
   const configRef = useRef<FlashBugfixConfig>(config)
 
@@ -69,6 +81,17 @@ export default function FlashBugfixPage() {
   const handleNext = () => {
     if (selected === null || !currentQ) return
     const isCorrect = selected === currentQ.quiz.correct_index
+    const problemId = parseInt(currentQ.id, 10)
+
+    if (markedIds.has(problemId)) {
+      addProblemQuiz(problemId, {
+        question: currentQ.quiz.question,
+        options: currentQ.quiz.options,
+        correctIndex: currentQ.quiz.correct_index,
+        explanation: currentQ.quiz.explanation,
+      }).catch(() => {})
+    }
+
     const newResults: QuestionResult[] = [
       ...results,
       { question: currentQ, selectedIdx: selected, isCorrect },
@@ -94,7 +117,7 @@ export default function FlashBugfixPage() {
       await addStudySession({
         dailyLogDate: todayString(),
         subject: subjectName,
-        material: 'FlashBugfix',
+        material: mode === 'deg' ? 'DegBugfix' : 'FlashBugfix',
         subCategory: null,
         minutes: totalMinutes,
         timeSlot,
@@ -113,6 +136,26 @@ export default function FlashBugfixPage() {
     setPhase('loading')
 
     await new Promise(requestAnimationFrame)
+
+    if (preloadedSession) {
+      startTimeRef.current = Date.now()
+      setSession(preloadedSession)
+      setPhase('active')
+      return
+    }
+
+    if (mode === 'deg' && degConfig) {
+      try {
+        startTimeRef.current = Date.now()
+        const sess = await fetchDegBugfix(degConfig)
+        setSession(sess)
+        setPhase('active')
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')
+        setPhase('error')
+      }
+      return
+    }
 
     try {
       const existing = await fetchDailyLog(todayString())
@@ -239,6 +282,17 @@ export default function FlashBugfixPage() {
 
   const { quiz, subject, sub_category, problem_context } = currentQ
   const isCorrect = revealed && selected === quiz.correct_index
+  const currentProblemId = parseInt(currentQ.id, 10)
+  const isMarked = markedIds.has(currentProblemId)
+
+  const handleToggleMark = () => {
+    setMarkedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(currentProblemId)) next.delete(currentProblemId)
+      else next.add(currentProblemId)
+      return next
+    })
+  }
 
   return (
     <div style={page}>
@@ -366,12 +420,23 @@ export default function FlashBugfixPage() {
         {/* Footer */}
         {revealed && (
           <div style={footerRow}>
-            <button
-              style={problemRefBtn}
-              onClick={() => setSelectedProblemId(parseInt(currentQ.id, 10))}
-            >
-              {problem_context.original_ref}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                style={problemRefBtn}
+                onClick={() => setSelectedProblemId(currentProblemId)}
+              >
+                {problem_context.original_ref}
+              </button>
+              <button
+                style={{
+                  ...goodQuestionBtn,
+                  ...(isMarked ? goodQuestionBtnSaved : {}),
+                }}
+                onClick={handleToggleMark}
+              >
+                {isMarked ? '★ 良問' : '☆ 良問'}
+              </button>
+            </div>
             <button style={nextBtn} onClick={handleNext}>
               {currentIdx + 1 >= total ? '結果を見る' : '次の問題'}
               <svg
@@ -526,6 +591,24 @@ const footerRow: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
 }
+const goodQuestionBtn: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 600,
+  padding: '4px 10px',
+  borderRadius: '6px',
+  border: '1px solid rgba(234,179,8,0.4)',
+  backgroundColor: 'rgba(254,249,195,0.6)',
+  color: '#92400e',
+  cursor: 'pointer',
+  transition: 'all 0.15s',
+}
+const goodQuestionBtnSaved: React.CSSProperties = {
+  backgroundColor: 'rgba(253,224,71,0.25)',
+  borderColor: 'rgba(234,179,8,0.6)',
+  color: '#78350f',
+  cursor: 'default',
+}
+
 const problemRefBtn: React.CSSProperties = {
   fontSize: font.sm,
   color: c.textFaint,

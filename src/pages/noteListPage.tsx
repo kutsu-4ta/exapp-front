@@ -9,10 +9,9 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {FilterPill} from '../components/note/FilterPill'
 import {AddProblemModal} from '../components/note/AddProblemModal'
 import {c, font, pageHeading} from '../styles/notion'
-import {flashBugfixBtn} from "@/styles/flashBugficUI.ts";
-import type {FlashBugfixConfig} from "@/lib/api/morningQuiz.ts";
 import {useNavigate} from "react-router-dom";
-import {FlashBugfixConfigModal} from "@/components/practice/FlashBugfixConfigModal.tsx";
+import type {DegBugfixConfig} from "@/lib/api/morningQuiz.ts";
+import {DegBugfixConfigModal} from "@/components/practice/DegBugfixConfigModal.tsx";
 
 function SkeletonCard({ isLast = false }: { isLast?: boolean }) {
   return (
@@ -49,11 +48,13 @@ export default function NoteListPage() {
   const [filterProficiency, setFilterProficiency] = useState<Proficiency | 'all'>('all')
   const [filterFailureType, setFilterFailureType] = useState<FailureType | 'all'>('all')
 
-  const items = subCategories.filter((sc) => sc.subject === filterSubject)
-  const [showFlashConfig, setShowFlashConfig] = useState(false)
-  const handleFlashStart = (config: FlashBugfixConfig) => {
-    setShowFlashConfig(false)
-    navigate(`/subjects/${encodeURIComponent(filterSubject)}/flash-bugfix`, { state: { config } })
+  const [showDegConfig, setShowDegConfig] = useState(false)
+  const handleDegStart = (config: DegBugfixConfig) => {
+    setShowDegConfig(false)
+    const label = config.subject ?? 'すべての科目'
+    navigate(`/subjects/${encodeURIComponent(label)}/flash-bugfix`, {
+      state: { mode: 'deg', degConfig: config },
+    })
   }
 
   // 初回ロード
@@ -178,21 +179,9 @@ export default function NoteListPage() {
           >
             <h1 style={{ ...pageHeading, marginBottom: 0 }}>Note</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: '24px',
-                    marginBottom: '8px',
-                  }}
-              >
-                {filterSubject === 'all' ? (<p></p>) :
-                  <button style={flashBugfixBtn} onClick={() => setShowFlashConfig(true)}>
-                    ⚡ Flash Bugfix
-                  </button>
-                }
-              </div>
+              <button style={degBugfixBtn} onClick={() => setShowDegConfig(true)}>
+                ★ DegBugfix
+              </button>
             </div>
           </div>
 
@@ -353,16 +342,27 @@ export default function NoteListPage() {
           </svg>
         </button>
       )}
-      {showFlashConfig && (
-          <FlashBugfixConfigModal
-              subjectName={filterSubject}
-              subCategories={items}
-              onClose={() => setShowFlashConfig(false)}
-              onStart={handleFlashStart}
-          />
+      {showDegConfig && (
+        <DegBugfixConfigModal
+          subjects={subjects}
+          initialSubject={filterSubject === 'all' ? null : filterSubject}
+          onClose={() => setShowDegConfig(false)}
+          onStart={handleDegStart}
+        />
       )}
     </div>
   )
+}
+
+const degBugfixBtn: React.CSSProperties = {
+  padding: '5px 10px',
+  backgroundColor: 'rgba(234,179,8,0.1)',
+  color: '#92400e',
+  border: '1px solid rgba(234,179,8,0.3)',
+  borderRadius: '6px',
+  fontSize: '11px',
+  fontWeight: 700,
+  cursor: 'pointer',
 }
 
 const container: React.CSSProperties = { minHeight: '100vh', backgroundColor: c.bg, color: c.text }

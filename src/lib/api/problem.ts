@@ -2,7 +2,7 @@
  * ── Problems (苦手問題管理) ──────────────────────────────────────────────────
  */
 import {apiFetch, apiUpload} from '../client'
-import type {AnalysisResponse, Problem, ProblemInput} from '../../types/workspace'
+import type {AnalysisResponse, Problem, ProblemInput, ProblemQuiz, ProblemQuizInput} from '../../types/workspace'
 
 // GET /api/problems
 export async function fetchProblems(opts?: {
@@ -59,6 +59,29 @@ export async function explainProblem(id: number): Promise<string> {
   if (!res.ok) throw new Error('解説の生成に失敗しました')
   const data = await res.json()
   return data.explanation
+}
+
+// GET /api/problems/:id/quizzes
+export async function fetchProblemQuizzes(id: number): Promise<ProblemQuiz[]> {
+  const res = await apiFetch(`/api/problems/${id}/quizzes`)
+  if (!res.ok) throw new Error('クイズの取得に失敗しました')
+  return res.json()
+}
+
+// POST /api/problems/:id/quizzes
+export async function addProblemQuiz(id: number, input: ProblemQuizInput): Promise<ProblemQuiz> {
+  const res = await apiFetch(`/api/problems/${id}/quizzes`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('良問の登録に失敗しました')
+  return res.json()
+}
+
+// DELETE /api/problems/:id/quizzes/:quizId
+export async function deleteProblemQuiz(id: number, quizId: number): Promise<void> {
+  const res = await apiFetch(`/api/problems/${id}/quizzes/${quizId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('良問の削除に失敗しました')
 }
 
 // POST /api/ai/analysis — multipart/form-data で画像を送信し、解析済み Problem を返す

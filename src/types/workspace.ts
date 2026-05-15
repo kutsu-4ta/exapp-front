@@ -161,6 +161,23 @@ export type Problem = {
   updatedAt: string
 }
 
+export type ProblemQuiz = {
+  id: number
+  problemId: number
+  question: string
+  options: string[]
+  correctIndex: number
+  explanation: string
+  createdAt: string
+}
+
+export type ProblemQuizInput = {
+  question: string
+  options: string[]
+  correctIndex: number
+  explanation: string
+}
+
 export type AnalysisResponse = {
   subject_name: string
   sub_category_name: string

@@ -60,6 +60,24 @@ export async function fetchFlashBugfix(
   return res.json()
 }
 
+export type DegBugfixConfig = {
+  subject: string | null
+  limit: number
+}
+
+export async function fetchDegBugfix(config: DegBugfixConfig): Promise<MorningQuizSession> {
+  const q = new URLSearchParams()
+  if (config.subject) q.set('subject', config.subject)
+  q.set('limit', String(config.limit))
+
+  const res = await apiFetch(`/api/deg-bugfix?${q}`)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.message ?? '良問クイズの取得に失敗しました')
+  }
+  return res.json()
+}
+
 export async function completeMorningQuiz(
   sessionId: string,
   answers: MorningQuizAnswer[],
