@@ -3,6 +3,7 @@ import type {SubjectActivityDay} from '@/types/workspace'
 import {SubjectActivityChart} from '@/components/subject/SubjectActivityChart'
 import {fetchSubjectActivity} from '@/lib/api/subjects'
 import {subjectUi} from "@/styles/subjectUI.ts";
+import {Skeleton} from "@/components/common/Skeleton.tsx";
 
 export function SubjectActivity({
                                     subjectName,
@@ -55,7 +56,7 @@ export function SubjectActivity({
                 </div>
 
                 {goalLoading ? (
-                    <div style={muted}></div>
+                    <Skeleton height={54} borderRadius={8} style={{ marginBottom: 8 }} />
                 ) : (
                     <div>
                         <label style={label}>月次方針</label>
@@ -83,7 +84,7 @@ export function SubjectActivity({
                         <span style={{ color: 'rgba(235,87,87,0.6)' }}>▌ 問題追加</span>
                     </span>
                 {loading ? (
-                    <div style={subjectUi.muted}>読み込み中...</div>
+                    <Skeleton height={120} borderRadius={8} style={{ marginTop: 8 }} />
                 ) : (
                     <SubjectActivityChart
                         data={activityData}
@@ -115,10 +116,6 @@ const textarea: React.CSSProperties = {
     background: "transparent",
 }
 
-const muted: React.CSSProperties = {
-    fontSize: "12px",
-    color: "rgba(55,53,47,0.4)",
-}
 
 const monthNav: React.CSSProperties = {
     display: "flex",

@@ -26,6 +26,7 @@ import {StrategySection} from "@/components/subject/StrategySection.tsx";
 import {flashBugfixBtn} from "@/styles/flashBugficUI.ts";
 import {PROF_COLORS} from "@/components/common/ProficiencySelector.tsx";
 import {FAILURE_COLORS, FAILURE_TYPES} from "@/components/common/FailureTypeSlecter.tsx";
+import {Skeleton} from "@/components/common/Skeleton.tsx";
 
 
 export default function SubjectPage() {
@@ -200,7 +201,25 @@ export default function SubjectPage() {
                 {/* 統計 */}
                 <section style={subjectUi.card}>
                     {statsLoading ? (
-                        <p style={loadingText}>読み込み中...</p>
+                        <div style={block}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                                {[0, 1, 2].map((i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                        <Skeleton width={20} height={20} borderRadius={4} />
+                                        <Skeleton width={28} height={22} borderRadius={4} />
+                                    </div>
+                                ))}
+                                <Skeleton width={48} height={14} style={{ marginLeft: 'auto' }} />
+                            </div>
+                            <Skeleton height={1} borderRadius={0} style={{ margin: '0 0 12px' }} />
+                            <Skeleton width={80} height={10} style={{ marginBottom: 10 }} />
+                            <Skeleton height={8} borderRadius={4} style={{ marginBottom: 8 }} />
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                {[0, 1, 2].map((i) => (
+                                    <Skeleton key={i} width={48} height={12} borderRadius={4} />
+                                ))}
+                            </div>
+                        </div>
                     ) : (
                         <>
                             <div
@@ -459,11 +478,6 @@ const divider: React.CSSProperties = {
     height: '1px',
     backgroundColor: 'rgba(55, 53, 47, 0.05)',
     margin: '8px 0',
-}
-const loadingText: React.CSSProperties = {
-    fontSize: '12px',
-    color: 'rgba(55,53,47,0.3)',
-    padding: '12px 0',
 }
 const profRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '12px' }
 const profCell: React.CSSProperties = { display: 'flex', alignItems: 'baseline', gap: '4px' }

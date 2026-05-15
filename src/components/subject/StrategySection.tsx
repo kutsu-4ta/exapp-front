@@ -1,3 +1,5 @@
+import {Skeleton} from "@/components/common/Skeleton.tsx";
+
 type Props = {
     settingsLoaded: boolean
     settings: {
@@ -20,7 +22,10 @@ export function StrategySection({
             {/* 最終目標 */}
             <section>
                 {!settingsLoaded ? (
-                    <div style={muted}>読み込み中...</div>
+                    <div style={block}>
+                        <Skeleton width={56} height={10} style={{ marginBottom: 10 }} />
+                        <Skeleton width="70%" height={14} />
+                    </div>
                 ) : (
                     <div style={block}>
                         <label style={label}>最終目標</label>
@@ -70,7 +75,3 @@ const input: React.CSSProperties = {
     background: "transparent",
 }
 
-const muted: React.CSSProperties = {
-    fontSize: "12px",
-    color: "rgba(55,53,47,0.4)",
-}

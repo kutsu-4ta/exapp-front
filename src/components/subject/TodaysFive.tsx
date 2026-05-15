@@ -4,6 +4,7 @@ import type {Flashcard} from "@/types/workspace.ts";
 import {fetchFlashcards} from "@/lib/api/subjects.ts";
 import {c} from "@/styles/notion.ts";
 import {PROF_COLORS, subjectUi} from "@/styles/subjectUI.ts";
+import {Skeleton} from "@/components/common/Skeleton.tsx";
 
 export function TodaysFive({
                               subjectName,
@@ -29,7 +30,19 @@ export function TodaysFive({
             </div>
 
             {loading ? (
-                <p style={todaysFiveUi.loadingText}>読み込み中...</p>
+                <div style={{ ...todaysFiveUi.block, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {[0, 1, 2].map((i) => (
+                        <div key={i}>
+                            <div style={{ ...todaysFiveUi.row, gap: '10px' }}>
+                                <Skeleton width={18} height={18} borderRadius={4} />
+                                <Skeleton width="55%" height={13} />
+                                <Skeleton width={52} height={18} borderRadius={4} style={{ marginLeft: 'auto' }} />
+                            </div>
+                            {i < 2 && <div style={todaysFiveUi.divider} />}
+                        </div>
+                    ))}
+                    <Skeleton height={40} borderRadius={8} style={{ marginTop: 12 }} />
+                </div>
             ) : todayCards.length === 0 ? (
                 <p style={todaysFiveUi.emptyText}>ノートがありません</p>
             ) : (
