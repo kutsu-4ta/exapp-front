@@ -159,8 +159,7 @@ interface ExamInputViewProps {
 export default function ExamInputView({ session, onComplete, onCancel }: ExamInputViewProps) {
   const savedDraft = useMemo(() => loadDraft(session.id), [session.id])
   const subjects = useSettingsStore((s) => s.subjects)
-
-  const [subject, setSubject] = useState(savedDraft?.subject ?? session.subject)
+  const [subject, setSubject] = useState(savedDraft?.subject ?? '')
   const [examYear, setExamYear] = useState(savedDraft?.examYear ?? session.examYear)
   const [isScoring, setIsScoring] = useState(savedDraft?.isScoring ?? session.status === 'scoring')
   const [saving, setSaving] = useState(false)
@@ -468,5 +467,3 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
     </div>
   )
 }
-
-// ── Styles ──
