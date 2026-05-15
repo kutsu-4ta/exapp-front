@@ -37,6 +37,7 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Pr
         proficiency,
         failureTypes,
         isGoodQuestion: problem.isGoodQuestion,
+        isFormula: problem.isFormula,
         solvedAt: problem.solvedAt,
       })
     } finally {
