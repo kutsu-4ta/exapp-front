@@ -8,17 +8,23 @@ import {PROF_STYLE} from '@/styles/subjectUI.ts'
 type Props = {
   problemId: number
   onClose: () => void
+  initialProblem?: Problem
 }
 
-export function ProblemEditModal({ problemId, onClose }: Props) {
-  const [problem, setProblem] = useState<Problem | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [proficiency, setProficiency] = useState<Proficiency>('×')
-  const [failureTypes, setFailureTypes] = useState<FailureType[]>([])
-  const [note, setNote] = useState('')
+export function ProblemEditModal({ problemId, onClose, initialProblem }: Props) {
+  const [problem, setProblem] = useState<Problem | null>(initialProblem ?? null)
+  const [loading, setLoading] = useState(!initialProblem)
+  const [proficiency, setProficiency] = useState<Proficiency>(
+    (initialProblem?.proficiency as Proficiency) ?? '×'
+  )
+  const [failureTypes, setFailureTypes] = useState<FailureType[]>(
+    (initialProblem?.failureTypes as FailureType[]) ?? []
+  )
+  const [note, setNote] = useState(initialProblem?.note ?? '')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    if (initialProblem) return
     fetchProblem(problemId)
       .then((p) => {
         setProblem(p)

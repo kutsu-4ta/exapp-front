@@ -8,11 +8,12 @@ import {
 } from '@/lib/api/morningQuiz'
 import {ProblemEditModal} from '@/components/practice/ProblemEditModal'
 import {addStudySession, createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
-import type {TimeSlot} from '@/types/workspace'
+import type {Problem, TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
 import {subjectPalette} from "@/styles/subjectUI.ts";
 import {OPTION_LABELS} from "@/styles/practiceUI.ts";
+import {fetchProblem} from '@/lib/api/problem';
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -52,6 +53,7 @@ export default function FlashBugfixPage() {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState<QuestionResult[]>([])
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null)
+  const [prefetchedProblems, setPrefetchedProblems] = useState<Record<number, Problem>>({})
   const startTimeRef = useRef<number>(Date.now())
   const configRef = useRef<FlashBugfixConfig>(config)
 
@@ -142,6 +144,16 @@ export default function FlashBugfixPage() {
     startQuiz()
   }, [])
 
+  useEffect(() => {
+    if (!session) return
+    const ids = session.questions.map((q) => parseInt(q.id, 10))
+    ids.forEach((id) => {
+      fetchProblem(id)
+        .then((p) => setPrefetchedProblems((prev) => ({ ...prev, [id]: p })))
+        .catch(() => {})
+    })
+  }, [session])
+
   // ── LOADING ────────────────────────────────────────────────────────────────────
   if (phase === 'loading') {
     return (
@@ -214,6 +226,7 @@ export default function FlashBugfixPage() {
         {selectedProblemId !== null && (
           <ProblemEditModal
             problemId={selectedProblemId}
+            initialProblem={prefetchedProblems[selectedProblemId]}
             onClose={() => setSelectedProblemId(null)}
           />
         )}
@@ -353,7 +366,12 @@ export default function FlashBugfixPage() {
         {/* Footer */}
         {revealed && (
           <div style={footerRow}>
-            <span style={problemRef}>{problem_context.original_ref}</span>
+            <button
+              style={problemRefBtn}
+              onClick={() => setSelectedProblemId(parseInt(currentQ.id, 10))}
+            >
+              {problem_context.original_ref}
+            </button>
             <button style={nextBtn} onClick={handleNext}>
               {currentIdx + 1 >= total ? '結果を見る' : '次の問題'}
               <svg
@@ -372,6 +390,13 @@ export default function FlashBugfixPage() {
           </div>
         )}
       </div>
+      {selectedProblemId !== null && (
+        <ProblemEditModal
+          problemId={selectedProblemId}
+          initialProblem={prefetchedProblems[selectedProblemId]}
+          onClose={() => setSelectedProblemId(null)}
+        />
+      )}
     </div>
   )
 }
@@ -501,7 +526,17 @@ const footerRow: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
 }
-const problemRef: React.CSSProperties = { fontSize: font.sm, color: c.textFaint }
+const problemRefBtn: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textFaint,
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '4px 0',
+  textDecoration: 'underline',
+  textDecorationColor: 'rgba(55,53,47,0.2)',
+  textUnderlineOffset: '2px',
+}
 const nextBtn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
