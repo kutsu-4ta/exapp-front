@@ -1,21 +1,13 @@
-import {useEffect, useRef, useState} from 'react'
 import {useLocation, useNavigate, useParams} from 'react-router-dom'
-import {
-  type DegBugfixConfig,
-  fetchDegBugfix,
-  fetchFlashBugfix,
-  type FlashBugfixConfig,
-  type MorningQuizQuestion,
-  type MorningQuizSession,
-} from '@/lib/api/morningQuiz'
-import {ProblemEditModal} from '@/components/practice/ProblemEditModal'
-import {addStudySession, createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
-import type {Problem, TimeSlot} from '@/types/workspace'
+import {type DegBugfixConfig, type FlashBugfixConfig, type MorningQuizSession,} from '@/lib/api/morningQuiz'
+import {ProblemQuickModal} from '@/components/note/ProblemQuickModal'
+import {addStudySession} from '@/lib/api/workspace'
+import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
 import {subjectPalette} from "@/styles/subjectUI.ts";
 import {OPTION_LABELS} from "@/styles/practiceUI.ts";
-import {addProblemQuiz, fetchProblem} from '@/lib/api/problem';
+import {type QuizSessionMode, useQuizSession} from '@/hooks/useQuizSession'
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -23,14 +15,6 @@ function currentTimeSlot(): TimeSlot {
   if (h < 14) return 'lunch'
   if (h < 18) return 'commute'
   return 'night'
-}
-
-type Phase = 'loading' | 'active' | 'error' | 'result' | 'saving'
-
-type QuestionResult = {
-  question: MorningQuizQuestion
-  selectedIdx: number
-  isCorrect: boolean
 }
 
 export default function FlashBugfixPage() {
@@ -53,59 +37,37 @@ export default function FlashBugfixPage() {
     proficiency: ['△', '×'],
   }
   const preloadedSession = locationState?.preloadedSession ?? null
-  const mode = locationState?.mode ?? null
+  const isDeg = locationState?.mode === 'deg'
   const degConfig = locationState?.degConfig ?? null
 
-  const [phase, setPhase] = useState<Phase>('loading')
-  const [session, setSession] = useState<MorningQuizSession | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [currentIdx, setCurrentIdx] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [revealed, setRevealed] = useState(false)
-  const [results, setResults] = useState<QuestionResult[]>([])
-  const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null)
-  const [prefetchedProblems, setPrefetchedProblems] = useState<Record<number, Problem>>({})
-  const [markedIds, setMarkedIds] = useState<Set<number>>(new Set())
-  const startTimeRef = useRef<number>(Date.now())
-  const configRef = useRef<FlashBugfixConfig>(config)
+  const quizMode: QuizSessionMode = preloadedSession
+    ? {type: 'preloaded', session: preloadedSession}
+    : isDeg && degConfig
+      ? {type: 'deg', config: degConfig}
+      : {type: 'flash', subjectName, config}
 
-  const total = session?.questions.length ?? 5
-  const currentQ = session?.questions[currentIdx]
+  const {
+    phase,
+    setPhase,
+    errorMsg,
+    currentIdx,
+    selected,
+    revealed,
+    results,
+    selectedProblem,
+    startTimeRef,
+    total,
+    currentQ,
+    isMarked,
+    handleSelect,
+    handleNext,
+    openProblemModal,
+    handleProblemUpdate,
+    handleToggleMark,
+    closeSelectedProblem,
+  } = useQuizSession(quizMode)
 
-  const handleSelect = (idx: number) => {
-    if (revealed || phase !== 'active') return
-    setSelected(idx)
-    setRevealed(true)
-  }
-
-  const handleNext = () => {
-    if (selected === null || !currentQ) return
-    const isCorrect = selected === currentQ.quiz.correct_index
-    const problemId = parseInt(currentQ.id, 10)
-
-    if (markedIds.has(problemId)) {
-      addProblemQuiz(problemId, {
-        question: currentQ.quiz.question,
-        options: currentQ.quiz.options,
-        correctIndex: currentQ.quiz.correct_index,
-        explanation: currentQ.quiz.explanation,
-      }).catch(() => {})
-    }
-
-    const newResults: QuestionResult[] = [
-      ...results,
-      { question: currentQ, selectedIdx: selected, isCorrect },
-    ]
-    setResults(newResults)
-
-    if (currentIdx + 1 >= total) {
-      setPhase('result')
-    } else {
-      setCurrentIdx((i) => i + 1)
-      setSelected(null)
-      setRevealed(false)
-    }
-  }
+  const palette = subjectPalette(subjectName)
 
   const handleComplete = async () => {
     if (phase === 'saving') return
@@ -117,7 +79,7 @@ export default function FlashBugfixPage() {
       await addStudySession({
         dailyLogDate: todayString(),
         subject: subjectName,
-        material: mode === 'deg' ? 'DegBugfix' : 'FlashBugfix',
+        material: isDeg ? 'DegBugfix' : 'FlashBugfix',
         subCategory: null,
         minutes: totalMinutes,
         timeSlot,
@@ -126,76 +88,13 @@ export default function FlashBugfixPage() {
     } catch (e) {
       console.error(e)
     } finally {
-      navigate(`/subjects/${encodeURIComponent(subjectName)}`)
+      if (isDeg) {
+        navigate('/notelist')
+      } else {
+        navigate(`/subjects/${encodeURIComponent(subjectName)}`)
+      }
     }
   }
-
-  const palette = subjectPalette(subjectName)
-
-  const startQuiz = async () => {
-    setPhase('loading')
-
-    await new Promise(requestAnimationFrame)
-
-    if (preloadedSession) {
-      startTimeRef.current = Date.now()
-      setSession(preloadedSession)
-      setPhase('active')
-      return
-    }
-
-    if (mode === 'deg' && degConfig) {
-      try {
-        startTimeRef.current = Date.now()
-        const sess = await fetchDegBugfix(degConfig)
-        setSession(sess)
-        setPhase('active')
-      } catch (e) {
-        setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')
-        setPhase('error')
-      }
-      return
-    }
-
-    try {
-      const existing = await fetchDailyLog(todayString())
-
-      if (!existing) {
-        await createDailyLog(todayString())
-      }
-
-      startTimeRef.current = Date.now()
-
-      const sess = await fetchFlashBugfix(
-          subjectName,
-          configRef.current,
-      )
-
-      setSession(sess)
-      setPhase('active')
-    } catch (e) {
-      setErrorMsg(
-          e instanceof Error
-              ? e.message
-              : 'エラーが発生しました',
-      )
-      setPhase('error')
-    }
-  }
-
-  useEffect(() => {
-    startQuiz()
-  }, [])
-
-  useEffect(() => {
-    if (!session) return
-    const ids = session.questions.map((q) => parseInt(q.id, 10))
-    ids.forEach((id) => {
-      fetchProblem(id)
-        .then((p) => setPrefetchedProblems((prev) => ({ ...prev, [id]: p })))
-        .catch(() => {})
-    })
-  }, [session])
 
   // ── LOADING ────────────────────────────────────────────────────────────────────
   if (phase === 'loading') {
@@ -249,7 +148,7 @@ export default function FlashBugfixPage() {
                   <span style={resultRef}>{r.question.problem_context.original_ref}</span>
                   <button
                     style={subjectLink}
-                    onClick={() => setSelectedProblemId(parseInt(r.question.id, 10))}
+                    onClick={() => openProblemModal(parseInt(r.question.id, 10))}
                   >
                     →
                   </button>
@@ -266,11 +165,12 @@ export default function FlashBugfixPage() {
             {phase === 'saving' ? '記録中...' : '完了する'}
           </button>
         </div>
-        {selectedProblemId !== null && (
-          <ProblemEditModal
-            problemId={selectedProblemId}
-            initialProblem={prefetchedProblems[selectedProblemId]}
-            onClose={() => setSelectedProblemId(null)}
+        {selectedProblem !== null && (
+          <ProblemQuickModal
+            problem={selectedProblem}
+            onClose={closeSelectedProblem}
+            onDelete={closeSelectedProblem}
+            onUpdate={handleProblemUpdate}
           />
         )}
       </div>
@@ -283,16 +183,6 @@ export default function FlashBugfixPage() {
   const { quiz, subject, sub_category, problem_context } = currentQ
   const isCorrect = revealed && selected === quiz.correct_index
   const currentProblemId = parseInt(currentQ.id, 10)
-  const isMarked = markedIds.has(currentProblemId)
-
-  const handleToggleMark = () => {
-    setMarkedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(currentProblemId)) next.delete(currentProblemId)
-      else next.add(currentProblemId)
-      return next
-    })
-  }
 
   return (
     <div style={page}>
@@ -423,7 +313,7 @@ export default function FlashBugfixPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 style={problemRefBtn}
-                onClick={() => setSelectedProblemId(currentProblemId)}
+                onClick={() => openProblemModal(currentProblemId)}
               >
                 {problem_context.original_ref}
               </button>
@@ -455,11 +345,12 @@ export default function FlashBugfixPage() {
           </div>
         )}
       </div>
-      {selectedProblemId !== null && (
-        <ProblemEditModal
-          problemId={selectedProblemId}
-          initialProblem={prefetchedProblems[selectedProblemId]}
-          onClose={() => setSelectedProblemId(null)}
+      {selectedProblem !== null && (
+        <ProblemQuickModal
+          problem={selectedProblem}
+          onClose={closeSelectedProblem}
+          onDelete={closeSelectedProblem}
+          onUpdate={handleProblemUpdate}
         />
       )}
     </div>
@@ -606,7 +497,6 @@ const goodQuestionBtnSaved: React.CSSProperties = {
   backgroundColor: 'rgba(253,224,71,0.25)',
   borderColor: 'rgba(234,179,8,0.6)',
   color: '#78350f',
-  cursor: 'default',
 }
 
 const problemRefBtn: React.CSSProperties = {

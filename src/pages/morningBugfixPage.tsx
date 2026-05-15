@@ -1,16 +1,15 @@
-import {useEffect, useState} from 'react'
+import {useEffect} from 'react'
 import {useNavigate} from 'react-router-dom'
-import {fetchMorningQuiz, type MorningQuizQuestion, type MorningQuizSession,} from '@/lib/api/morningQuiz'
-import {ProblemEditModal} from '@/components/practice/ProblemEditModal'
-import {addStudySession, createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
+import {ProblemQuickModal} from '@/components/note/ProblemQuickModal'
+import {addStudySession} from '@/lib/api/workspace'
 import {fetchStopwatch, resetStopwatch, startStopwatch, stopStopwatch} from '@/lib/api/stopwatch'
 import {useTimer} from '@/context/TimerContext'
 import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {c, font} from '@/styles/notion'
 import {subjectPalette} from "@/styles/subjectUI.ts";
-
-const OPTION_LABELS = ['ア', 'イ', 'ウ', 'エ']
+import {OPTION_LABELS} from "@/styles/practiceUI.ts";
+import {useQuizSession} from '@/hooks/useQuizSession'
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -20,82 +19,43 @@ function currentTimeSlot(): TimeSlot {
   return 'night'
 }
 
-type Phase = 'init' | 'active' | 'error' | 'result' | 'saving'
-
-type QuestionResult = {
-  question: MorningQuizQuestion
-  selectedIdx: number
-  isCorrect: boolean
-}
-
 export default function MorningBugfixPage() {
   const navigate = useNavigate()
   const { setTime, setIsActive } = useTimer()
-  const [phase, setPhase] = useState<Phase>('init')
-  const [session, setSession] = useState<MorningQuizSession | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [currentIdx, setCurrentIdx] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [revealed, setRevealed] = useState(false)
-  const [results, setResults] = useState<QuestionResult[]>([])
-  const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null)
+
+  const {
+    phase,
+    setPhase,
+    session,
+    errorMsg,
+    currentIdx,
+    selected,
+    revealed,
+    results,
+    selectedProblem,
+    total,
+    currentQ,
+    isMarked,
+    handleSelect,
+    handleNext,
+    openProblemModal,
+    handleProblemUpdate,
+    handleToggleMark,
+    closeSelectedProblem,
+  } = useQuizSession({ type: 'morning' })
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const existing = await fetchDailyLog(todayString())
-        if (!existing) await createDailyLog(todayString())
-      } catch (e) {
-        setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')
-        setPhase('error')
-        return
-      }
-
+    if (!session) return
+    const initStopwatch = async () => {
       try {
         await resetStopwatch()
         await startStopwatch()
         setTime(0)
         setIsActive(true)
       } catch {}
-
-      try {
-        const sess = await fetchMorningQuiz()
-        setSession(sess)
-        setPhase('active')
-      } catch (e) {
-        setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')
-        setPhase('error')
-      }
     }
-    init()
-  }, [setIsActive, setTime])
-
-  const total = session?.questions.length ?? 5
-  const currentQ = session?.questions[currentIdx]
-
-  const handleSelect = (idx: number) => {
-    if (revealed || phase !== 'active') return
-    setSelected(idx)
-    setRevealed(true)
-  }
-
-  const handleNext = () => {
-    if (selected === null || !currentQ) return
-    const isCorrect = selected === currentQ.quiz.correct_index
-    const newResults: QuestionResult[] = [
-      ...results,
-      { question: currentQ, selectedIdx: selected, isCorrect },
-    ]
-    setResults(newResults)
-
-    if (currentIdx + 1 >= total) {
-      setPhase('result')
-    } else {
-      setCurrentIdx((i) => i + 1)
-      setSelected(null)
-      setRevealed(false)
-    }
-  }
+    initStopwatch()
+  }, [session, setTime, setIsActive])
 
   const handleComplete = async () => {
     if (phase === 'saving') return
@@ -129,8 +89,8 @@ export default function MorningBugfixPage() {
     }
   }
 
-  // ── INIT ────────────────────────────────────────────────────────────────────
-  if (phase === 'init') {
+  // ── LOADING ──────────────────────────────────────────────────────────────────
+  if (phase === 'loading') {
     return (
       <div style={page}>
         <div style={centerBox}>
@@ -171,7 +131,6 @@ export default function MorningBugfixPage() {
     return (
       <div style={page}>
         <div style={inner}>
-          {/* Score */}
           <div style={resultHeader}>
             <p style={resultTitle}>完了！</p>
             <p style={resultScore}>
@@ -180,7 +139,6 @@ export default function MorningBugfixPage() {
             </p>
           </div>
 
-          {/* Problem list */}
           <div style={resultList}>
             {results.map((r, i) => {
               const palette = subjectPalette(r.question.subject)
@@ -195,7 +153,7 @@ export default function MorningBugfixPage() {
                   <span style={resultRef}>{r.question.problem_context.original_ref}</span>
                   <button
                     style={subjectLink}
-                    onClick={() => setSelectedProblemId(parseInt(r.question.id, 10))}
+                    onClick={() => openProblemModal(parseInt(r.question.id, 10))}
                   >
                     →
                   </button>
@@ -212,10 +170,12 @@ export default function MorningBugfixPage() {
             {phase === 'saving' ? '記録中...' : '完了する'}
           </button>
         </div>
-        {selectedProblemId !== null && (
-          <ProblemEditModal
-            problemId={selectedProblemId}
-            onClose={() => setSelectedProblemId(null)}
+        {selectedProblem !== null && (
+          <ProblemQuickModal
+            problem={selectedProblem}
+            onClose={closeSelectedProblem}
+            onDelete={closeSelectedProblem}
+            onUpdate={handleProblemUpdate}
           />
         )}
       </div>
@@ -228,6 +188,7 @@ export default function MorningBugfixPage() {
   const { quiz, subject, sub_category, problem_context } = currentQ
   const palette = subjectPalette(subject)
   const isCorrect = revealed && selected === quiz.correct_index
+  const currentProblemId = parseInt(currentQ.id, 10)
 
   return (
     <div style={page}>
@@ -290,7 +251,6 @@ export default function MorningBugfixPage() {
             const isSelected = i === selected
             const isCorrectOpt = i === quiz.correct_index
 
-            // 明示的に string 型として宣言することで、リテラル型の代入エラーを回避
             let bg: string = '#fff'
             let border: string = 'rgba(55,53,47,0.12)'
             let color: string = c.text
@@ -345,7 +305,23 @@ export default function MorningBugfixPage() {
         {/* Footer */}
         {revealed && (
           <div style={footerRow}>
-            <span style={problemRef}>{problem_context.original_ref}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                style={problemRefBtn}
+                onClick={() => openProblemModal(currentProblemId)}
+              >
+                {problem_context.original_ref}
+              </button>
+              <button
+                style={{
+                  ...goodQuestionBtn,
+                  ...(isMarked ? goodQuestionBtnSaved : {}),
+                }}
+                onClick={handleToggleMark}
+              >
+                {isMarked ? '★ 良問' : '☆ 良問'}
+              </button>
+            </div>
             <button style={nextBtn} onClick={handleNext}>
               {currentIdx + 1 >= total ? '結果を見る' : '次の問題'}
               <svg
@@ -364,6 +340,14 @@ export default function MorningBugfixPage() {
           </div>
         )}
       </div>
+      {selectedProblem !== null && (
+        <ProblemQuickModal
+          problem={selectedProblem}
+          onClose={closeSelectedProblem}
+          onDelete={closeSelectedProblem}
+          onUpdate={handleProblemUpdate}
+        />
+      )}
     </div>
   )
 }
@@ -493,7 +477,33 @@ const footerRow: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
 }
-const problemRef: React.CSSProperties = { fontSize: font.sm, color: c.textFaint }
+const problemRefBtn: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textFaint,
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '4px 0',
+  textDecoration: 'underline',
+  textDecorationColor: 'rgba(55,53,47,0.2)',
+  textUnderlineOffset: '2px',
+}
+const goodQuestionBtn: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 600,
+  padding: '4px 10px',
+  borderRadius: '6px',
+  border: '1px solid rgba(234,179,8,0.4)',
+  backgroundColor: 'rgba(254,249,195,0.6)',
+  color: '#92400e',
+  cursor: 'pointer',
+  transition: 'all 0.15s',
+}
+const goodQuestionBtnSaved: React.CSSProperties = {
+  backgroundColor: 'rgba(253,224,71,0.25)',
+  borderColor: 'rgba(234,179,8,0.6)',
+  color: '#78350f',
+}
 const nextBtn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -507,7 +517,6 @@ const nextBtn: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-// Result screen
 const resultHeader: React.CSSProperties = { textAlign: 'center', padding: '32px 0 28px' }
 const resultTitle: React.CSSProperties = {
   fontSize: '20px',
