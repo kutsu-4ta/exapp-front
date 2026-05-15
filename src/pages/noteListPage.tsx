@@ -327,7 +327,7 @@ export default function NoteListPage() {
         />
       )}
 
-      {!showAddForm && !quickProblem && (
+      {!showAddForm && !quickProblem && !showDegConfig && (
         <button style={fab} onClick={() => setShowAddForm(true)}>
           <svg
             width="24"
