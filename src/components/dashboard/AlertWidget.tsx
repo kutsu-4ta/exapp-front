@@ -1,6 +1,7 @@
 import type {AlertStatusItem} from '../../types/workspace'
 import {daysAgo} from '../../types/workspace'
 import {useState} from 'react'
+import {useNavigate} from 'react-router-dom'
 
 type AlertEntry = AlertStatusItem & { condition: 1 | 2 }
 
@@ -9,6 +10,7 @@ type Props = {
 }
 
 export function AlertWidget({ alertItems }: Props) {
+  const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(true)
 
   const alerts: AlertEntry[] = alertItems.flatMap((item): AlertEntry[] => {
@@ -53,7 +55,11 @@ export function AlertWidget({ alertItems }: Props) {
         <div className="px-4 pb-4 border-t border-[var(--nt-red-border)]">
           <div className="flex flex-wrap gap-2 pt-3">
             {alerts.map((item) => (
-              <AlertCard key={item.subject} item={item} />
+              <AlertCard
+                key={item.subject}
+                item={item}
+                onClick={() => navigate(`/subjects/${encodeURIComponent(item.subject)}`)}
+              />
             ))}
           </div>
           <p className="text-[11px] text-n-red/60 mt-3 italic">
@@ -65,7 +71,7 @@ export function AlertWidget({ alertItems }: Props) {
   )
 }
 
-function AlertCard({ item }: { item: AlertEntry }) {
+function AlertCard({ item, onClick }: { item: AlertEntry; onClick: () => void }) {
   const subLabel =
     item.condition === 1
       ? item.lastDate
@@ -74,10 +80,13 @@ function AlertCard({ item }: { item: AlertEntry }) {
       : `直近${item.settings.minutesThresholdDays}日 ${item.recentMinutes}分`
 
   return (
-    <div className="flex flex-col px-3 py-2 bg-white border border-[var(--nt-red-border)] rounded-md min-w-[88px]">
+    <button
+      onClick={onClick}
+      className="flex flex-col px-3 py-2 bg-white border border-[var(--nt-red-border)] rounded-md min-w-[88px] text-left cursor-pointer hover:bg-[var(--nt-red-bg)] transition-colors"
+    >
       <span className="text-[12px] font-semibold text-n-text leading-none">{item.subject}</span>
       <span className="text-[10px] text-[var(--nt-text-sub)] mt-1">{subLabel}</span>
-    </div>
+    </button>
   )
 }
 
