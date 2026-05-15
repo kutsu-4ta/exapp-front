@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react'
 import type {Problem} from '../../types/workspace'
-import {Eye, EyeOff} from 'lucide-react'
-import {c} from '../../styles/notion'
+import {Pencil} from "lucide-react";
+import {c, font} from '../../styles/notion'
 import {MarkdownContent} from '@/components/common/MarkdownContent'
 
 type Props = {
@@ -24,14 +24,13 @@ export function ProblemNoteStep({
   const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        window.clearTimeout(timerRef.current)
-      }
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
 
-      if (successTimerRef.current) {
-        window.clearTimeout(successTimerRef.current)
-      }
+    return () => {
+      document.body.style.overflow = original
+      window.clearTimeout(timerRef.current ?? 0)
+      window.clearTimeout(successTimerRef.current ?? 0)
     }
   }, [])
 
@@ -39,18 +38,13 @@ export function ProblemNoteStep({
     setSaveSuccessVisible(false)
     setIsSaving(true)
 
-    if (timerRef.current) {
-      window.clearTimeout(timerRef.current)
-    }
+    window.clearTimeout(timerRef.current ?? 0)
 
     timerRef.current = window.setTimeout(async () => {
       try {
-
         await onAutoSave(value)
 
-        if (successTimerRef.current) {
-          window.clearTimeout(successTimerRef.current)
-        }
+        window.clearTimeout(successTimerRef.current ?? 0)
 
         setSaveSuccessVisible(true)
 
@@ -69,68 +63,90 @@ export function ProblemNoteStep({
           <div style={handle} />
 
           <div style={header}>
-            <div>
-              {problem.subject} / {problem.subCategory} /{' '}
-              {problem.materialName} / {problem.questionRef}
-            </div>
-
             <button
-                onClick={() => setPreview((v) => !v)}
-                style={toggleBtn}
-                title={preview ? '編集に戻る' : 'プレビュー'}
+                onClick={onClose}
+                disabled={isSaving}
+                style={{
+                  ...closeBtn,
+                  opacity: isSaving ? 0.7 : 1,
+                }}
             >
-              {preview ? <EyeOff size={18} /> : <Eye size={18} />}
+              ×
             </button>
+
+            <div style={headerRight}>
+              {(isSaving || saveSuccessVisible) && (
+                  <span style={isSaving ? saveLabelSaving : saveLabelSuccess}>
+                {isSaving ? '保存中…' : '自動保存済み'}
+              </span>
+              )}
+
+              <button
+                  style={{
+                    ...iconBtn,
+                    background:  !preview ? "#eef5ff" : "none",
+                    borderRadius: "6px",
+                  }}
+                  onClick={() => setPreview((v) => !v)}
+                  title={!preview ? "編集終了" : "編集"}
+              >
+                <Pencil size={18} />
+              </button>
+            </div>
           </div>
 
           <div style={body}>
-            {preview ? (
-                <div style={markdownPreview}>
-                  <MarkdownContent>
-                    {note || ''}
-                  </MarkdownContent>
-                </div>
-            ) : (
-                <textarea
-                    value={note}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setNote(value)
-                      scheduleSave(value)
-                    }}
-                    onBlur={() => {
-                      scheduleSave(note)
-                    }}
-                    style={textarea}
-                    placeholder="ノートを書く..."
-                />
+            <div style={metaRow}>
+            <span style={subjectTag}>
+              {problem.subject}
+            </span>
+
+              <span style={subCatTag}>
+              {problem.materialName} {problem.questionRef}
+            </span>
+            </div>
+
+            {problem.subCategory && (
+                <p style={questionRefStyle}>
+                  {problem.subCategory}
+                </p>
             )}
 
-            {saveSuccessVisible ? (
-                <div style={saveLabelSuccess}>
-                  自動保存済み
-                </div>
-            ) : (
-                <span>&nbsp;</span>
-            )}
+            <div style={section}>
+              {!preview && (
+                  <p style={sectionLbl}>
+                    ノート
+                  </p>
+              )}
 
-            <div style={actions}>
-              <button
-                  onClick={onClose}
-                  disabled={isSaving}
-                  style={{
-                    ...textarea,
-                    opacity: isSaving ? 0.7 : 1,
-                  }}
-              >
-                完了
-              </button>
+              {preview ? (
+                  <div style={markdownPreview}>
+                    <MarkdownContent>
+                      {note}
+                    </MarkdownContent>
+                  </div>
+              ) : (
+                  <textarea
+                      value={note}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setNote(value)
+                        scheduleSave(value)
+                      }}
+                      onBlur={() => scheduleSave(note)}
+                      style={noteTextarea}
+                      placeholder="ノートをとる..."
+                  />
+              )}
             </div>
           </div>
         </div>
       </div>
   )
 }
+
+/* styles */
+
 const overlay: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
@@ -159,14 +175,11 @@ const handle = {
   margin: '10px auto 0',
 }
 
-const header: React.CSSProperties = {
+const header = {
   display: 'flex',
   justifyContent: 'space-between',
-  alignItems: 'center',
   padding: '12px 16px',
   borderBottom: `1px solid ${c.border}`,
-  fontSize: 13,
-  color: 'rgba(55,53,47,.55)',
 }
 
 const body: React.CSSProperties = {
@@ -175,50 +188,91 @@ const body: React.CSSProperties = {
   flex: 1,
 }
 
-const toggleBtn = {
+const closeBtn = {
+  border: 'none',
+  background: 'none',
+}
+
+const headerRight: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+}
+
+const iconBtn: React.CSSProperties = {
   border: 'none',
   background: 'none',
   color: c.blue,
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
+  padding: '4px',
 }
 
-const textarea: React.CSSProperties = {
+const metaRow = {
+  display: 'flex',
+  gap: '8px',
+  flexWrap: 'wrap' as const,
+  marginBottom: '16px',
+}
+
+const subjectTag = {
+  padding: '4px 8px',
+  borderRadius: '6px',
+  background: '#eef5ff',
+  color: c.blue,
+  fontSize: font.sm,
+}
+
+const subCatTag = {
+  padding: '4px 8px',
+  borderRadius: '6px',
+  background: '#f6f6f6',
+  color: c.textSub,
+}
+
+const questionRefStyle = {
+  fontSize: '18px',
+  fontWeight: 600,
+  marginBottom: '20px',
+}
+
+const section = {
+  marginBottom: '20px',
+}
+
+const sectionLbl = {
+  fontSize: '12px',
+  color: c.textSub,
+  marginBottom: '8px',
+}
+
+const noteTextarea: React.CSSProperties = {
   width: '100%',
-  height: '500px',
-  overflowY: 'auto',
-  resize: 'none',
-  padding: '12px',
-  fontSize: '15px',
-  lineHeight: 1.7,
-  borderRadius: '8px',
-  border: `1px solid ${c.border}`,
-  boxSizing: 'border-box',
-  background: 'none',
-}
-
-const markdownPreview: React.CSSProperties = {
   minHeight: '500px',
   padding: '12px',
   borderRadius: '8px',
   border: `1px solid ${c.border}`,
-  background: '#fff',
   fontSize: '15px',
   lineHeight: 1.7,
-  color: c.text,
+  resize: 'none',
 }
 
-const actions = {
-  marginTop: 24,
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 8,
+const markdownPreview: React.CSSProperties = {
+  padding: '12px',
+  borderRadius: '8px',
+  border: `1px solid ${c.border}`,
+  minHeight: '500px',
+  fontSize: '15px',
+  lineHeight: 1.7,
 }
 
 const saveLabelSuccess = {
-  marginTop: 8,
-  fontSize: 12,
+  fontSize: '12px',
   color: '#19a576',
-  fontWeight: 500,
+}
+
+const saveLabelSaving = {
+  fontSize: '12px',
+  color: '#19a576',
 }
