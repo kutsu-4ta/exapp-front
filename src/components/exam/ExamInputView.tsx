@@ -69,7 +69,7 @@ function clearDraft(sessionId: number) {
 
 function makeDraft(overrides: Partial<QuestionDraft> = {}): QuestionDraft {
   return {
-    localId: `q-${Date.now()}-${Math.random()}`,
+    localId: crypto.randomUUID(),
     sortOrder: 0,
     displayId: '',
     isSub: false,
@@ -82,6 +82,16 @@ function makeDraft(overrides: Partial<QuestionDraft> = {}): QuestionDraft {
     note: null,
     ...overrides,
   }
+}
+
+function renumberQuestions(questions: QuestionDraft[]): QuestionDraft[] {
+  let groupOrder = 0
+  return refreshDisplayIds(
+    questions.map((q) => {
+      if (!q.isSub) groupOrder++
+      return { ...q, sortOrder: groupOrder }
+    })
+  )
 }
 
 function refreshDisplayIds(drafts: QuestionDraft[]): QuestionDraft[] {
@@ -216,14 +226,21 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
 
   const addParentQuestion = useCallback((afterLocalId: string) => {
     setQuestions((prev) => {
-      const idx = prev.findIndex((q) => q.localId === afterLocalId)
-      const parentsBefore = prev.slice(0, idx + 1).filter((q) => !q.isSub).length
-      const next = [...prev]
-      next.splice(idx + 1, 0, makeDraft({ sortOrder: parentsBefore + 0.5 }))
-      const sorted = next
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((q, i) => ({ ...q, sortOrder: i + 1 }))
-      return refreshDisplayIds(sorted)
+      const targetIdx = prev.findIndex((q) => q.localId === afterLocalId)
+      if (targetIdx === -1) return prev
+      const groupSortOrder = prev[targetIdx].sortOrder
+      // find the last item belonging to this group (same sortOrder)
+      let insertAfterIdx = targetIdx
+      for (let i = targetIdx + 1; i < prev.length; i++) {
+        if (prev[i].sortOrder === groupSortOrder) insertAfterIdx = i
+        else break
+      }
+      const next = [
+        ...prev.slice(0, insertAfterIdx + 1),
+        makeDraft(),
+        ...prev.slice(insertAfterIdx + 1),
+      ]
+      return renumberQuestions(next)
     })
   }, [])
 
@@ -285,7 +302,7 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
         point: 2,
       })
       const inserted = [...prev, newSub].sort(
-        (a, b) => a.sortOrder - b.sortOrder || a.localId.localeCompare(b.localId)
+        (a, b) => a.sortOrder - b.sortOrder || (a.isSub ? 1 : 0) - (b.isSub ? 1 : 0)
       )
       return inserted
     })
@@ -315,7 +332,7 @@ export default function ExamInputView({ session, onComplete, onCancel }: ExamInp
             ]
           : [makeDraft({ localId: `p-${target.sortOrder}`, sortOrder: target.sortOrder })]
       const sorted = [...others, ...newItems].sort(
-        (a, b) => a.sortOrder - b.sortOrder || a.localId.localeCompare(b.localId)
+        (a, b) => a.sortOrder - b.sortOrder || (a.isSub ? 1 : 0) - (b.isSub ? 1 : 0)
       )
       return refreshDisplayIds(sorted)
     })
