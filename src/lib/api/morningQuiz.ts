@@ -7,6 +7,7 @@ export type MorningQuizQuestion = {
   problem_context: {
     original_ref: string
     user_memo: string
+    material_name: string | null
   }
   quiz: {
     question: string

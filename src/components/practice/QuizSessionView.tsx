@@ -172,7 +172,7 @@ export function QuizSessionView({
           ))}
         </div>
 
-        {/* Subject + sub_category + material + problem ref */}
+        {/* Subject + sub_category + @ materialName + problem ref */}
         <div style={subjectRow}>
           <span style={{ ...subjectBadge, backgroundColor: palette.bg, color: palette.color }}>
             {subject}
@@ -182,7 +182,7 @@ export function QuizSessionView({
             style={problemRefBtn}
             onClick={() => openProblemModal(currentProblemId)}
           >
-            {problem_context.original_ref}
+            {problem_context.material_name && `@ ${problem_context.material_name} / `}{problem_context.original_ref}
           </button>
         </div>
 
