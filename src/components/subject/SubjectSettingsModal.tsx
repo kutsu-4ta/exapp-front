@@ -1,8 +1,10 @@
+import {useState} from 'react'
 import {addSubCategory, deleteSubCategory, updateSubCategory} from '@/lib/api/subcategory'
 import {SubCategoryList} from '@/components/subject/SubCategoryList'
 import {SubjectDangerZone} from '@/components/subject/SubjectDangerZone'
 import {SUBJECT_COLOR_OPTIONS, subjectPalette} from '@/styles/subjectUI'
 import type {SubCategory, SubjectAlertSettings, SubjectSettings} from '@/types/workspace'
+import {useSettingsStore} from '@/lib/store/settings'
 
 type Props = {
   subjectName: string
@@ -49,11 +51,19 @@ export function SubjectSettingsModal({
   onClose,
 }: Props) {
   const autoPalette = subjectPalette(subjectName)
+  const setSubjectColor = useSettingsStore((s) => s.setSubjectColor)
+  const [colorSaving, setColorSaving] = useState(false)
 
-  const handleColorSelect = (color: string | null) => {
+  const handleColorSelect = async (color: string | null) => {
     const next = { ...settings, themeColor: color }
     setSettings(next)
-    saveSubjectSettings(subjectName, next)
+    setSubjectColor(subjectName, color)
+    setColorSaving(true)
+    try {
+      await saveSubjectSettings(subjectName, next)
+    } finally {
+      setColorSaving(false)
+    }
   }
 
   return (
@@ -70,7 +80,10 @@ export function SubjectSettingsModal({
 
           {/* THEME COLOR */}
           <div style={section}>
-            <p style={sectionLabel}>THEME COLOR</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <p style={{ ...sectionLabel, margin: 0 }}>THEME COLOR</p>
+              {colorSaving && <span style={savingLabel}>保存中…</span>}
+            </div>
             {!settingsLoaded ? (
               <div style={swatchRow}>
                 {[0,1,2,3,4,5,6].map((i) => (
@@ -86,8 +99,10 @@ export function SubjectSettingsModal({
                       backgroundColor: autoPalette.color,
                       outline: !settings.themeColor ? `2px solid ${autoPalette.color}` : 'none',
                       outlineOffset: '2px',
+                      opacity: colorSaving ? 0.6 : 1,
                     }}
                     onClick={() => handleColorSelect(null)}
+                    disabled={colorSaving}
                     title="自動"
                   >
                     {!settings.themeColor && <span style={swatchCheck}>✓</span>}
@@ -101,8 +116,10 @@ export function SubjectSettingsModal({
                         backgroundColor: hex,
                         outline: settings.themeColor === hex ? `2px solid ${hex}` : 'none',
                         outlineOffset: '2px',
+                        opacity: colorSaving ? 0.6 : 1,
                       }}
                       onClick={() => handleColorSelect(hex)}
+                      disabled={colorSaving}
                       title={hex}
                     >
                       {settings.themeColor === hex && <span style={swatchCheck}>✓</span>}
@@ -353,3 +370,4 @@ const saveBtn: React.CSSProperties = {
   cursor: 'pointer',
 }
 const savedText: React.CSSProperties = { fontSize: '12px', color: '#19a576' }
+const savingLabel: React.CSSProperties = { fontSize: '11px', color: 'rgba(55,53,47,0.4)' }
