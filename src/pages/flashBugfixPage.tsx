@@ -1,5 +1,6 @@
 import {useLocation, useNavigate, useParams} from 'react-router-dom'
 import type {DegBugfixConfig, FlashBugfixConfig, MorningQuizSession} from '@/lib/api/morningQuiz'
+import {fetchDegWordCard, fetchFlashCard} from '@/lib/api/morningQuiz'
 import {addStudySession} from '@/lib/api/workspace'
 import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
@@ -79,7 +80,7 @@ function MultipleChoiceView({
   )
 }
 
-// ── 単語カードビュー ──────────────────────────────────────────────────────────
+// ── 単語カードビュー（FlashBugfix） ──────────────────────────────────────────
 
 function WordCardView({
   subjectName,
@@ -89,7 +90,7 @@ function WordCardView({
   config: FlashBugfixConfig
 }) {
   const navigate = useNavigate()
-  const cardSession = useFlashCardSession(subjectName, config)
+  const cardSession = useFlashCardSession(() => fetchFlashCard(subjectName, config))
   const {phase, setPhase, startTimeRef} = cardSession
 
   const handleComplete = async () => {
@@ -124,6 +125,45 @@ function WordCardView({
   )
 }
 
+// ── 単語カードビュー（DegBugfix） ─────────────────────────────────────────────
+
+function DegWordCardView({degConfig}: {degConfig: DegBugfixConfig}) {
+  const navigate = useNavigate()
+  const cardSession = useFlashCardSession(() => fetchDegWordCard(degConfig))
+  const {phase, setPhase, startTimeRef} = cardSession
+
+  const handleComplete = async () => {
+    if (phase === 'saving') return
+    setPhase('saving')
+    try {
+      const elapsedMs = Date.now() - startTimeRef.current
+      const totalMinutes = Math.max(1, Math.ceil(elapsedMs / 60_000))
+      await addStudySession({
+        dailyLogDate: todayString(),
+        subject: degConfig.subject ?? 'すべての科目',
+        material: 'DegBugfix',
+        subCategory: null,
+        minutes: totalMinutes,
+        timeSlot: currentTimeSlot(),
+        memo: null,
+      })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      navigate('/notelist')
+    }
+  }
+
+  return (
+    <FlashCardSessionView
+      {...cardSession}
+      handleComplete={handleComplete}
+      headerBadge={<span style={{ fontSize: font.sm, fontWeight: 700, color: '#37352f' }}>DegBugfix</span>}
+      themeKey="deg"
+    />
+  )
+}
+
 // ── メインページ ──────────────────────────────────────────────────────────────
 
 export default function FlashBugfixPage() {
@@ -145,10 +185,12 @@ export default function FlashBugfixPage() {
   const isDeg = locationState?.mode === 'deg'
   const degConfig = locationState?.degConfig ?? null
 
-  const isWordCard = !preloadedSession && !isDeg && config.quizMode === 'word_card'
-
-  if (isWordCard) {
+  if (!preloadedSession && !isDeg && config.quizMode === 'word_card') {
     return <WordCardView subjectName={subjectName} config={config} />
+  }
+
+  if (isDeg && degConfig?.quizMode === 'word_card') {
+    return <DegWordCardView degConfig={degConfig} />
   }
 
   const quizSessionMode: QuizSessionMode = preloadedSession

@@ -74,7 +74,8 @@ export function ProblemQuickModal({
   }
 
   async function handleStartGoodQuizSession() {
-    const quizzes = await fetchProblemQuizzes(problem.id);
+    const allQuizzes = await fetchProblemQuizzes(problem.id);
+    const quizzes = allQuizzes.filter((q) => q.quizType === 'multiple_choice');
     if (quizzes.length === 0) return;
 
     const preloadedSession: MorningQuizSession = {
@@ -91,7 +92,7 @@ export function ProblemQuickModal({
         quiz: {
           question: q.question,
           options: q.options,
-          correct_index: q.correctIndex,
+          correct_index: q.correctIndex ?? 0,
           explanation: q.explanation,
         },
       })),

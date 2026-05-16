@@ -83,6 +83,8 @@ export async function fetchFlashCard(
 export type DegBugfixConfig = {
   subject: string | null
   limit: number
+  quizMode: 'multiple_choice' | 'word_card'
+  formulaOnly: boolean
 }
 
 export async function fetchDegBugfix(config: DegBugfixConfig): Promise<MorningQuizSession> {
@@ -94,6 +96,20 @@ export async function fetchDegBugfix(config: DegBugfixConfig): Promise<MorningQu
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.message ?? '保存済みクイズの取得に失敗しました')
+  }
+  return res.json()
+}
+
+export async function fetchDegWordCard(config: DegBugfixConfig): Promise<MorningQuizSession> {
+  const q = new URLSearchParams()
+  if (config.subject) q.set('subject', config.subject)
+  q.set('limit', String(config.limit))
+  if (config.formulaOnly) q.set('formulaOnly', 'true')
+
+  const res = await apiFetch(`/api/deg-word-card?${q}`)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.message ?? '保存済み単語カードの取得に失敗しました')
   }
   return res.json()
 }

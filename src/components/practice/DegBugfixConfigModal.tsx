@@ -15,6 +15,8 @@ export function DegBugfixConfigModal({ subjects, initialSubject, onClose, onStar
   const subjectColors = useSettingsStore((s) => s.subjectColors)
   const [subject, setSubject] = useState<string | null>(initialSubject)
   const [limit, setLimit] = useState(5)
+  const [quizMode, setQuizMode] = useState<'multiple_choice' | 'word_card'>('multiple_choice')
+  const [formulaOnly, setFormulaOnly] = useState(false)
 
   return (
     <div style={overlay} onClick={onClose}>
@@ -55,6 +57,25 @@ export function DegBugfixConfigModal({ subjects, initialSubject, onClose, onStar
             </div>
 
             <div style={fieldGroup}>
+              <p style={fieldLabel}>モード</p>
+              <div style={chipWrap}>
+                <Chip selected={quizMode === 'multiple_choice'} onClick={() => setQuizMode('multiple_choice')}>
+                  一問一答
+                </Chip>
+                <Chip selected={quizMode === 'word_card'} onClick={() => setQuizMode('word_card')}>
+                  単語カード
+                </Chip>
+              </div>
+              {quizMode === 'word_card' && (
+                <div style={chipWrap}>
+                  <Chip selected={formulaOnly} onClick={() => setFormulaOnly((v) => !v)}>
+                    公式チェック
+                  </Chip>
+                </div>
+              )}
+            </div>
+
+            <div style={fieldGroup}>
               <p style={fieldLabel}>問題数</p>
               <div style={stepperRow}>
                 <button style={stepBtn} onClick={() => setLimit((l) => Math.max(1, l - 1))}>−</button>
@@ -63,7 +84,7 @@ export function DegBugfixConfigModal({ subjects, initialSubject, onClose, onStar
               </div>
             </div>
 
-            <button style={startBtn} onClick={() => onStart({ subject, limit })}>
+            <button style={startBtn} onClick={() => onStart({ subject, limit, quizMode, formulaOnly: quizMode === 'word_card' ? formulaOnly : false })}>
               開始する
             </button>
           </div>

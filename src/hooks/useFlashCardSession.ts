@@ -1,10 +1,5 @@
 import {useEffect, useRef, useState} from 'react'
-import {
-  fetchFlashCard,
-  type FlashBugfixConfig,
-  type MorningQuizQuestion,
-  type MorningQuizSession,
-} from '@/lib/api/morningQuiz'
+import type {MorningQuizQuestion, MorningQuizSession} from '@/lib/api/morningQuiz'
 import {addProblemQuiz, fetchProblem} from '@/lib/api/problem'
 import {createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
 import type {Problem} from '@/types/workspace'
@@ -17,7 +12,8 @@ export type CardResult = {
   selfCorrect: boolean
 }
 
-export function useFlashCardSession(subjectName: string, config: FlashBugfixConfig) {
+export function useFlashCardSession(fetchSession: () => Promise<MorningQuizSession>) {
+  const fetcherRef = useRef(fetchSession)
   const [phase, setPhase] = useState<FlashCardPhase>('loading')
   const [session, setSession] = useState<MorningQuizSession | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -29,7 +25,7 @@ export function useFlashCardSession(subjectName: string, config: FlashBugfixConf
   const [markedIds, setMarkedIds] = useState<Set<number>>(new Set())
   const startTimeRef = useRef<number>(Date.now())
 
-  const total = session?.questions.length ?? config.limit
+  const total = session?.questions.length ?? 5
   const currentQ = session?.questions[currentIdx] ?? null
   const currentProblemId = currentQ ? parseInt(currentQ.id, 10) : null
   const isMarked = currentProblemId !== null && markedIds.has(currentProblemId)
@@ -103,7 +99,7 @@ export function useFlashCardSession(subjectName: string, config: FlashBugfixConf
       startTimeRef.current = Date.now()
 
       try {
-        const sess = await fetchFlashCard(subjectName, config)
+        const sess = await fetcherRef.current()
         setSession(sess)
         setPhase('active')
       } catch (e) {
