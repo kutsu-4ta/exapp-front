@@ -2,8 +2,10 @@ import {LongPressButton} from "@/components/common/LongPressButton.tsx";
 import {FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
 import {useEffect, useRef, useState} from "react";
 import type {MorningQuizSession} from "../../lib/api/morningQuiz";
-import type {Problem, ProblemQuiz} from "../../types/workspace";
+import type {Problem, ProblemQuiz, Proficiency} from "../../types/workspace";
+import {PROFICIENCY_VALUES} from "../../types/workspace";
 import {c, font} from "../../styles/notion";
+import {PROF_STYLE} from "@/styles/subjectUI.ts";
 import {deleteProblem, deleteProblemQuiz, fetchProblemQuizzes, updateProblem} from "../../lib/api/problem";
 import {Copy, Pencil} from "lucide-react";
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
@@ -249,6 +251,18 @@ export function ProblemQuickModal({
                 {problem.materialName} {problem.questionRef}
               </span>
 
+                    <span style={{
+                      ...profBadge,
+                      backgroundColor: PROF_STYLE[problem.proficiency]?.bg ?? '#f3f3f3',
+                      color: PROF_STYLE[problem.proficiency]?.color ?? c.text,
+                    }}>
+                      {problem.proficiency}
+                    </span>
+
+                    {problem.isFormula && (
+                        <span style={formulaTag}>公式</span>
+                    )}
+
                     {problem.isGoodQuestion && (
                         <span style={starTag}>★ 良問</span>
                     )}
@@ -298,24 +312,53 @@ export function ProblemQuickModal({
                         }
                     />
 
-                    <label
-                        style={{
-                          display: "block",
-                          marginTop: 16,
-                        }}
-                    >
-                      <input
-                          type="checkbox"
-                          checked={draft.isGoodQuestion}
-                          onChange={(e) =>
-                              updateDraft(
-                                  "isGoodQuestion",
-                                  e.target.checked
-                              )
-                          }
-                      />
-                      良問
-                    </label>
+                    {/* 習熟度 */}
+                    <div style={editSegControl}>
+                      {PROFICIENCY_VALUES.map((p) => (
+                          <button
+                              key={p}
+                              onClick={() => updateDraft("proficiency", p as Proficiency)}
+                              style={{
+                                ...editSegBtn,
+                                backgroundColor: draft.proficiency === p ? PROF_STYLE[p].bg : 'transparent',
+                                color: draft.proficiency === p ? PROF_STYLE[p].color : 'rgba(55,53,47,0.35)',
+                                fontWeight: draft.proficiency === p ? 700 : 400,
+                              }}
+                          >
+                            {p}
+                          </button>
+                      ))}
+                    </div>
+
+                    <div style={{ display: "flex", gap: 12, marginTop: 16, alignItems: "center" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                        <input
+                            type="checkbox"
+                            checked={draft.isGoodQuestion}
+                            onChange={(e) =>
+                                updateDraft(
+                                    "isGoodQuestion",
+                                    e.target.checked
+                                )
+                            }
+                        />
+                        良問
+                      </label>
+
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                        <input
+                            type="checkbox"
+                            checked={draft.isFormula}
+                            onChange={(e) =>
+                                updateDraft(
+                                    "isFormula",
+                                    e.target.checked
+                                )
+                            }
+                        />
+                        公式
+                      </label>
+                    </div>
                   </>
               ) : (
                   <>
@@ -537,6 +580,41 @@ const starTag = {
   padding: "4px 8px",
   borderRadius: "6px",
   background: "#fff8df",
+};
+
+const profBadge: React.CSSProperties = {
+  padding: "4px 8px",
+  borderRadius: "6px",
+  fontSize: font.sm,
+  fontWeight: 700,
+};
+
+const formulaTag: React.CSSProperties = {
+  padding: "4px 8px",
+  borderRadius: "6px",
+  fontSize: font.sm,
+  fontWeight: 700,
+  background: "rgba(35,131,226,0.07)",
+  color: "rgba(35,131,226,1)",
+};
+
+const editSegControl: React.CSSProperties = {
+  display: "flex",
+  gap: "4px",
+  backgroundColor: "rgba(55,53,47,0.05)",
+  borderRadius: "8px",
+  padding: "3px",
+  marginTop: "14px",
+};
+
+const editSegBtn: React.CSSProperties = {
+  flex: 1,
+  border: "none",
+  borderRadius: "6px",
+  padding: "8px",
+  fontSize: "18px",
+  cursor: "pointer",
+  transition: "all 0.15s",
 };
 
 const tagInputBlue = {
