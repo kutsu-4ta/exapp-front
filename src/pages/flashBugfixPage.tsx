@@ -4,13 +4,10 @@ import {addStudySession} from '@/lib/api/workspace'
 import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
 import {font} from '@/styles/notion'
-import {subjectPalette} from '@/styles/subjectUI'
 import {type QuizSessionMode, useQuizSession} from '@/hooks/useQuizSession'
 import {QuizSessionView} from '@/components/practice/QuizSessionView'
 import {useFlashCardSession} from '@/hooks/useFlashCardSession'
 import {FlashCardSessionView} from '@/components/practice/FlashCardSessionView'
-import {PRACTICE_THEME} from '@/styles/practiceUI'
-import {useSettingsStore} from '@/lib/store/settings'
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -27,23 +24,6 @@ type PageState = {
   degConfig?: DegBugfixConfig
 } | null
 
-function SubjectBadge({ name }: { name: string }) {
-  const subjectColors = useSettingsStore((s) => s.subjectColors)
-  const palette = subjectPalette(name, subjectColors[name])
-  return (
-    <span style={{
-      fontSize: font.sm,
-      fontWeight: 700,
-      padding: '3px 8px',
-      borderRadius: '4px',
-      backgroundColor: palette.bg,
-      color: palette.color,
-    }}>
-      {name}
-    </span>
-  )
-}
-
 // ── 一問一答ビュー ────────────────────────────────────────────────────────────
 
 function MultipleChoiceView({
@@ -56,8 +36,6 @@ function MultipleChoiceView({
   isDeg: boolean
 }) {
   const themeKey = isDeg ? 'deg' : 'flash'
-  const theme = PRACTICE_THEME[themeKey]
-
   const navigate = useNavigate()
   const session = useQuizSession(quizSessionMode)
   const {phase, setPhase, startTimeRef} = session
@@ -84,22 +62,11 @@ function MultipleChoiceView({
     }
   }
 
-  // Deg: show mode name with deg theme color (cross-subject session)
-  // Flash: show subject name with subject palette (matches subjectRow badge in QuizSessionView)
-  const headerBadge = isDeg
-    ? (
-      <span style={{
-        fontSize: font.sm,
-        fontWeight: 700,
-        padding: '3px 8px',
-        borderRadius: '4px',
-        backgroundColor: theme.bg,
-        color: theme.color,
-      }}>
-        DegBugfix
-      </span>
-    )
-    : <SubjectBadge name={subjectName} />
+  const headerBadge = (
+    <span style={{ fontSize: font.sm, fontWeight: 700, color: '#37352f' }}>
+      {isDeg ? 'DegBugfix' : subjectName}
+    </span>
+  )
 
   return (
     <QuizSessionView
@@ -151,7 +118,7 @@ function WordCardView({
     <FlashCardSessionView
       {...cardSession}
       handleComplete={handleComplete}
-      headerBadge={<SubjectBadge name={subjectName} />}
+      headerBadge={<span style={{ fontSize: font.sm, fontWeight: 700, color: '#37352f' }}>{subjectName}</span>}
       themeKey="flash"
     />
   )

@@ -8,7 +8,6 @@ import {todayString} from '@/types/workspace'
 import {useQuizSession} from '@/hooks/useQuizSession'
 import {QuizSessionView} from '@/components/practice/QuizSessionView'
 import {font} from '@/styles/notion'
-import {PRACTICE_THEME} from '@/styles/practiceUI'
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -70,16 +69,8 @@ export default function MorningBugfixPage() {
     }
   }
 
-  const morningTheme = PRACTICE_THEME.morning
   const headerBadge = (
-    <span style={{
-      fontSize: font.sm,
-      fontWeight: 700,
-      padding: '3px 8px',
-      borderRadius: '4px',
-      backgroundColor: morningTheme.bg,
-      color: morningTheme.color,
-    }}>
+    <span style={{ fontSize: font.sm, fontWeight: 700, color: '#37352f' }}>
       Morning Bugfix
     </span>
   )
