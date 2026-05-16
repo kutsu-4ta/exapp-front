@@ -175,17 +175,19 @@ export type Problem = {
 export type ProblemQuiz = {
   id: number
   problemId: number
+  quizType: 'multiple_choice' | 'word_card'
   question: string
   options: string[]
-  correctIndex: number
+  correctIndex: number | null
   explanation: string
   createdAt: string
 }
 
 export type ProblemQuizInput = {
+  quizType: 'multiple_choice' | 'word_card'
   question: string
-  options: string[]
-  correctIndex: number
+  options?: string[]
+  correctIndex?: number | null
   explanation: string
 }
 

@@ -4,6 +4,7 @@ import {subjectPalette} from '@/styles/subjectUI'
 import {PRACTICE_THEME, type PracticeThemeKey} from '@/styles/practiceUI'
 import type {useFlashCardSession} from '@/hooks/useFlashCardSession'
 import {useSettingsStore} from '@/lib/store/settings'
+import {ProblemQuickModal} from '@/components/note/ProblemQuickModal'
 
 type Props = ReturnType<typeof useFlashCardSession> & {
   handleComplete: () => void
@@ -19,8 +20,15 @@ export function FlashCardSessionView({
   results,
   total,
   currentQ,
+  currentProblemId,
+  isMarked,
+  selectedProblem,
   handleFlip,
   handleSelfEval,
+  handleToggleMark,
+  openProblemModal,
+  handleProblemUpdate,
+  closeSelectedProblem,
   handleComplete,
   headerBadge,
   themeKey = 'flash',
@@ -76,6 +84,12 @@ export function FlashCardSessionView({
                     {r.question.subject}
                   </span>
                   <span style={resultRef}>{r.question.problem_context.original_ref}</span>
+                  <button
+                    style={subjectLink}
+                    onClick={() => openProblemModal(parseInt(r.question.id, 10))}
+                  >
+                    →
+                  </button>
                 </div>
               )
             })}
@@ -89,6 +103,15 @@ export function FlashCardSessionView({
             {phase === 'saving' ? '記録中...' : '完了する'}
           </button>
         </div>
+
+        {selectedProblem !== null && (
+          <ProblemQuickModal
+            problem={selectedProblem}
+            onClose={closeSelectedProblem}
+            onDelete={closeSelectedProblem}
+            onUpdate={handleProblemUpdate}
+          />
+        )}
       </div>
     )
   }
@@ -151,7 +174,12 @@ export function FlashCardSessionView({
             {subject}
           </span>
           {sub_category && <span style={subCatLabel}>{sub_category}</span>}
-          <span style={problemRef}>{problem_context.original_ref}</span>
+          <button
+            style={problemRefBtn}
+            onClick={() => currentProblemId !== null && openProblemModal(currentProblemId)}
+          >
+            {problem_context.material_name && `@ ${problem_context.material_name} / `}{problem_context.original_ref}
+          </button>
         </div>
 
         {/* Card */}
@@ -177,18 +205,37 @@ export function FlashCardSessionView({
           </div>
         </div>
 
-        {/* Self-eval buttons (shown after flip) */}
+        {/* Self-eval + save (shown after flip) */}
         {flipped && (
-          <div style={evalRow}>
-            <button style={evalBtnWrong} onClick={() => handleSelfEval(false)}>
-              × わからなかった
-            </button>
-            <button style={evalBtnCorrect} onClick={() => handleSelfEval(true)}>
-              ○ わかった
-            </button>
-          </div>
+          <>
+            <div style={evalRow}>
+              <button style={evalBtnWrong} onClick={() => handleSelfEval(false)}>
+                × わからなかった
+              </button>
+              <button style={evalBtnCorrect} onClick={() => handleSelfEval(true)}>
+                ○ わかった
+              </button>
+            </div>
+            <div style={markRow}>
+              <button
+                style={{...goodQuestionBtn, ...(isMarked ? goodQuestionBtnSaved : {})}}
+                onClick={handleToggleMark}
+              >
+                {isMarked ? '★ 保存済み' : '☆ 保存する'}
+              </button>
+            </div>
+          </>
         )}
       </div>
+
+      {selectedProblem !== null && (
+        <ProblemQuickModal
+          problem={selectedProblem}
+          onClose={closeSelectedProblem}
+          onDelete={closeSelectedProblem}
+          onUpdate={handleProblemUpdate}
+        />
+      )}
     </div>
   )
 }
@@ -252,7 +299,17 @@ const subjectBadge: React.CSSProperties = {
   borderRadius: '4px',
 }
 const subCatLabel: React.CSSProperties = {fontSize: font.sm, color: c.textHint}
-const problemRef: React.CSSProperties = {fontSize: font.sm, color: c.textFaint}
+const problemRefBtn: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textFaint,
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '2px 0',
+  textDecoration: 'underline',
+  textDecorationColor: 'rgba(55,53,47,0.2)',
+  textUnderlineOffset: '2px',
+}
 
 const cardPerspective: React.CSSProperties = {
   perspective: '800px',
@@ -312,10 +369,7 @@ const flipHint: React.CSSProperties = {
   margin: '8px 0 0',
 }
 
-const evalRow: React.CSSProperties = {
-  display: 'flex',
-  gap: '10px',
-}
+const evalRow: React.CSSProperties = {display: 'flex', gap: '10px'}
 const evalBtnBase: React.CSSProperties = {
   flex: 1,
   padding: '13px',
@@ -337,6 +391,27 @@ const evalBtnCorrect: React.CSSProperties = {
   backgroundColor: 'rgba(39,174,96,0.08)',
   color: '#19a576',
   border: '1px solid rgba(39,174,96,0.25)',
+}
+const markRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-start',
+  marginTop: '10px',
+}
+const goodQuestionBtn: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 600,
+  padding: '4px 10px',
+  borderRadius: '6px',
+  border: '1px solid rgba(234,179,8,0.4)',
+  backgroundColor: 'rgba(254,249,195,0.6)',
+  color: '#92400e',
+  cursor: 'pointer',
+  transition: 'all 0.15s',
+}
+const goodQuestionBtnSaved: React.CSSProperties = {
+  backgroundColor: 'rgba(253,224,71,0.25)',
+  borderColor: 'rgba(234,179,8,0.6)',
+  color: '#78350f',
 }
 
 const resultHeader: React.CSSProperties = {textAlign: 'center', padding: '32px 0 28px'}
@@ -391,6 +466,15 @@ const resultRef: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
+}
+const subjectLink: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: '14px',
+  color: c.textHint,
+  padding: '0 4px',
+  flexShrink: 0,
 }
 
 const completeBtn: React.CSSProperties = {

@@ -1,12 +1,12 @@
 import {useEffect, useRef, useState} from 'react'
 import {
-  type DegBugfixConfig,
-  fetchDegBugfix,
-  fetchFlashBugfix,
-  fetchMorningQuiz,
-  type FlashBugfixConfig,
-  type MorningQuizQuestion,
-  type MorningQuizSession,
+    type DegBugfixConfig,
+    fetchDegBugfix,
+    fetchFlashBugfix,
+    fetchMorningQuiz,
+    type FlashBugfixConfig,
+    type MorningQuizQuestion,
+    type MorningQuizSession,
 } from '@/lib/api/morningQuiz'
 import {addProblemQuiz, fetchProblem} from '@/lib/api/problem'
 import {createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
@@ -59,6 +59,7 @@ export function useQuizSession(mode: QuizSessionMode) {
 
     if (markedIds.has(problemId)) {
       addProblemQuiz(problemId, {
+        quizType: 'multiple_choice',
         question: currentQ.quiz.question,
         options: currentQ.quiz.options,
         correctIndex: currentQ.quiz.correct_index,
