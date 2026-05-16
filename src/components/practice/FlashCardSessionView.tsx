@@ -3,6 +3,7 @@ import {c, font} from '@/styles/notion'
 import {subjectPalette} from '@/styles/subjectUI'
 import {PRACTICE_THEME, type PracticeThemeKey} from '@/styles/practiceUI'
 import type {useFlashCardSession} from '@/hooks/useFlashCardSession'
+import {useSettingsStore} from '@/lib/store/settings'
 
 type Props = ReturnType<typeof useFlashCardSession> & {
   handleComplete: () => void
@@ -26,6 +27,7 @@ export function FlashCardSessionView({
 }: Props) {
   const navigate = useNavigate()
   const theme = PRACTICE_THEME[themeKey]
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
 
   if (phase === 'loading') {
     return (
@@ -66,7 +68,7 @@ export function FlashCardSessionView({
 
           <div style={resultList}>
             {results.map((r, i) => {
-              const p = subjectPalette(r.question.subject)
+              const p = subjectPalette(r.question.subject, subjectColors[r.question.subject])
               return (
                 <div key={i} style={resultRow}>
                   <span style={resultIcon}>{r.selfCorrect ? '○' : '×'}</span>
@@ -94,7 +96,7 @@ export function FlashCardSessionView({
   if (!currentQ) return null
 
   const {quiz, subject, sub_category, problem_context} = currentQ
-  const palette = subjectPalette(subject)
+  const palette = subjectPalette(subject, subjectColors[subject])
 
   return (
     <div style={page}>

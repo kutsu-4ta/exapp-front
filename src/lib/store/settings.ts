@@ -10,6 +10,7 @@ interface SettingsState {
   materials: string[]
   subCategories: SubCategory[]
   subjectAlertSettings: Record<string, SubjectAlertSettings>
+  subjectColors: Record<string, string>
   subjectsLoaded: boolean
   materialsLoaded: boolean
   subCategoriesLoaded: boolean
@@ -18,6 +19,7 @@ interface SettingsState {
   setMaterials: (materials: string[]) => void
   setSubCategories: (subCategories: SubCategory[]) => void
   setSubjectAlertSettings: (subject: string, settings: SubjectAlertSettings) => void
+  setSubjectColor: (subject: string, color: string | null) => void
   setLastUsedMaterial: (material: string) => void
   loadSubjects: () => Promise<void>
   loadMaterials: () => Promise<void>
@@ -31,6 +33,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   materials: [],
   subCategories: [],
   subjectAlertSettings: {},
+  subjectColors: {},
   subjectsLoaded: false,
   materialsLoaded: false,
   subCategoriesLoaded: false,
@@ -40,6 +43,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setSubCategories: (subCategories) => set({ subCategories }),
   setSubjectAlertSettings: (subject, settings) =>
     set((s) => ({ subjectAlertSettings: { ...s.subjectAlertSettings, [subject]: settings } })),
+  setSubjectColor: (subject, color) =>
+    set((s) => {
+      const next = { ...s.subjectColors }
+      if (color) next[subject] = color
+      else delete next[subject]
+      return { subjectColors: next }
+    }),
   setLastUsedMaterial: (material) => {
     localStorage.setItem('lastUsedMaterial', material)
     set({ lastUsedMaterial: material })

@@ -4,6 +4,7 @@ import {c, font} from '@/styles/notion'
 import {subjectPalette} from '@/styles/subjectUI'
 import {OPTION_LABELS, PRACTICE_THEME, type PracticeThemeKey} from '@/styles/practiceUI'
 import type {useQuizSession} from '@/hooks/useQuizSession'
+import {useSettingsStore} from '@/lib/store/settings'
 
 type Props = ReturnType<typeof useQuizSession> & {
   handleComplete: () => void
@@ -38,6 +39,7 @@ export function QuizSessionView({
 }: Props) {
   const theme = PRACTICE_THEME[themeKey]
   const navigate = useNavigate()
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
 
   // ── LOADING ────────────────────────────────────────────────────────────────
   if (phase === 'loading') {
@@ -81,7 +83,7 @@ export function QuizSessionView({
 
           <div style={resultList}>
             {results.map((r, i) => {
-              const p = subjectPalette(r.question.subject)
+              const p = subjectPalette(r.question.subject, subjectColors[r.question.subject])
               return (
                 <div key={i} style={resultRow}>
                   <span style={resultIcon}>{r.isCorrect ? '✓' : '✗'}</span>
@@ -125,7 +127,7 @@ export function QuizSessionView({
   if (!currentQ || currentProblemId === null) return null
 
   const { quiz, subject, sub_category, problem_context } = currentQ
-  const palette = subjectPalette(subject)
+  const palette = subjectPalette(subject, subjectColors[subject])
   const isCorrect = revealed && selected === quiz.correct_index
 
   return (

@@ -283,11 +283,7 @@ const sessionHeader: React.CSSProperties = {
   marginBottom: '24px',
 }
 
-const pageTitle: React.CSSProperties = {
-  fontSize: font.md,
-  fontWeight: 800,
-  color: c.text,
-}
+const pageTitle: React.CSSProperties =  { fontSize: '32px', fontWeight: 700, marginBottom: '6px' }
 
 const headerButtons: React.CSSProperties = {
   display: 'flex',

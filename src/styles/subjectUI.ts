@@ -9,7 +9,26 @@ export const SUBJECT_PALETTE = [
     { bg: 'rgba(230,126,34,0.1)', color: '#c0392b' },
 ]
 
-export function subjectPalette(subject: string) {
+export const SUBJECT_COLOR_OPTIONS = [
+    '#2383e2',
+    '#eb5757',
+    '#d4920f',
+    '#19a576',
+    '#8e44ad',
+    '#c0392b',
+] as const
+
+function hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r},${g},${b},${alpha})`
+}
+
+export function subjectPalette(subject: string, overrideColor?: string | null) {
+    if (overrideColor) {
+        return { bg: hexToRgba(overrideColor, 0.1), color: overrideColor }
+    }
     let h = 0
     for (let i = 0; i < subject.length; i++) h = (h * 31 + subject.charCodeAt(i)) & 0xffff
     return SUBJECT_PALETTE[h % SUBJECT_PALETTE.length]

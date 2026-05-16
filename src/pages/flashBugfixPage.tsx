@@ -10,6 +10,7 @@ import {QuizSessionView} from '@/components/practice/QuizSessionView'
 import {useFlashCardSession} from '@/hooks/useFlashCardSession'
 import {FlashCardSessionView} from '@/components/practice/FlashCardSessionView'
 import {PRACTICE_THEME} from '@/styles/practiceUI'
+import {useSettingsStore} from '@/lib/store/settings'
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -26,8 +27,9 @@ type PageState = {
   degConfig?: DegBugfixConfig
 } | null
 
-function makeHeaderBadge(subjectName: string) {
-  const palette = subjectPalette(subjectName)
+function SubjectBadge({ name }: { name: string }) {
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
+  const palette = subjectPalette(name, subjectColors[name])
   return (
     <span style={{
       fontSize: font.sm,
@@ -37,7 +39,7 @@ function makeHeaderBadge(subjectName: string) {
       backgroundColor: palette.bg,
       color: palette.color,
     }}>
-      {subjectName}
+      {name}
     </span>
   )
 }
@@ -147,7 +149,7 @@ function WordCardView({
     <FlashCardSessionView
       {...cardSession}
       handleComplete={handleComplete}
-      headerBadge={makeHeaderBadge(subjectName)}
+      headerBadge={<SubjectBadge name={subjectName} />}
       themeKey="flash"
     />
   )

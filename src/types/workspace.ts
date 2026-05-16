@@ -1,5 +1,6 @@
 export type SubjectSettings = {
   finalTarget: string | null
+  themeColor: string | null
 }
 
 export type SubjectMonthlyGoal = {

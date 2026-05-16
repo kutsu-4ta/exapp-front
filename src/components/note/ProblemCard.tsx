@@ -2,6 +2,7 @@ import type {Problem} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
 import {PROF_COLORS, subjectBadgeText, subjectPalette} from "@/styles/subjectUI.ts";
+import {useSettingsStore} from "@/lib/store/settings.ts";
 
 type Props = {
   problem: Problem
@@ -9,9 +10,10 @@ type Props = {
 }
 
 export function ProblemCard({ problem, onClick }: Props) {
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
   const profColor = PROF_COLORS[problem.proficiency] ?? c.textSub
   const badgeText = subjectBadgeText(problem.subject)
-  const palette = subjectPalette(problem.subject)
+  const palette = subjectPalette(problem.subject, subjectColors[problem.subject])
 
   return (
     <div style={card} onClick={onClick}>

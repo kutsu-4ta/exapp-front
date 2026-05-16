@@ -47,8 +47,9 @@ export default function SubjectPage() {
     const [monthlyGoal, setMonthlyGoal] = useState('')
     const [goalLoading, setGoalLoading] = useState(false)
 
-    const [settings, setSettings] = useState<SubjectSettings>({ finalTarget: null })
+    const [settings, setSettings] = useState<SubjectSettings>({ finalTarget: null, themeColor: null })
     const [settingsLoaded, setSettingsLoaded] = useState(false)
+    const setSubjectColor = useSettingsStore((s) => s.setSubjectColor)
 
     const setSubjectAlertSettings = useSettingsStore((s) => s.setSubjectAlertSettings)
     const [subjectAlertSettings, setLocalSubjectAlertSettings] = useState<SubjectAlertSettings>(DEFAULT_SUBJECT_ALERT_SETTINGS)
@@ -95,6 +96,7 @@ export default function SubjectPage() {
         fetchSubjectSettings(subjectName)
             .then((s) => {
                 setSettings(s)
+                setSubjectColor(subjectName, s.themeColor)
                 setSettingsLoaded(true)
             })
             .catch(() => setSettingsLoaded(true))

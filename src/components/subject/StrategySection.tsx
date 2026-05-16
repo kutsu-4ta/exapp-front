@@ -1,9 +1,11 @@
 import {Skeleton} from "@/components/common/Skeleton.tsx";
+import {SUBJECT_COLOR_OPTIONS, subjectPalette} from "@/styles/subjectUI.ts";
 
 type Props = {
     settingsLoaded: boolean
     settings: {
         finalTarget: string | null
+        themeColor: string | null
     }
     setSettings: (v: any) => void
     saveSubjectSettings: (subjectName: string, settings: any) => void
@@ -17,6 +19,14 @@ export function StrategySection({
                                     saveSubjectSettings,
                                     subjectName,
                                 }: Props) {
+    const autoPalette = subjectPalette(subjectName)
+
+    const handleColorSelect = (color: string | null) => {
+        const next = { ...settings, themeColor: color }
+        setSettings(next)
+        saveSubjectSettings(subjectName, next)
+    }
+
     return (
         <>
             {/* 最終目標 */}
@@ -43,6 +53,60 @@ export function StrategySection({
                             placeholder="ゴール設定"
                             rows={2}
                         />
+                    </div>
+                )}
+            </section>
+
+            {/* テーマカラー */}
+            <section>
+                {!settingsLoaded ? (
+                    <div style={block}>
+                        <Skeleton width={72} height={10} style={{ marginBottom: 10 }} />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                                <Skeleton key={i} width={28} height={28} borderRadius={14} />
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div style={block}>
+                        <label style={label}>THEME COLOR</label>
+                        <div style={swatchRow}>
+                            {/* 自動（ハッシュ色） */}
+                            <button
+                                style={{
+                                    ...swatchBtn,
+                                    backgroundColor: autoPalette.color,
+                                    outline: !settings.themeColor ? `2px solid ${autoPalette.color}` : 'none',
+                                    outlineOffset: '2px',
+                                }}
+                                onClick={() => handleColorSelect(null)}
+                                title="自動"
+                            >
+                                {!settings.themeColor && <span style={swatchCheck}>✓</span>}
+                            </button>
+
+                            <div style={swatchDivider} />
+
+                            {SUBJECT_COLOR_OPTIONS.map((hex) => (
+                                <button
+                                    key={hex}
+                                    style={{
+                                        ...swatchBtn,
+                                        backgroundColor: hex,
+                                        outline: settings.themeColor === hex ? `2px solid ${hex}` : 'none',
+                                        outlineOffset: '2px',
+                                    }}
+                                    onClick={() => handleColorSelect(hex)}
+                                    title={hex}
+                                >
+                                    {settings.themeColor === hex && <span style={swatchCheck}>✓</span>}
+                                </button>
+                            ))}
+                        </div>
+                        <p style={swatchHint}>
+                            {settings.themeColor ? `カスタム: ${settings.themeColor}` : '自動（科目名から自動生成）'}
+                        </p>
                     </div>
                 )}
             </section>
@@ -80,3 +144,41 @@ const textarea: React.CSSProperties = {
     overflowWrap: 'break-word',
 }
 
+const swatchRow: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+}
+
+const swatchBtn: React.CSSProperties = {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+    flexShrink: 0,
+}
+
+const swatchCheck: React.CSSProperties = {
+    color: '#fff',
+    fontSize: '13px',
+    fontWeight: 700,
+    lineHeight: 1,
+}
+
+const swatchDivider: React.CSSProperties = {
+    width: '1px',
+    height: '24px',
+    backgroundColor: 'rgba(55,53,47,0.1)',
+}
+
+const swatchHint: React.CSSProperties = {
+    fontSize: '11px',
+    color: 'rgba(55,53,47,0.3)',
+    margin: '8px 0 0',
+}
