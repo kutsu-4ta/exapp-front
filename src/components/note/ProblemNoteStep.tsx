@@ -3,6 +3,8 @@ import type {Problem} from '../../types/workspace'
 import {Pencil} from "lucide-react";
 import {c, font} from '../../styles/notion'
 import {MarkdownContent} from '@/components/common/MarkdownContent'
+import {useSettingsStore} from '@/lib/store/settings'
+import {subjectPalette} from '@/styles/subjectUI'
 
 type Props = {
   problem: Problem
@@ -15,6 +17,7 @@ export function ProblemNoteStep({
                                   onAutoSave,
                                   onClose,
                                 }: Props) {
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
   const [note, setNote] = useState(problem.note ?? '')
   const [preview, setPreview] = useState(false)
   const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
@@ -97,7 +100,11 @@ export function ProblemNoteStep({
 
           <div style={body}>
             <div style={metaRow}>
-            <span style={subjectTag}>
+            <span style={{
+              ...subjectTag,
+              background: subjectPalette(problem.subject, subjectColors[problem.subject]).bg,
+              color: subjectPalette(problem.subject, subjectColors[problem.subject]).color,
+            }}>
               {problem.subject}
             </span>
 

@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState} from 'react'
 import {backBtn, c} from "@/styles/notion.ts";
 import type {SubCategory} from "@/types/workspace.ts";
+import {useSettingsStore} from "@/lib/store/settings.ts";
+import {subjectPalette} from "@/styles/subjectUI.ts";
 export function SubjectHeader({
                                   subjectName,
                                   renameSubject,
@@ -11,6 +13,9 @@ export function SubjectHeader({
                                   navigate,
                                   onOpenSettings,
                               }: any) {
+    const subjectColors = useSettingsStore((s) => s.subjectColors)
+    const palette = subjectPalette(subjectName, subjectColors[subjectName])
+
     const [value, setValue] = useState(subjectName)
 
     useEffect(() => {
@@ -66,6 +71,7 @@ export function SubjectHeader({
             </button>
 
             <div style={headerUi.titleRow}>
+                <span style={{ ...headerUi.colorBar, color: palette.color }}>▌</span>
                 {isEditingTitle ? (
                     <input
                         ref={titleInputRef}
@@ -113,7 +119,14 @@ const headerUi = {
     titleRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
+        gap: '6px',
+    } as React.CSSProperties,
+
+    colorBar: {
+        fontSize: '28px',
+        lineHeight: 1,
+        flexShrink: 0,
+        userSelect: 'none',
     } as React.CSSProperties,
 
     gearBtn: {

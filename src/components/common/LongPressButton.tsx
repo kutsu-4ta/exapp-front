@@ -11,7 +11,7 @@ type Props = {
 
 export function LongPressButton({
                                     onConfirm,
-                                    durationMs = 3000,
+                                    durationMs = 2000,
                                     disabled,
                                     children,
                                     style,

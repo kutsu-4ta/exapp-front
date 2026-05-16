@@ -1,6 +1,8 @@
 import {useState} from 'react'
 import type {DegBugfixConfig} from '../../lib/api/morningQuiz'
 import {c, font} from '../../styles/notion'
+import {useSettingsStore} from '@/lib/store/settings'
+import {subjectPalette} from '@/styles/subjectUI'
 
 interface Props {
   subjects: string[]
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export function DegBugfixConfigModal({ subjects, initialSubject, onClose, onStart }: Props) {
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
   const [subject, setSubject] = useState<string | null>(initialSubject)
   const [limit, setLimit] = useState(5)
 
@@ -34,11 +37,20 @@ export function DegBugfixConfigModal({ subjects, initialSubject, onClose, onStar
                 <Chip selected={subject === null} onClick={() => setSubject(null)}>
                   すべての科目
                 </Chip>
-                {subjects.map((s) => (
-                  <Chip key={s} selected={subject === s} onClick={() => setSubject(s)}>
-                    {s}
-                  </Chip>
-                ))}
+                {subjects.map((s) => {
+                  const p = subjectPalette(s, subjectColors[s])
+                  return (
+                    <Chip
+                      key={s}
+                      selected={subject === s}
+                      onClick={() => setSubject(s)}
+                      activeColor={p.color}
+                      activeBg={p.bg}
+                    >
+                      {s}
+                    </Chip>
+                  )
+                })}
               </div>
             </div>
 
@@ -65,19 +77,25 @@ function Chip({
   selected,
   onClick,
   children,
+  activeColor,
+  activeBg,
 }: {
   selected: boolean
   onClick: () => void
   children: React.ReactNode
+  activeColor?: string
+  activeBg?: string
 }) {
+  const color = activeColor ?? '#7c3aed'
+  const bg = activeBg ?? 'rgba(124,58,237,0.08)'
   return (
     <button
       onClick={onClick}
       style={{
         ...chipBase,
-        backgroundColor: selected ? 'rgba(124,58,237,0.08)' : 'transparent',
-        borderColor: selected ? 'rgba(124,58,237,0.35)' : 'rgba(55,53,47,0.12)',
-        color: selected ? '#7c3aed' : c.textSub,
+        backgroundColor: selected ? bg : 'transparent',
+        borderColor: selected ? `${color}59` : 'rgba(55,53,47,0.12)',
+        color: selected ? color : c.textSub,
         fontWeight: selected ? 700 : 400,
       }}
     >

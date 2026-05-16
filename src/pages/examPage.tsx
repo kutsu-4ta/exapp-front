@@ -239,7 +239,7 @@ export default function ExamPage() {
         )}
 
         <div style={sessionHeader}>
-          <span style={pageTitle}>学習実績</span>
+          <span style={pageTitle}>PAST EXAM</span>
 
           <div style={headerButtons}>
             <button

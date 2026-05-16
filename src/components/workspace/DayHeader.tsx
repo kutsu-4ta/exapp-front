@@ -1,6 +1,8 @@
 import type {DailyLog} from '../../types/workspace'
 import {formatDate, formatMinutes} from '../../types/workspace'
 import {StatusBadge} from "@/components/common/StatusBadge.tsx";
+import {useSettingsStore} from "@/lib/store/settings.ts";
+import {subjectPalette} from "@/styles/subjectUI.ts";
 
 function IconCalendar() {
   return (
@@ -27,6 +29,8 @@ type Props = {
 }
 
 export function DayHeader({ log }: Props) {
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
+
   const subjectTotals = log.studySessions.reduce<Record<string, number>>((acc, s) => {
     acc[s.subject] = (acc[s.subject] ?? 0) + s.minutes
     return acc
@@ -52,12 +56,15 @@ export function DayHeader({ log }: Props) {
 
         {Object.keys(subjectTotals).length > 0 && (
           <div style={subjectGrid}>
-            {Object.entries(subjectTotals).map(([subj, mins]) => (
-              <div key={subj} style={subjectTag}>
-                <span style={subjectName}>{subj.split('・')[0]}</span>
-                <span style={subjectTime}>{formatMinutes(mins)}</span>
-              </div>
-            ))}
+            {Object.entries(subjectTotals).map(([subj, mins]) => {
+              const p = subjectPalette(subj, subjectColors[subj])
+              return (
+                <div key={subj} style={{ ...subjectTag, backgroundColor: p.bg }}>
+                  <span style={{ ...subjectName, color: p.color }}>{subj.split('・')[0]}</span>
+                  <span style={{ ...subjectTime, color: p.color }}>{formatMinutes(mins)}</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

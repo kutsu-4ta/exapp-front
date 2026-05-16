@@ -2,6 +2,8 @@ import {useState} from 'react'
 import type {AlertStatusItem} from '../../types/workspace'
 import {daysAgo, formatHours} from '../../types/workspace'
 import {useNavigate} from 'react-router-dom'
+import {useSettingsStore} from '@/lib/store/settings'
+import {subjectPalette} from '@/styles/subjectUI'
 
 type SubjectEntry = { subject: string; lastDate: string | null }
 type ViewMode = 'status' | 'time'
@@ -36,6 +38,7 @@ export function SubjectStatus({
   alertItems = [],
 }: Props) {
   const navigate = useNavigate()
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
   const [mode, setMode] = useState<ViewMode>('status')
   const [period, setPeriod] = useState<Period>('all')
 
@@ -86,16 +89,17 @@ export function SubjectStatus({
         {mode === 'status' &&
           subjectTouched.map((entry) => {
             const label = getStatusLabel(entry.lastDate)
+            const palette = subjectPalette(entry.subject, subjectColors[entry.subject])
             return (
               <div
                 key={entry.subject}
                 className="flex items-center justify-between min-h-[44px] w-full px-1 py-1.5 border-b border-[var(--nt-border-xs)]"
               >
                 <button
-                  className="flex items-center gap-2.5 min-w-0 flex-1 text-left bg-transparent border-none cursor-pointer py-0.5 rounded hover:bg-[var(--nt-hover)] transition-colors"
+                  className="flex items-center gap-2 min-w-0 flex-1 text-left bg-transparent border-none cursor-pointer py-0.5 rounded hover:bg-[var(--nt-hover)] transition-colors"
                   onClick={() => navigate(`/subjects/${encodeURIComponent(entry.subject)}`)}
                 >
-                  <BookIcon />
+                  <span className="shrink-0 text-[18px] leading-none" style={{ color: palette.color }}>▌</span>
                   <span className="text-[14px] font-medium text-n-text truncate leading-none">
                     {entry.subject}
                   </span>
@@ -121,7 +125,8 @@ export function SubjectStatus({
             const diff = recentMinutes - threshold
             const isBelow = alertEnabled && diff < 0
 
-            const barColor = alertEnabled ? (isBelow ? '#eb5757' : '#19a576') : '#2383e2'
+            const palette = subjectPalette(entry.subject, subjectColors[entry.subject])
+            const barColor = alertEnabled ? (isBelow ? '#eb5757' : '#19a576') : palette.color
             const timeColor = alertEnabled
               ? isBelow
                 ? '#eb5757'
@@ -134,10 +139,11 @@ export function SubjectStatus({
                 className="flex items-center min-h-[44px] w-full px-1 py-1.5 border-b border-[var(--nt-border-xs)] gap-3"
               >
                 <button
-                  className="text-[13px] font-medium text-n-text shrink-0 w-[72px] truncate text-left bg-transparent border-none cursor-pointer hover:underline"
+                  className="flex items-center gap-1.5 text-[13px] font-medium text-n-text shrink-0 w-[84px] truncate text-left bg-transparent border-none cursor-pointer hover:underline"
                   onClick={() => navigate(`/subjects/${encodeURIComponent(entry.subject)}`)}
                 >
-                  {entry.subject}
+                  <span className="shrink-0 text-[16px] leading-none" style={{ color: palette.color }}>▌</span>
+                  <span className="truncate">{entry.subject}</span>
                 </button>
                 <div className="flex-1 h-[5px] bg-[rgba(55,53,47,0.07)] rounded-full overflow-hidden">
                   <div
@@ -250,24 +256,6 @@ function getStatusLabel(lastDate: string | null) {
   return { text: `${n}日前`, color: '#eb5757', bg: 'rgba(235,87,87,0.10)' }
 }
 
-function BookIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="var(--nt-text-faint)"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-    >
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    </svg>
-  )
-}
 
 function PracticeBtn({
   subject,

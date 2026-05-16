@@ -4,6 +4,8 @@ import type {FlashBugfixConfig} from '../../lib/api/morningQuiz'
 import {c, font} from '../../styles/notion'
 import {FailureTypeSelector} from '@/components/common/FailureTypeSlecter.tsx'
 import {ProficiencySelector} from '@/components/common/ProficiencySelector.tsx'
+import {useSettingsStore} from '@/lib/store/settings'
+import {subjectPalette} from '@/styles/subjectUI'
 
 interface Props {
   subjectName: string
@@ -18,6 +20,9 @@ export function FlashBugfixConfigModal({
                                          onClose,
                                          onStart,
                                        }: Props) {
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
+  const palette = subjectPalette(subjectName, subjectColors[subjectName])
+
   const [failureTypes, setFailureTypes] = useState<FailureType[]>([])
   const [subCategoryIds, setSubCategoryIds] = useState<number[]>(
       subCategories.map((sc) => sc.id),
@@ -47,7 +52,9 @@ export function FlashBugfixConfigModal({
             <div style={sheetHeader}>
               <div>
                 <p style={modalTitle}>Flash Bugfix</p>
-                <p style={subjectLabel}>{subjectName}</p>
+                <p style={{ ...subjectLabel, color: palette.color }}>
+                  <span style={{ marginRight: '4px' }}>▌</span>{subjectName}
+                </p>
               </div>
 
               <button style={closeBtn} onClick={onClose}>
@@ -62,12 +69,16 @@ export function FlashBugfixConfigModal({
                   <Chip
                       selected={quizMode === 'multiple_choice'}
                       onClick={() => setQuizMode('multiple_choice')}
+                      activeColor={palette.color}
+                      activeBg={palette.bg}
                   >
                     一問一答
                   </Chip>
                   <Chip
                       selected={quizMode === 'word_card'}
                       onClick={() => setQuizMode('word_card')}
+                      activeColor={palette.color}
+                      activeBg={palette.bg}
                   >
                     単語カード
                   </Chip>
@@ -77,6 +88,8 @@ export function FlashBugfixConfigModal({
                       <Chip
                           selected={formulaOnly}
                           onClick={() => setFormulaOnly((v) => !v)}
+                          activeColor={palette.color}
+                          activeBg={palette.bg}
                       >
                         公式チェック
                       </Chip>
@@ -93,6 +106,8 @@ export function FlashBugfixConfigModal({
                               key={sc.id}
                               selected={subCategoryIds.includes(sc.id)}
                               onClick={() => toggleSubCat(sc.id)}
+                              activeColor={palette.color}
+                              activeBg={palette.bg}
                           >
                             {sc.name}
                           </Chip>
@@ -124,6 +139,8 @@ export function FlashBugfixConfigModal({
                   <Chip
                       selected={touchedOrder === 'old'}
                       onClick={() => toggleTouchedOrder('old')}
+                      activeColor={palette.color}
+                      activeBg={palette.bg}
                   >
                     古い順
                   </Chip>
@@ -131,6 +148,8 @@ export function FlashBugfixConfigModal({
                   <Chip
                       selected={touchedOrder === 'recent'}
                       onClick={() => toggleTouchedOrder('recent')}
+                      activeColor={palette.color}
+                      activeBg={palette.bg}
                   >
                     新しい順
                   </Chip>
@@ -159,7 +178,7 @@ export function FlashBugfixConfigModal({
               </div>
 
               <button
-                  style={startBtn}
+                  style={{ ...startBtn, backgroundColor: palette.color }}
                   onClick={() =>
                       onStart({
                         failureTypes,
@@ -185,19 +204,25 @@ function Chip({
                 selected,
                 onClick,
                 children,
+                activeColor,
+                activeBg,
               }: {
   selected: boolean
   onClick: () => void
   children: React.ReactNode
+  activeColor?: string
+  activeBg?: string
 }) {
+  const color = activeColor ?? '#2383e2'
+  const bg = activeBg ?? 'rgba(35,131,226,0.08)'
   return (
       <button
           onClick={onClick}
           style={{
             ...chipBase,
-            backgroundColor: selected ? 'rgba(35,131,226,0.08)' : 'transparent',
-            borderColor: selected ? 'rgba(35,131,226,0.35)' : 'rgba(55,53,47,0.12)',
-            color: selected ? '#2383e2' : 'rgba(55,53,47,0.55)',
+            backgroundColor: selected ? bg : 'transparent',
+            borderColor: selected ? `${color}59` : 'rgba(55,53,47,0.12)',
+            color: selected ? color : 'rgba(55,53,47,0.55)',
             fontWeight: selected ? 700 : 400,
           }}
       >

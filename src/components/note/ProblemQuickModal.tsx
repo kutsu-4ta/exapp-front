@@ -5,7 +5,7 @@ import type {MorningQuizSession} from "../../lib/api/morningQuiz";
 import type {Problem, ProblemQuiz, Proficiency} from "../../types/workspace";
 import {PROFICIENCY_VALUES} from "../../types/workspace";
 import {c, font} from "../../styles/notion";
-import {PROF_STYLE} from "@/styles/subjectUI.ts";
+import {PROF_STYLE, subjectPalette} from "@/styles/subjectUI.ts";
 import {deleteProblem, deleteProblemQuiz, fetchProblemQuizzes, updateProblem} from "../../lib/api/problem";
 import {Copy, Pencil} from "lucide-react";
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
@@ -29,6 +29,7 @@ export function ProblemQuickModal({
                                   }: Props) {
   const navigate = useNavigate();
   const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial);
+  const subjectColors = useSettingsStore((s) => s.subjectColors);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [quizzes, setQuizzes] = useState<ProblemQuiz[]>([]);
@@ -213,7 +214,11 @@ export function ProblemQuickModal({
               {editing ? (
                   <>
                     <input
-                        style={tagInputBlue}
+                        style={{
+                          ...tagInputBlue,
+                          backgroundColor: subjectPalette(draft.subject, subjectColors[draft.subject]).bg,
+                          color: subjectPalette(draft.subject, subjectColors[draft.subject]).color,
+                        }}
                         value={draft.subject}
                         onChange={(e) =>
                             updateDraft("subject", e.target.value)
@@ -244,7 +249,11 @@ export function ProblemQuickModal({
                   </>
               ) : (
                   <>
-                    <span style={subjectChip}>{problem.subject}</span>
+                    <span style={{
+                      ...subjectChip,
+                      backgroundColor: subjectPalette(problem.subject, subjectColors[problem.subject]).bg,
+                      color: subjectPalette(problem.subject, subjectColors[problem.subject]).color,
+                    }}>{problem.subject}</span>
                     <span style={refText}>
                       {[problem.materialName, problem.questionRef].filter(Boolean).join(' ')}
                     </span>
