@@ -8,12 +8,12 @@ const config = {
     done: {
         label: 'Done',
         color: '#19a576',
-        bg: '#e6f6eb',
+        bg: 'rgba(45,106,31,0.10)',
     },
     open: {
         label: 'Open',
-        color: '#f2ab26',
-        bg: '#fff5e0',
+        color: 'rgba(55,53,47,0.45)',
+        bg: 'rgba(55,53,47,0.06)',
     },
 } as const
 

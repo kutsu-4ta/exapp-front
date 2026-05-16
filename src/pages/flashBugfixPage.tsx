@@ -58,20 +58,6 @@ function MultipleChoiceView({
   const themeKey = isDeg ? 'deg' : 'flash'
   const theme = PRACTICE_THEME[themeKey]
 
-  function makeThemeHeaderBadge(name: string) {
-    return (
-      <span style={{
-        fontSize: font.sm,
-        fontWeight: 700,
-        padding: '3px 8px',
-        borderRadius: '4px',
-        backgroundColor: theme.bg,
-        color: theme.color,
-      }}>
-        {name}
-      </span>
-    )
-  }
   const navigate = useNavigate()
   const session = useQuizSession(quizSessionMode)
   const {phase, setPhase, startTimeRef} = session
@@ -98,12 +84,28 @@ function MultipleChoiceView({
     }
   }
 
-  const headerLabel = isDeg ? 'DegBugfix' : subjectName
+  // Deg: show mode name with deg theme color (cross-subject session)
+  // Flash: show subject name with subject palette (matches subjectRow badge in QuizSessionView)
+  const headerBadge = isDeg
+    ? (
+      <span style={{
+        fontSize: font.sm,
+        fontWeight: 700,
+        padding: '3px 8px',
+        borderRadius: '4px',
+        backgroundColor: theme.bg,
+        color: theme.color,
+      }}>
+        DegBugfix
+      </span>
+    )
+    : <SubjectBadge name={subjectName} />
+
   return (
     <QuizSessionView
       {...session}
       handleComplete={handleComplete}
-      headerBadge={makeThemeHeaderBadge(headerLabel)}
+      headerBadge={headerBadge}
       hideQuizzes={isDeg}
       themeKey={themeKey}
     />

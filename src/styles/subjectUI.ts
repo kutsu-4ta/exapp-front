@@ -1,21 +1,35 @@
 import type {CSSProperties} from "react"
 
+// Intentionally avoids semantic colors:
+//   #19a576 (done/correct/today), #eb5757 (error/wrong), #f2ab26 (open/warning)
 export const SUBJECT_PALETTE = [
-    { bg: 'rgba(35,131,226,0.1)', color: '#2383e2' },
-    { bg: 'rgba(235,87,87,0.1)', color: '#eb5757' },
-    { bg: 'rgba(242,171,38,0.1)', color: '#d4920f' },
-    { bg: 'rgba(39,174,96,0.1)', color: '#19a576' },
-    { bg: 'rgba(155,89,182,0.1)', color: '#8e44ad' },
-    { bg: 'rgba(230,126,34,0.1)', color: '#c0392b' },
+    { bg: 'rgba(35,131,226,0.1)',   color: '#2383e2' },  // blue
+    { bg: 'rgba(14,165,233,0.1)',   color: '#0ea5e9' },  // sky
+    { bg: 'rgba(8,145,178,0.1)',    color: '#0891b2' },  // cyan
+    { bg: 'rgba(13,148,136,0.1)',   color: '#0d9488' },  // teal
+    { bg: 'rgba(99,102,241,0.1)',   color: '#6366f1' },  // indigo
+    { bg: 'rgba(142,68,173,0.1)',   color: '#8e44ad' },  // purple
+    { bg: 'rgba(168,85,247,0.1)',   color: '#a855f7' },  // violet
+    { bg: 'rgba(232,94,139,0.1)',   color: '#e85e8b' },  // rose
+    { bg: 'rgba(236,72,153,0.1)',   color: '#ec4899' },  // fuchsia
+    { bg: 'rgba(249,115,22,0.1)',   color: '#f97316' },  // orange
+    { bg: 'rgba(212,146,15,0.1)',   color: '#d4920f' },  // amber-brown
+    { bg: 'rgba(100,116,139,0.1)',  color: '#64748b' },  // slate
 ]
 
 export const SUBJECT_COLOR_OPTIONS = [
-    '#2383e2',
-    '#eb5757',
-    '#d4920f',
-    '#19a576',
-    '#8e44ad',
-    '#c0392b',
+    '#2383e2',  // blue
+    '#0ea5e9',  // sky
+    '#0891b2',  // cyan
+    '#0d9488',  // teal
+    '#6366f1',  // indigo
+    '#8e44ad',  // purple
+    '#a855f7',  // violet
+    '#e85e8b',  // rose
+    '#ec4899',  // fuchsia
+    '#f97316',  // orange
+    '#d4920f',  // amber-brown
+    '#64748b',  // slate
 ] as const
 
 function hexToRgba(hex: string, alpha: number): string {

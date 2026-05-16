@@ -126,11 +126,13 @@ export function SubjectStatus({
             const isBelow = alertEnabled && diff < 0
 
             const palette = subjectPalette(entry.subject, subjectColors[entry.subject])
-            const barColor = alertEnabled ? (isBelow ? '#eb5757' : '#19a576') : palette.color
+            // when alertEnabled: semantic red/green for status feedback
+            // when !alertEnabled: neutral — bar shows quantity not identity (▌ already shows subject color)
+            const barColor = alertEnabled
+              ? isBelow ? '#eb5757' : '#19a576'
+              : 'rgba(55,53,47,0.22)'
             const timeColor = alertEnabled
-              ? isBelow
-                ? '#eb5757'
-                : '#19a576'
+              ? isBelow ? '#eb5757' : '#19a576'
               : 'rgba(55,53,47,0.45)'
 
             return (

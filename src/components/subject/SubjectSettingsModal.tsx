@@ -86,7 +86,7 @@ export function SubjectSettingsModal({
             </div>
             {!settingsLoaded ? (
               <div style={swatchRow}>
-                {[0,1,2,3,4,5,6].map((i) => (
+                {Array.from({ length: 13 }).map((_, i) => (
                   <div key={i} style={{ ...swatchBtn, backgroundColor: 'rgba(55,53,47,0.08)' }} />
                 ))}
               </div>
