@@ -1,5 +1,5 @@
 import {LongPressButton} from "@/components/common/LongPressButton.tsx";
-import {FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
+import {FAILURE_COLORS, FailureTypeSelector} from "@/components/common/FailureTypeSlecter.tsx";
 import {useEffect, useRef, useState} from "react";
 import type {MorningQuizSession} from "../../lib/api/morningQuiz";
 import type {Problem, ProblemQuiz, Proficiency} from "../../types/workspace";
@@ -243,29 +243,17 @@ export function ProblemQuickModal({
                   </>
               ) : (
                   <>
-              <span style={subjectTag}>
-                {problem.subject}
-              </span>
-
-                    <span style={subCatTag}>
-                {problem.materialName} {problem.questionRef}
-              </span>
-
+                    <span style={subjectChip}>{problem.subject}</span>
+                    <span style={refText}>
+                      {[problem.materialName, problem.questionRef].filter(Boolean).join(' ')}
+                    </span>
                     <span style={{
-                      ...profBadge,
-                      backgroundColor: PROF_STYLE[problem.proficiency]?.bg ?? '#f3f3f3',
-                      color: PROF_STYLE[problem.proficiency]?.color ?? c.text,
+                      ...profChip,
+                      backgroundColor: PROF_STYLE[problem.proficiency]?.bg ?? 'rgba(55,53,47,0.06)',
+                      color: PROF_STYLE[problem.proficiency]?.color ?? c.textSub,
                     }}>
                       {problem.proficiency}
                     </span>
-
-                    {problem.isFormula && (
-                        <span style={formulaTag}>公式</span>
-                    )}
-
-                    {problem.isGoodQuestion && (
-                        <span style={starTag}>★ 良問</span>
-                    )}
                   </>
               )}
             </div>
@@ -282,9 +270,29 @@ export function ProblemQuickModal({
                     }
                 />
             ) : (
-                <p style={questionRefStyle}>
-                  {problem.subCategory}
-                </p>
+                <>
+                  <p style={questionRefStyle}>{problem.subCategory}</p>
+                  {/* タグ行: 属性・公式・良問 */}
+                  {(problem.failureTypes.length > 0 || problem.isFormula || problem.isGoodQuestion) && (
+                      <div style={tagsRow}>
+                        {problem.failureTypes.map((ft) => (
+                            <span
+                                key={ft}
+                                style={{
+                                  ...ftChip,
+                                  color: FAILURE_COLORS[ft] ?? c.textSub,
+                                  backgroundColor: `${FAILURE_COLORS[ft] ?? '#888'}18`,
+                                  borderColor: `${FAILURE_COLORS[ft] ?? '#888'}30`,
+                                }}
+                            >
+                              {ft}
+                            </span>
+                        ))}
+                        {problem.isFormula && <span style={formulaChip}>公式</span>}
+                        {problem.isGoodQuestion && <span style={goodChip}>★ 良問</span>}
+                      </div>
+                  )}
+                </>
             )}
 
             <div style={section}>
@@ -362,26 +370,11 @@ export function ProblemQuickModal({
                   </>
               ) : (
                   <>
-                    {problem.failureTypes.length > 0 && (
-                        <div style={pillsRow}>
-                          {problem.failureTypes.map((ft) => (
-                              <span
-                                  key={ft}
-                                  style={pill}
-                              >
-                      {ft}
-                    </span>
-                          ))}
-                        </div>
-                    )}
-
                     {problem.defeatReason && (
-                        <>
-                          <p style={sectionLbl}>敗因</p>
-                          <div style={defeatBox}>
-                            {problem.defeatReason}
-                          </div>
-                        </>
+                        <div style={defeatRow}>
+                          <span style={defeatLabel}>敗因</span>
+                          <span style={defeatText}>{problem.defeatReason}</span>
+                        </div>
                     )}
                   </>
               )}
@@ -554,48 +547,71 @@ const iconBtn: React.CSSProperties = {
   padding: "4px",
 };
 
-const metaRow = {
+const metaRow: React.CSSProperties = {
   display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
-  marginBottom: "16px",
+  gap: "6px",
+  flexWrap: "wrap",
+  alignItems: "center",
+  marginBottom: "10px",
 };
 
-const subjectTag = {
-  padding: "4px 8px",
-  borderRadius: "6px",
-  background: "#eef5ff",
+const subjectChip: React.CSSProperties = {
+  padding: "2px 7px",
+  borderRadius: "4px",
+  background: "rgba(35,131,226,0.08)",
   color: c.blue,
+  fontSize: font.xs,
+  fontWeight: 700,
+  letterSpacing: "0.02em",
+};
+
+const refText: React.CSSProperties = {
   fontSize: font.sm,
+  color: c.textFaint,
+  fontWeight: 400,
 };
 
-const subCatTag = {
-  padding: "4px 8px",
-  borderRadius: "6px",
-  background: "#f6f6f6",
-  color: c.textSub,
-};
-
-const starTag = {
-  padding: "4px 8px",
-  borderRadius: "6px",
-  background: "#fff8df",
-};
-
-const profBadge: React.CSSProperties = {
-  padding: "4px 8px",
-  borderRadius: "6px",
-  fontSize: font.sm,
+const profChip: React.CSSProperties = {
+  padding: "2px 7px",
+  borderRadius: "4px",
+  fontSize: font.xs,
   fontWeight: 700,
 };
 
-const formulaTag: React.CSSProperties = {
-  padding: "4px 8px",
-  borderRadius: "6px",
-  fontSize: font.sm,
-  fontWeight: 700,
-  background: "rgba(35,131,226,0.07)",
-  color: "rgba(35,131,226,1)",
+const tagsRow: React.CSSProperties = {
+  display: "flex",
+  gap: "5px",
+  flexWrap: "wrap",
+  marginBottom: "16px",
+  marginTop: "6px",
+};
+
+const ftChip: React.CSSProperties = {
+  padding: "2px 7px",
+  borderRadius: "4px",
+  border: "1px solid",
+  fontSize: font.xs,
+  fontWeight: 600,
+};
+
+const formulaChip: React.CSSProperties = {
+  padding: "2px 7px",
+  borderRadius: "4px",
+  border: "1px solid rgba(35,131,226,0.25)",
+  fontSize: font.xs,
+  fontWeight: 600,
+  background: "rgba(35,131,226,0.06)",
+  color: c.blue,
+};
+
+const goodChip: React.CSSProperties = {
+  padding: "2px 7px",
+  borderRadius: "4px",
+  border: "1px solid rgba(234,179,8,0.3)",
+  fontSize: font.xs,
+  fontWeight: 600,
+  background: "rgba(254,249,195,0.6)",
+  color: "#92400e",
 };
 
 const editSegControl: React.CSSProperties = {
@@ -617,22 +633,28 @@ const editSegBtn: React.CSSProperties = {
   transition: "all 0.15s",
 };
 
-const tagInputBlue = {
-  ...subjectTag,
+const tagInputBlue: React.CSSProperties = {
+  ...subjectChip,
   border: `1px solid ${c.border}`,
   outline: "none",
 };
 
-const tagInputGray = {
-  ...subCatTag,
+const tagInputGray: React.CSSProperties = {
+  padding: "4px 8px",
+  borderRadius: "4px",
+  background: "rgba(55,53,47,0.05)",
+  color: c.textSub,
+  fontSize: font.sm,
   border: `1px solid ${c.border}`,
   outline: "none",
 };
 
-const questionRefStyle = {
-  fontSize: "18px",
-  fontWeight: 600,
-  marginBottom: "20px",
+const questionRefStyle: React.CSSProperties = {
+  fontSize: "17px",
+  fontWeight: 700,
+  color: c.text,
+  lineHeight: 1.45,
+  marginBottom: "4px",
 };
 
 const titleInput = {
@@ -655,23 +677,26 @@ const sectionLbl = {
   marginBottom: "8px",
 };
 
-const pillsRow = {
+const defeatRow: React.CSSProperties = {
   display: "flex",
-  flexWrap: "wrap" as const,
-  gap: "6px",
+  gap: "8px",
+  alignItems: "baseline",
+  marginBottom: "6px",
 };
 
-const pill = {
-  padding: "4px 10px",
-  borderRadius: "999px",
-  background: "#f3f3f3",
+const defeatLabel: React.CSSProperties = {
+  flexShrink: 0,
+  fontSize: font.xs,
+  fontWeight: 700,
+  color: c.textHint,
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
 };
 
-const defeatBox = {
-  padding: "12px",
-  borderRadius: "8px",
-  color: c.red,
-  background: "rgba(235,87,87,0.04)",
+const defeatText: React.CSSProperties = {
+  fontSize: font.base,
+  color: c.textSub,
+  lineHeight: 1.6,
 };
 
 const factorTextarea: React.CSSProperties = {

@@ -172,7 +172,7 @@ export function QuizSessionView({
           ))}
         </div>
 
-        {/* Subject + sub_category + problem ref */}
+        {/* Subject + sub_category + material + problem ref */}
         <div style={subjectRow}>
           <span style={{ ...subjectBadge, backgroundColor: palette.bg, color: palette.color }}>
             {subject}
