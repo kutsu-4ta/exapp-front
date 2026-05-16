@@ -1,11 +1,13 @@
 import {useNavigate} from 'react-router-dom'
 import {c, font} from '@/styles/notion'
 import {subjectPalette} from '@/styles/subjectUI'
+import {PRACTICE_THEME, type PracticeThemeKey} from '@/styles/practiceUI'
 import type {useFlashCardSession} from '@/hooks/useFlashCardSession'
 
 type Props = ReturnType<typeof useFlashCardSession> & {
   handleComplete: () => void
   headerBadge?: React.ReactNode
+  themeKey?: PracticeThemeKey
 }
 
 export function FlashCardSessionView({
@@ -20,14 +22,16 @@ export function FlashCardSessionView({
   handleSelfEval,
   handleComplete,
   headerBadge,
+  themeKey = 'flash',
 }: Props) {
   const navigate = useNavigate()
+  const theme = PRACTICE_THEME[themeKey]
 
   if (phase === 'loading') {
     return (
       <div style={loadingPage}>
         <div style={loadingBox}>
-          <div style={loadingSpinner} />
+          <div style={{...loadingSpinner, borderTopColor: theme.color}} />
           <p style={loadingText}>準備しています...</p>
         </div>
       </div>
@@ -55,7 +59,7 @@ export function FlashCardSessionView({
           <div style={resultHeader}>
             <p style={resultTitle}>完了！</p>
             <p style={resultScore}>
-              <span style={resultNum}>{correctCount}</span>
+              <span style={{...resultNum, color: theme.color}}>{correctCount}</span>
               <span style={resultDenom}> / {total} 枚 わかった</span>
             </p>
           </div>
@@ -76,7 +80,7 @@ export function FlashCardSessionView({
           </div>
 
           <button
-            style={{...completeBtn, opacity: phase === 'saving' ? 0.6 : 1}}
+            style={{...completeBtn, backgroundColor: theme.color, opacity: phase === 'saving' ? 0.6 : 1}}
             onClick={handleComplete}
             disabled={phase === 'saving'}
           >
@@ -130,9 +134,9 @@ export function FlashCardSessionView({
                 ...progressSegment,
                 backgroundColor:
                   i < results.length
-                    ? c.blue
+                    ? theme.color
                     : i === currentIdx
-                      ? 'rgba(35,131,226,0.3)'
+                      ? theme.colorLight
                       : 'rgba(55,53,47,0.08)',
               }}
             />
@@ -164,7 +168,7 @@ export function FlashCardSessionView({
             </div>
 
             {/* Back */}
-            <div style={cardFaceBack}>
+            <div style={{...cardFaceBack, backgroundColor: theme.bg, borderColor: theme.border}}>
               <p style={cardLabel}>解説</p>
               <p style={cardText}>{quiz.explanation}</p>
             </div>

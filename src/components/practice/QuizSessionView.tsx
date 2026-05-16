@@ -2,13 +2,14 @@ import {useNavigate} from 'react-router-dom'
 import {ProblemQuickModal} from '@/components/note/ProblemQuickModal'
 import {c, font} from '@/styles/notion'
 import {subjectPalette} from '@/styles/subjectUI'
-import {OPTION_LABELS} from '@/styles/practiceUI'
+import {OPTION_LABELS, PRACTICE_THEME, type PracticeThemeKey} from '@/styles/practiceUI'
 import type {useQuizSession} from '@/hooks/useQuizSession'
 
 type Props = ReturnType<typeof useQuizSession> & {
   handleComplete: () => void
   headerBadge?: React.ReactNode
   hideQuizzes?: boolean
+  themeKey?: PracticeThemeKey
 }
 
 export function QuizSessionView({
@@ -33,7 +34,9 @@ export function QuizSessionView({
   handleComplete,
   headerBadge,
   hideQuizzes = false,
+  themeKey = 'flash',
 }: Props) {
+  const theme = PRACTICE_THEME[themeKey]
   const navigate = useNavigate()
 
   // ── LOADING ────────────────────────────────────────────────────────────────
@@ -41,7 +44,7 @@ export function QuizSessionView({
     return (
       <div style={loadingPage}>
         <div style={loadingBox}>
-          <div style={loadingSpinner} />
+          <div style={{...loadingSpinner, borderTopColor: theme.color}} />
           <p style={loadingText}>準備しています...</p>
         </div>
       </div>
@@ -71,7 +74,7 @@ export function QuizSessionView({
           <div style={resultHeader}>
             <p style={resultTitle}>完了！</p>
             <p style={resultScore}>
-              <span style={resultNum}>{correctCount}</span>
+              <span style={{...resultNum, color: theme.color}}>{correctCount}</span>
               <span style={resultDenom}> / {total} 問正解</span>
             </p>
           </div>
@@ -98,7 +101,7 @@ export function QuizSessionView({
           </div>
 
           <button
-            style={{ ...completeBtn, opacity: phase === 'saving' ? 0.6 : 1 }}
+            style={{ ...completeBtn, backgroundColor: theme.color, opacity: phase === 'saving' ? 0.6 : 1 }}
             onClick={handleComplete}
             disabled={phase === 'saving'}
           >
@@ -163,9 +166,9 @@ export function QuizSessionView({
                 ...progressSegment,
                 backgroundColor:
                   i < results.length
-                    ? c.blue
+                    ? theme.color
                     : i === currentIdx
-                      ? 'rgba(35,131,226,0.3)'
+                      ? theme.colorLight
                       : 'rgba(55,53,47,0.08)',
               }}
             />
@@ -255,7 +258,7 @@ export function QuizSessionView({
             >
               {isMarked ? '★ 保存済み' : '☆ 保存する'}
             </button>
-            <button style={nextBtn} onClick={handleNext}>
+            <button style={{ ...nextBtn, backgroundColor: theme.color }} onClick={handleNext}>
               {currentIdx + 1 >= total ? '結果を見る' : '次の問題'}
               <svg
                 width="12"

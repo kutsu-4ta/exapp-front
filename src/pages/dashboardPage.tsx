@@ -410,7 +410,8 @@ export default function DashboardPage() {
                     e.preventDefault()
                     navigate('/morning-bugfix')
                   }}
-                  className="flex items-center gap-2 text-[13px] font-semibold text-n-blue bg-[var(--nt-blue-bg)] border border-[var(--nt-blue-border)] rounded-lg px-3.5 py-2.5 cursor-pointer"
+                  className="flex items-center gap-2 text-[13px] font-semibold rounded-lg px-3.5 py-2.5 cursor-pointer border"
+                  style={{color: '#19a576', backgroundColor: 'rgba(39,174,96,0.08)', borderColor: 'rgba(39,174,96,0.25)'}}
                 >
                   MorningBugfix
                 </button>

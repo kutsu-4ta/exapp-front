@@ -9,6 +9,7 @@ import {type QuizSessionMode, useQuizSession} from '@/hooks/useQuizSession'
 import {QuizSessionView} from '@/components/practice/QuizSessionView'
 import {useFlashCardSession} from '@/hooks/useFlashCardSession'
 import {FlashCardSessionView} from '@/components/practice/FlashCardSessionView'
+import {PRACTICE_THEME} from '@/styles/practiceUI'
 
 function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
@@ -52,6 +53,23 @@ function MultipleChoiceView({
   quizSessionMode: QuizSessionMode
   isDeg: boolean
 }) {
+  const themeKey = isDeg ? 'deg' : 'flash'
+  const theme = PRACTICE_THEME[themeKey]
+
+  function makeThemeHeaderBadge(name: string) {
+    return (
+      <span style={{
+        fontSize: font.sm,
+        fontWeight: 700,
+        padding: '3px 8px',
+        borderRadius: '4px',
+        backgroundColor: theme.bg,
+        color: theme.color,
+      }}>
+        {name}
+      </span>
+    )
+  }
   const navigate = useNavigate()
   const session = useQuizSession(quizSessionMode)
   const {phase, setPhase, startTimeRef} = session
@@ -78,12 +96,14 @@ function MultipleChoiceView({
     }
   }
 
+  const headerLabel = isDeg ? 'DegBugfix' : subjectName
   return (
     <QuizSessionView
       {...session}
       handleComplete={handleComplete}
-      headerBadge={makeHeaderBadge(subjectName)}
+      headerBadge={makeThemeHeaderBadge(headerLabel)}
       hideQuizzes={isDeg}
+      themeKey={themeKey}
     />
   )
 }
@@ -128,6 +148,7 @@ function WordCardView({
       {...cardSession}
       handleComplete={handleComplete}
       headerBadge={makeHeaderBadge(subjectName)}
+      themeKey="flash"
     />
   )
 }

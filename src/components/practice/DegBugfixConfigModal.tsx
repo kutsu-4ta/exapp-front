@@ -75,9 +75,9 @@ function Chip({
       onClick={onClick}
       style={{
         ...chipBase,
-        backgroundColor: selected ? 'rgba(234,179,8,0.12)' : 'transparent',
-        borderColor: selected ? 'rgba(234,179,8,0.5)' : 'rgba(55,53,47,0.12)',
-        color: selected ? '#92400e' : c.textSub,
+        backgroundColor: selected ? 'rgba(124,58,237,0.08)' : 'transparent',
+        borderColor: selected ? 'rgba(124,58,237,0.35)' : 'rgba(55,53,47,0.12)',
+        color: selected ? '#7c3aed' : c.textSub,
         fontWeight: selected ? 700 : 400,
       }}
     >
@@ -179,7 +179,7 @@ const stepValue: React.CSSProperties = {
 const startBtn: React.CSSProperties = {
   width: '100%',
   padding: '14px',
-  backgroundColor: '#92400e',
+  backgroundColor: '#7c3aed',
   color: '#fff',
   border: 'none',
   borderRadius: '10px',
