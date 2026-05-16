@@ -85,6 +85,7 @@ export function ProblemQuickModal({
         problem_context: {
           original_ref: problem.questionRef,
           user_memo: problem.note ?? "",
+          material_name: null,
         },
         quiz: {
           question: q.question,
