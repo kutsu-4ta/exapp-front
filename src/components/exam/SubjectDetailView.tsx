@@ -1,8 +1,9 @@
 import {useEffect, useState} from 'react'
 import {LoadingSpinner} from '../common/LoadingSpinner'
-import {fetchSubjectStats} from '../../lib/api/exam'
-import type {ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
+import {fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
+import type {ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
+import {StatusCopyModal} from '../common/StatusCopyModal'
 
 interface SubjectDetailViewProps {
   subject: string
@@ -15,6 +16,53 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
   const [stats, setStats] = useState<ExamSubjectStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null)
+  const [sessionLoading, setSessionLoading] = useState(false)
+  const [copyModalOpen, setCopyModalOpen] = useState(false)
+  const [copyText, setCopyText] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  const handleSessionTap = async (sessionId: number) => {
+    setSessionLoading(true)
+    try {
+      const session = await fetchExamSession(sessionId)
+      setSelectedSession(session)
+      const lines: string[] = []
+      lines.push(`【試験詳細】${session.subject} - ${session.examYear}`)
+      lines.push(`日時: ${session.completedAt?.slice(0, 10).replace(/-/g, '/') ?? '未完了'}`)
+      lines.push(`TOTAL: ${session.totalScore} / PURE: ${session.pureScore}`)
+      lines.push(`正解: ${session.correctCount}問 / 不正解: ${session.incorrectCount}問 / 疑問: ${session.doubtfulCount}問`)
+      if (session.questions.length > 0) {
+        lines.push('')
+        lines.push('【問題一覧】')
+        session.questions.forEach((q) => {
+          const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '-'
+          const doubt = q.isDoubtful ? ' ?' : ''
+          const note = q.note ? ` ｜${q.note}` : ''
+          lines.push(`${q.displayId} [${q.rank}] ${result}${doubt}${note}`)
+        })
+      }
+      setCopyText(lines.join('\n'))
+    } catch {
+      // ignore
+    } finally {
+      setSessionLoading(false)
+    }
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setCopied(true)
+      setTimeout(() => {
+        setCopied(false)
+        setCopyModalOpen(false)
+      }, 800)
+    } catch {
+      // ignore
+    }
+  }
 
   useEffect(() => {
     fetchSubjectStats(subject)
@@ -66,7 +114,11 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
             {[...sessions]
               .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
               .map((s) => (
-                <div key={s.id} style={sessionRow}>
+                <div
+                  key={s.id}
+                  style={sessionRow}
+                  onClick={() => handleSessionTap(s.id)}
+                >
                   <div style={sessionRowLeft}>
                     <span style={sessionDate}>
                       {s.completedAt?.slice(5, 10).replace('-', '/') ?? '--'}
@@ -81,7 +133,10 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                     <span style={scoreValue}>{s.pureScore}</span>
                   </div>
                   {onEdit && (
-                    <button style={editSessionBtn} onClick={() => onEdit(s.id)}>
+                    <button
+                      style={editSessionBtn}
+                      onClick={(e) => { e.stopPropagation(); onEdit(s.id) }}
+                    >
                       編集
                     </button>
                   )}
@@ -110,6 +165,95 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
             ))}
           </div>
         </>
+      )}
+      {/* セッション詳細モーダル */}
+      {(sessionLoading || selectedSession) && (
+        <div style={modalOverlay} onClick={() => setSelectedSession(null)}>
+          <div style={modalSheet} onClick={(e) => e.stopPropagation()}>
+            {sessionLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+                <LoadingSpinner />
+              </div>
+            ) : selectedSession && (
+              <>
+                <div style={modalHeader}>
+                  <div>
+                    <div style={modalTitle}>{selectedSession.examYear}</div>
+                    <div style={modalSubtitle}>
+                      {selectedSession.completedAt?.slice(0, 10).replace(/-/g, '/') ?? ''}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      style={copyIconBtn}
+                      onClick={() => setCopyModalOpen(true)}
+                      title="コピー"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="9" y="2" width="6" height="4" rx="1" />
+                        <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+                      </svg>
+                    </button>
+                    <button style={modalCloseBtn} onClick={() => setSelectedSession(null)}>✕</button>
+                  </div>
+                </div>
+
+                <div style={modalScoreRow}>
+                  <div style={modalScoreBlock}>
+                    <span style={modalScoreLabel}>TOTAL</span>
+                    <span style={modalScoreValue}>{selectedSession.totalScore}</span>
+                  </div>
+                  <div style={modalScoreDivider} />
+                  <div style={modalScoreBlock}>
+                    <span style={modalScoreLabel}>PURE</span>
+                    <span style={modalScoreValue}>{selectedSession.pureScore}</span>
+                  </div>
+                  <div style={modalScoreDivider} />
+                  <div style={modalScoreBlock}>
+                    <span style={modalScoreLabel}>正解</span>
+                    <span style={{ ...modalScoreValue, color: '#19a576' }}>{selectedSession.correctCount}</span>
+                  </div>
+                  <div style={modalScoreDivider} />
+                  <div style={modalScoreBlock}>
+                    <span style={modalScoreLabel}>不正解</span>
+                    <span style={{ ...modalScoreValue, color: '#eb5757' }}>{selectedSession.incorrectCount}</span>
+                  </div>
+                  <div style={modalScoreDivider} />
+                  <div style={modalScoreBlock}>
+                    <span style={modalScoreLabel}>疑問</span>
+                    <span style={{ ...modalScoreValue, color: '#f2ab26' }}>{selectedSession.doubtfulCount}</span>
+                  </div>
+                </div>
+
+                {selectedSession.questions.length > 0 && (
+                  <div style={modalQuestionList}>
+                    <div style={sectionLabel}>問題一覧</div>
+                    {selectedSession.questions.map((q) => (
+                      <div key={q.id} style={modalQuestionRow}>
+                        <span style={modalQId}>{q.displayId}</span>
+                        <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>
+                        <span style={modalQResult(q.isCorrect)}>
+                          {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
+                        </span>
+                        {q.isDoubtful && <DoubtIcon />}
+                        {q.note && <span style={modalQNote}>{q.note}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {copyModalOpen && (
+        <StatusCopyModal
+          text={copyText}
+          copied={copied}
+          onCopy={handleCopy}
+          onClose={() => setCopyModalOpen(false)}
+        />
       )}
     </div>
   )
@@ -222,6 +366,7 @@ const sessionRow: React.CSSProperties = {
   gap: '12px',
   padding: '8px 0',
   borderBottom: '1px solid #f5f5f4',
+  cursor: 'pointer',
 }
 const sessionRowLeft: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center', minWidth: '80px' }
 const sessionDate: React.CSSProperties = { fontSize: '11px', fontWeight: 700, color: '#aaa' }
@@ -246,3 +391,97 @@ const editSessionBtn: React.CSSProperties = {
   cursor: 'pointer',
   flexShrink: 0,
 }
+const modalOverlay: React.CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  zIndex: 300,
+  background: 'rgba(0,0,0,0.45)',
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'center',
+}
+const modalSheet: React.CSSProperties = {
+  background: '#fff',
+  width: '100%',
+  maxWidth: '600px',
+  maxHeight: '85vh',
+  borderRadius: '20px 20px 0 0',
+  padding: '20px 16px 40px',
+  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px',
+}
+const modalHeader: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+}
+const modalTitle: React.CSSProperties = { fontSize: '16px', fontWeight: 900, color: '#37352f' }
+const modalSubtitle: React.CSSProperties = { fontSize: '11px', color: '#aaa', fontWeight: 700, marginTop: '2px' }
+const modalCloseBtn: React.CSSProperties = {
+  border: 'none',
+  background: '#f4f4f3',
+  borderRadius: '50%',
+  width: '28px',
+  height: '28px',
+  fontSize: '12px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}
+const copyIconBtn: React.CSSProperties = {
+  border: '1px solid #e5e5e4',
+  background: '#fff',
+  borderRadius: '8px',
+  width: '32px',
+  height: '28px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#37352f',
+}
+const modalScoreRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  backgroundColor: '#f9f9f8',
+  borderRadius: '12px',
+  padding: '12px',
+}
+const modalScoreBlock: React.CSSProperties = {
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '2px',
+}
+const modalScoreLabel: React.CSSProperties = { fontSize: '9px', fontWeight: 700, color: '#aaa' }
+const modalScoreValue: React.CSSProperties = { fontSize: '16px', fontWeight: 900, color: '#37352f' }
+const modalScoreDivider: React.CSSProperties = { width: '1px', height: '28px', background: '#e5e5e4' }
+const modalQuestionList: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '6px' }
+const modalQuestionRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '6px 8px',
+  borderRadius: '8px',
+  background: '#f9f9f8',
+}
+const modalQId: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: '#37352f', minWidth: '32px' }
+const modalQNote: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#888',
+  flex: 1,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+const modalQResult = (isCorrect: boolean | null): React.CSSProperties => ({
+  fontSize: '13px',
+  fontWeight: 900,
+  color: isCorrect === true ? '#19a576' : isCorrect === false ? '#eb5757' : '#aaa',
+  minWidth: '16px',
+})
