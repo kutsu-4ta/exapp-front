@@ -698,7 +698,7 @@ const saveLabelSaving = {
   color: "#19a576",
 };
 
-const deleteBtn: React.CSSProperties = {
+export const deleteBtn: React.CSSProperties = {
   padding: "8px 16px",
   backgroundColor: "transparent",
   border: "none",

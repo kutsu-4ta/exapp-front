@@ -11,6 +11,7 @@ import type {
 import type {SubCategoryRank} from '../../types/workspace'
 import {useSettingsStore} from '../../lib/store/settings'
 import {c, font, formInput, formLabel, formTextarea} from '../../styles/notion'
+import {MarkdownContent} from '@/components/common/MarkdownContent.tsx'
 
 type CreateProps = {
   mode: 'create'
@@ -88,6 +89,7 @@ export function TicketFormModal(props: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [rankFilter, setRankFilter] = useState<SubCategoryRank | 'all' | 'none'>('all')
+  const [criteriaPreview, setCriteriaPreview] = useState(false)
 
   // subCategories filtered by selected subject
   const filteredSubCategories = useMemo(
@@ -280,13 +282,56 @@ export function TicketFormModal(props: Props) {
           </div>
 
           <div>
-            <label style={formLabel}>達成条件 *</label>
-            <textarea
-              style={{ ...formTextarea, marginTop: 4, minHeight: 72 }}
-              value={criteria}
-              onChange={(e) => setCriteria(e.target.value)}
-              placeholder="「〇〇が説明できる」「N問連続正解」など具体的に"
-            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <label style={formLabel}>説明 *</label>
+              <div style={{ display: 'flex', gap: 2 }}>
+                {(['編集', 'プレビュー'] as const).map((tab) => {
+                  const isPreview = tab === 'プレビュー'
+                  const active = criteriaPreview === isPreview
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setCriteriaPreview(isPreview)}
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: font.xs,
+                        fontWeight: active ? 700 : 500,
+                        border: 'none',
+                        borderRadius: 4,
+                        backgroundColor: active ? c.blue : 'transparent',
+                        color: active ? '#fff' : c.textHint,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {tab}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            {criteriaPreview ? (
+              <div
+                style={{
+                  ...formTextarea,
+                  minHeight: 72,
+                  cursor: 'default',
+                  overflowY: 'auto',
+                }}
+              >
+                {criteria.trim()
+                  ? <MarkdownContent>{criteria}</MarkdownContent>
+                  : <span style={{ color: c.textHint, fontSize: font.sm }}>プレビューなし</span>
+                }
+              </div>
+            ) : (
+              <textarea
+                style={{ ...formTextarea, minHeight: 72 }}
+                value={criteria}
+                onChange={(e) => setCriteria(e.target.value)}
+                placeholder="「〇〇が説明できる」「N問連続正解」など具体的な達成条件"
+              />
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>

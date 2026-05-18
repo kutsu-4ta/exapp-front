@@ -70,7 +70,7 @@ const topRow: React.CSSProperties = {
   overflow: 'hidden',
 }
 
-const avatar: React.CSSProperties = {
+export const avatar: React.CSSProperties = {
   width: '28px',
   height: '28px',
   borderRadius: '50%',

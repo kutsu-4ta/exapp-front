@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {StudyTicket, TicketStatus} from '../../types/sprint'
-import {PRIORITY_COLOR, PRIORITY_LABEL, TICKET_TYPE_SHORT} from '../../types/sprint'
+import {PRIORITY_COLOR, PRIORITY_LABEL, TICKET_TYPE_LABEL} from '../../types/sprint'
 import {c, font} from '../../styles/notion'
 
 type Props = {
@@ -83,19 +83,17 @@ export function TicketCard({ ticket, onClick, onStatusChange, compact = false }:
             marginBottom: '5px',
           }}
         >
-          {/* Type badge */}
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              color: '#fff',
-              backgroundColor: 'rgba(55,53,47,0.35)',
-              borderRadius: '3px',
-              padding: '1px 4px',
-              flexShrink: 0,
-            }}
-          >
-            {TICKET_TYPE_SHORT[ticket.ticketType]}
+            {/* Priority badge */}
+            <span
+                style={{
+                    fontSize: '16px',
+                    fontWeight: 700,
+                    color: PRIORITY_COLOR[ticket.priority],
+                    opacity: ticket.status === 'done' ? 0.5 : 1,
+                    flexShrink: 0,
+                }}
+            >
+            {PRIORITY_LABEL[ticket.priority]}
           </span>
 
           {/* Subject chip */}
@@ -117,17 +115,19 @@ export function TicketCard({ ticket, onClick, onStatusChange, compact = false }:
             {ticket.subject}
           </span>
 
-          {/* Priority badge */}
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              color: PRIORITY_COLOR[ticket.priority],
-              opacity: ticket.status === 'done' ? 0.5 : 1,
-              flexShrink: 0,
-            }}
-          >
-            {PRIORITY_LABEL[ticket.priority]}
+            {/* Type badge */}
+            <span
+                style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: '#fff',
+                    backgroundColor: 'rgba(55,53,47,0.35)',
+                    borderRadius: '3px',
+                    padding: '1px 4px',
+                    flexShrink: 0,
+                }}
+            >
+            {TICKET_TYPE_LABEL[ticket.ticketType]}
           </span>
 
           {/* Due date */}

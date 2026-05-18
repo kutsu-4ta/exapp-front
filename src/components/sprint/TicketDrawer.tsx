@@ -3,6 +3,19 @@ import type {Sprint, StudyTicket, TicketStatus} from '../../types/sprint'
 import {PRIORITY_COLOR, PRIORITY_LABEL, SOURCE_LABEL, TICKET_TYPE_LABEL,} from '../../types/sprint'
 import {c, font} from '../../styles/notion'
 import {TicketNotes} from './TicketNotes'
+import {LongPressButton} from '@/components/common/LongPressButton.tsx'
+import {MarkdownContent} from '@/components/common/MarkdownContent.tsx'
+
+const deleteBtn: React.CSSProperties = {
+  padding: '10px 16px',
+  backgroundColor: 'transparent',
+  border: 'none',
+  fontSize: font.sm,
+  width: '100%',
+  color: `rgba(235,87,87,0.6)`,
+  cursor: 'pointer',
+  fontWeight: 500,
+}
 
 type Props = {
   ticket: StudyTicket | null
@@ -35,7 +48,6 @@ export function TicketDrawer({
   onDelete,
 }: Props) {
   const [actionLoading, setActionLoading] = useState<'status' | 'sprint' | 'delete' | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [sprintChanging, setSprintChanging] = useState(false)
 
   if (!ticket) return null
@@ -57,7 +69,6 @@ export function TicketDrawer({
   }
 
   const handleDelete = async () => {
-    if (!deleteConfirm) { setDeleteConfirm(true); return }
     setActionLoading('delete')
     try { await onDelete(ticket) } finally { setActionLoading(null) }
   }
@@ -94,9 +105,9 @@ export function TicketDrawer({
           <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(55,53,47,0.12)' }} />
         </div>
 
-        <div style={{ padding: '8px 20px 24px' }}>
+        <div style={{ padding: '8px 0 24px' }}>
           {/* Close row */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 20px 8px' }}>
             <button
               onClick={onClose}
               style={{
@@ -108,21 +119,8 @@ export function TicketDrawer({
             </button>
           </div>
 
-          {/* Subject + Sprint row */}
+          {/* Sprint row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                fontSize: font.sm,
-                fontWeight: 700,
-                padding: '3px 8px',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(35,131,226,0.08)',
-                color: c.blue,
-              }}
-            >
-              {ticket.subject}
-            </span>
-
             {/* Sprint chip — click to change */}
             <div style={{ position: 'relative' }}>
               <button
@@ -131,7 +129,7 @@ export function TicketDrawer({
                 style={{
                   fontSize: font.xs,
                   fontWeight: 600,
-                  padding: '3px 8px',
+                  padding: '3px 20px 8px',
                   borderRadius: '4px',
                   border: `1px solid ${c.border}`,
                   backgroundColor: 'transparent',
@@ -187,12 +185,28 @@ export function TicketDrawer({
                 </div>
               )}
             </div>
+              <button
+                  onClick={() => onEdit(ticket)}
+                  style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      backgroundColor: 'transparent',
+                      borderRadius: '8px',
+                      fontSize: font.base,
+                      fontWeight: 600,
+                      color: c.textSub,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                  }}
+              >
+                  ⋯
+              </button>
           </div>
 
           {/* Title */}
           <h2
             style={{
-              margin: '0 0 12px',
+              margin: '0 20px 20px',
               fontSize: '18px',
               fontWeight: 700,
               color: c.text,
@@ -203,37 +217,61 @@ export function TicketDrawer({
             {ticket.title}
           </h2>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: '4px 20px 20px' }}>
+                <span
+                    style={{
+                        fontSize: font.sm,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: c.blueBg,
+                        color: c.blue,
+                    }}
+                >
+                    ✔︎ &nbsp;{formatDate(ticket.dueDate)}
+                </span>
+                <span style={{ fontSize: font.base, color: c.text }}>{TICKET_TYPE_LABEL[ticket.ticketType]}</span>
+                <span style={{ fontSize: font.base, color: c.textHint }}>←</span>
+                <span style={{ fontSize: font.base, color: c.text }}>{SOURCE_LABEL[ticket.source]}</span>
+            </div>
+
           {/* Acceptance Criteria */}
           <div
             style={{
-              padding: '10px 12px',
-              backgroundColor: 'rgba(35,131,226,0.04)',
-              border: `1px solid rgba(35,131,226,0.12)`,
+              padding: '10px 20px 12px',
+                backgroundColor: c.bg,
               borderRadius: '8px',
               marginBottom: '14px',
             }}
           >
-            <div
-              style={{
-                fontSize: font.xs,
-                fontWeight: 700,
-                color: c.blue,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                marginBottom: '5px',
-              }}
-            >
-              達成条件
-            </div>
-            <p style={{ margin: 0, fontSize: font.base, color: c.text, lineHeight: 1.6 }}>
-              {ticket.acceptanceCriteria}
-            </p>
+              {/* 科目名ブロック */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'}}>
+                  <span style={{fontWeight: 700, color: PRIORITY_COLOR[ticket.priority]}}>
+                      {PRIORITY_LABEL[ticket.priority]}
+                  </span>
+                  <span style={{ fontSize: font.md, color: c.textHint }}>
+               <span style={{color: c.text}}> {ticket.subject}</span> - {formatDate(ticket.createdAt)}
+                </span>
+              </div>
+
+            <MarkdownContent>{ticket.acceptanceCriteria}</MarkdownContent>
+
+              {ticket.estimateMinutes && (
+                  <div>
+                      <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginTop: 2 }}>見積もり</div>
+                      <span style={{ fontSize: font.sm, color: c.text }}>
+                  {ticket.estimateMinutes >= 60
+                      ? `${Math.floor(ticket.estimateMinutes / 60)}時間${ticket.estimateMinutes % 60 > 0 ? `${ticket.estimateMinutes % 60}分` : ''}`
+                      : `${ticket.estimateMinutes}分`}
+                </span>
+                  </div>
+              )}
           </div>
 
           {/* Status selector */}
-          <div style={{ marginBottom: '14px' }}>
+          <div style={{ margin: '4px 20px 20px' }}>
             <div style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, marginBottom: '6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              ステータス
+              STATUS
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
               {STATUS_OPTIONS.map(({ value, label, color }) => {
@@ -245,8 +283,8 @@ export function TicketDrawer({
                     disabled={actionLoading === 'status'}
                     style={{
                       flex: 1,
-                      padding: '8px 0',
-                      borderRadius: '6px',
+                      padding: '4px 0',
+                      borderRadius: '3px',
                       border: active ? 'none' : `1px solid ${c.border}`,
                       backgroundColor: active ? color + '18' : 'transparent',
                       color: active ? color : c.textHint,
@@ -264,43 +302,11 @@ export function TicketDrawer({
             </div>
           </div>
 
-          {/* Meta fields */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
-            <div>
-              <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: 2 }}>優先度</div>
-              <span style={{ fontSize: font.base, color: PRIORITY_COLOR[ticket.priority], fontWeight: 700 }}>
-                {PRIORITY_LABEL[ticket.priority]}
-              </span>
-            </div>
-            <div>
-              <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: 2 }}>種別</div>
-              <span style={{ fontSize: font.base, color: c.text }}>{TICKET_TYPE_LABEL[ticket.ticketType]}</span>
-            </div>
-            <div>
-              <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: 2 }}>発生源</div>
-              <span style={{ fontSize: font.base, color: c.text }}>{SOURCE_LABEL[ticket.source]}</span>
-            </div>
-            <div>
-              <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: 2 }}>期限</div>
-              <span style={{ fontSize: font.base, color: c.text }}>{formatDate(ticket.dueDate)}</span>
-            </div>
-            {ticket.estimateMinutes && (
-              <div>
-                <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: 2 }}>見積もり</div>
-                <span style={{ fontSize: font.base, color: c.text }}>
-                  {ticket.estimateMinutes >= 60
-                    ? `${Math.floor(ticket.estimateMinutes / 60)}時間${ticket.estimateMinutes % 60 > 0 ? `${ticket.estimateMinutes % 60}分` : ''}`
-                    : `${ticket.estimateMinutes}分`}
-                </span>
-              </div>
-            )}
-          </div>
-
           {/* SubCategories */}
           {ticket.subCategories.length > 0 && (
-            <div style={{ marginBottom: '14px' }}>
+            <div style={{ margin: '4px 20px 20px' }}>
               <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: '5px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                小分類
+                SUB CATEGORIES
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                 {ticket.subCategories.map((sc) => (
@@ -309,7 +315,7 @@ export function TicketDrawer({
                     style={{
                       fontSize: font.sm,
                       color: c.textSub,
-                      backgroundColor: 'rgba(55,53,47,0.05)',
+                      backgroundColor: c.surface,
                       borderRadius: '4px',
                       padding: '2px 7px',
                     }}
@@ -321,70 +327,22 @@ export function TicketDrawer({
             </div>
           )}
 
-          {/* Timestamps */}
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-            <div>
-              <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: 2 }}>作成</div>
-              <span style={{ fontSize: font.sm, color: c.textHint }}>{formatDate(ticket.createdAt)}</span>
-            </div>
-            {ticket.completedAt && (
-              <div>
-                <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginBottom: 2 }}>完了</div>
-                <span style={{ fontSize: font.sm, color: '#27ae60' }}>{formatDate(ticket.completedAt)}</span>
-              </div>
-            )}
-          </div>
-
+            <span style={{color: c.textHint}} >
+            <hr/>
+                </span>
           {/* Notes thread */}
-          <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: '16px', marginBottom: '16px' }}>
-            <TicketNotes ticketId={ticket.id} />
-          </div>
-
-          {/* Edit / Delete actions */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              borderTop: `1px solid ${c.border}`,
-              paddingTop: '14px',
-            }}
-          >
-            <button
-              onClick={() => onEdit(ticket)}
-              style={{
-                flex: 1,
-                padding: '10px 14px',
-                backgroundColor: 'transparent',
-                border: `1px solid rgba(55,53,47,0.16)`,
-                borderRadius: '8px',
-                fontSize: font.base,
-                fontWeight: 600,
-                color: c.textSub,
-                cursor: 'pointer',
-              }}
-            >
-              編集
-            </button>
-
-            <button
-              onClick={handleDelete}
-              disabled={actionLoading === 'delete'}
-              style={{
-                padding: '10px 14px',
-                backgroundColor: deleteConfirm ? c.red : 'transparent',
-                border: `1px solid ${deleteConfirm ? c.red : 'rgba(55,53,47,0.16)'}`,
-                borderRadius: '8px',
-                fontSize: font.base,
-                fontWeight: 600,
-                color: deleteConfirm ? '#fff' : c.textSub,
-                cursor: actionLoading ? 'default' : 'pointer',
-                opacity: actionLoading === 'delete' ? 0.6 : 1,
-              }}
-            >
-              {deleteConfirm ? '本当に削除' : '削除'}
-            </button>
-          </div>
+            <div style={{ margin: '14px 20px 20px' }}>
+                <TicketNotes ticketId={ticket.id} />
+            </div>
         </div>
+
+          <LongPressButton
+              onConfirm={handleDelete}
+              disabled={actionLoading === 'delete'}
+              style={deleteBtn}
+          >
+              このチケットを削除
+          </LongPressButton>
       </div>
 
       {/* Backdrop for sprint dropdown */}

@@ -114,15 +114,15 @@ export type TicketNoteInput = {
 }
 
 export const PRIORITY_LABEL: Record<TicketPriority, string> = {
-  high: '高',
-  medium: '中',
-  low: '低',
+  high: '↑',
+  medium: '→',
+  low: '↓',
 }
 
 export const PRIORITY_COLOR: Record<TicketPriority, string> = {
-  high: '#eb5757',
-  medium: '#f5a623',
-  low: '#2383e2',
+  high: '#d06d6d',
+  medium: '#93b964',
+  low: '#5e85ab',
 }
 
 export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
@@ -130,13 +130,6 @@ export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
   practice: '演習',
   understanding: '理解',
   memorization: '暗記',
-}
-
-export const TICKET_TYPE_SHORT: Record<TicketType, string> = {
-  knowledge: '知',
-  practice: '演',
-  understanding: '理',
-  memorization: '記',
 }
 
 export const SOURCE_LABEL: Record<TicketSource, string> = {

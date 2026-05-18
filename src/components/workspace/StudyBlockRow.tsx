@@ -216,7 +216,7 @@ export function StudyBlockRow({
                                         handleDelete()
                                     }}
                                 >
-                                    削除
+                                    delete
                                 </button>
                             </div>
                         </>
