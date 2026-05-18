@@ -157,7 +157,7 @@ export default function SubjectPage() {
             lines.push(`問題数: ${s?.problemCount ?? 0}問`)
             if ((s?.failureStats ?? []).length > 0) {
                 lines.push('')
-                lines.push('【エラー傾向】')
+                lines.push('【学習観点】')
                 s!.failureStats.forEach((f) =>
                     lines.push(`  ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`)
                 )
@@ -325,7 +325,7 @@ export default function SubjectPage() {
                                     {weakCards.length > 0 && (
                                         <>
                                             <div style={divider} />
-                                            <p style={miniSectionLabel}>エラー傾向（△/×）</p>
+                                            <p style={miniSectionLabel}>学習観点（△/×）</p>
                                             {ftTotal > 0 ? (
                                                 <>
                                                     <div style={ftBarTrack}>

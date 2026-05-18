@@ -3,7 +3,7 @@ import {Link, useLocation} from 'react-router-dom'
 import {useAuthStore} from '../lib/store/auth'
 import {useTimer} from '../context/TimerContext'
 import {StopWatchWidget} from '../components/dashboard/StopWatchWidget'
-import {AiTrafficIndicator} from '../components/common/AiTrafficIndicator'
+import {SnippetPanel} from '../components/common/SnippetPanel'
 
 // TopBar の高さ（ダイアログの top 座標と合わせる）
 const TOPBAR_HEIGHT = 38
@@ -16,8 +16,18 @@ export function TopBar() {
   const user = useAuthStore((state) => state.user)
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [snippetOpen, setSnippetOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const touchStartY = useRef<number>(0)
+
+  const toggleDialog = () => {
+    setSnippetOpen(false)
+    setDialogOpen((prev) => !prev)
+  }
+  const toggleSnippet = () => {
+    setDialogOpen(false)
+    setSnippetOpen((prev) => !prev)
+  }
 
   // ドラッグ中はページスクロールを無効化する
   useEffect(() => {
@@ -87,11 +97,11 @@ export function TopBar() {
             </span>
           </Link>
 
-          <AiTrafficIndicator />
+          {/*<AiTrafficIndicator />*/}
 
           {/* タイマーチップ：タップでダイアログを開閉 */}
           <button
-            onClick={() => setDialogOpen((prev) => !prev)}
+            onClick={toggleDialog}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -135,7 +145,36 @@ export function TopBar() {
           </button>
         </div>
 
-        {/* 右側: プロフィールアイコン */}
+        {/* 右側: スニペット + プロフィールアイコン */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={toggleSnippet}
+            aria-label="スニペット"
+            aria-expanded={snippetOpen}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: '6px',
+              border: 'none',
+              backgroundColor: snippetOpen
+                ? 'rgba(55,53,47,0.1)'
+                : 'rgba(55,53,47,0.05)',
+              cursor: 'pointer',
+              color: snippetOpen ? '#37352f' : 'rgba(55,53,47,0.45)',
+              transition: 'background 0.15s',
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="4" rx="1" />
+              <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+              <line x1="9" y1="12" x2="15" y2="12" />
+              <line x1="9" y1="16" x2="13" y2="16" />
+            </svg>
+          </button>
+
         <Link
           to="/profile"
           style={{
@@ -156,6 +195,7 @@ export function TopBar() {
         >
           {user?.name?.charAt(0).toUpperCase() ?? '?'}
         </Link>
+        </div>
       </header>
 
       {/* ── ストップウォッチダイアログ ──
@@ -217,6 +257,12 @@ export function TopBar() {
           ></span>
         </div>
       </div>
+
+      <SnippetPanel
+        open={snippetOpen}
+        onClose={() => setSnippetOpen(false)}
+        topbarHeight={TOPBAR_HEIGHT}
+      />
     </>
   )
 }

@@ -244,7 +244,7 @@ export default function ExamPage() {
       const withErrors = ctx.subjects.filter((s) => s.failureStats.length > 0)
       if (withErrors.length > 0) {
         lines.push('')
-        lines.push('【科目別 エラー傾向】')
+        lines.push('【学習観点】')
         for (const s of withErrors) {
           lines.push(`■ ${s.subject}`)
           s.failureStats.forEach((f) =>
