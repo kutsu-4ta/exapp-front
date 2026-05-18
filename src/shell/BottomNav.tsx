@@ -1,6 +1,6 @@
 // カラー定義を共通化
 import {useAuthStore} from '../lib/store/auth'
-import {Link, useLocation} from 'react-router-dom'
+import {Link, useLocation, useSearchParams} from 'react-router-dom'
 
 const COLOR_ACTIVE = '#37352f'
 const COLOR_INACTIVE = 'rgba(55, 53, 47, 0.4)'
@@ -98,6 +98,7 @@ const TABS = [
 export function BottomNav() {
   const location = useLocation()
   const pathname = location.pathname
+  const [searchParams] = useSearchParams()
 
   const token = useAuthStore((state) => state.token)
 
@@ -107,7 +108,9 @@ export function BottomNav() {
     pathname === '/terms' ||
     pathname === '/privacy'
 
-  if (!token || isAuthPage) {
+  const isExamInput = pathname.startsWith('/exam') && searchParams.get('view') === 'input'
+
+  if (!token || isAuthPage || isExamInput) {
     return null
   }
 

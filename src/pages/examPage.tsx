@@ -6,6 +6,7 @@ import {completeExamSession, createExamSession, fetchExamSession, fetchExamSessi
 import AnalysisView from '../components/exam/AnalysisView'
 import ExamInputView from '../components/exam/ExamInputView'
 import {QuickScoreModal} from '../components/exam/QuickScoreModal'
+import {PreExamStartModal} from '../components/exam/PreExamStartModal'
 import {useTimer} from '../context/TimerContext'
 import {stopStopwatch} from '../lib/api/stopwatch'
 import {c, font} from '../styles/notion'
@@ -25,6 +26,14 @@ export default function ExamPage() {
   const [sessionLoading, setSessionLoading] = useState(false)
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [showStartModal, setShowStartModal] = useState(false)
+  const pendingParams =
+      useRef({
+        subject: '',
+        examYear: 'R07',
+        questionCount: 25,
+      })
 
   const [showStopwatchModal, setShowStopwatchModal] = useState(false)
   const [stoppingTimer, setStoppingTimer] = useState(false)
@@ -69,30 +78,74 @@ export default function ExamPage() {
   const proceedToExam = async () => {
     setStarting(true)
     setError(null)
+
     try {
-      const sessions = await fetchExamSessions('in_progress')
-      if (sessions.length > 0) {
-        const sessionId = sessions[0].id
-        const hasDraft = localStorage.getItem(`exam_draft_${sessionId}`) !== null
-        if (hasDraft) {
-          setPendingSessionId(sessionId)
-          setShowResumeModal(true)
-          return
-        }
-        const session = await fetchExamSession(sessionId)
-        navigateToInput(session)
-        return
-      }
-      const session = await createExamSession({subject: subjects[0] ?? '', examYear: 'R07'})
+      const {subject, examYear} = pendingParams.current
+      const session = await createExamSession({subject, examYear})
+
       navigateToInput(session)
     } catch {
-      setError('試験セッションの作成に失敗しました')
+      setError(
+          '試験セッションの作成に失敗しました'
+      )
     } finally {
       setStarting(false)
     }
   }
 
-  const handleStartExam = () => {
+  const handleStartExam = async () => {
+    setStarting(true)
+    setError(null)
+
+    try {
+      const sessions = await fetchExamSessions(
+          'in_progress'
+      )
+
+      if (sessions.length > 0) {
+        const sessionId = sessions[0].id
+        const hasDraft =
+            localStorage.getItem(
+                `exam_draft_${sessionId}`
+            ) !== null
+
+        if (hasDraft) {
+          setPendingSessionId(sessionId)
+          setShowResumeModal(true)
+          return
+        }
+
+        const session =
+            await fetchExamSession(sessionId)
+
+        navigateToInput(session)
+        return
+      }
+
+      // 中断データがない時だけ開始モーダル
+      setShowStartModal(true)
+    } catch {
+      setError(
+          '試験セッションの確認に失敗しました'
+      )
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  const handleStartModalConfirm = (
+      subject: string,
+      examYear: string,
+      questionCount: number
+  ) => {
+    pendingParams.current = {
+      subject,
+      examYear,
+      questionCount,
+    }
+
+    setShowStartModal(false)
+
     if (timerRunning) {
       setShowStopwatchModal(true)
     } else {
@@ -126,12 +179,17 @@ export default function ExamPage() {
     setShowResumeModal(false)
   }
 
-  const handleRestart = async () => {
+  const handleRestart = () => {
     if (!pendingSessionId) return
-    localStorage.removeItem(`exam_draft_${pendingSessionId}`)
-    const session = await fetchExamSession(pendingSessionId)
-    navigateToInput(session)
+
+    localStorage.removeItem(
+        `exam_draft_${pendingSessionId}`
+    )
+
     setShowResumeModal(false)
+
+    // 次に開始モーダルを開く
+    setShowStartModal(true)
   }
 
   const handleComplete = async (
@@ -163,12 +221,15 @@ export default function ExamPage() {
   if (view === 'input') {
     if (sessionLoading || !activeSession) return <LoadingSpinner fullPage />
     return (
-      <ExamInputView
-        session={activeSession}
-        isEditMode={isEditMode}
-        onComplete={handleComplete}
-        onCancel={handleCancel}
-      />
+        <ExamInputView
+            session={activeSession}
+            isEditMode={isEditMode}
+            questionCount={
+              pendingParams.current.questionCount
+            }
+            onComplete={handleComplete}
+            onCancel={handleCancel}
+        />
     )
   }
 
@@ -176,6 +237,33 @@ export default function ExamPage() {
 
   return (
     <div style={page}>
+
+      {/* 中断データ再開モーダル */}
+      {showResumeModal && (
+          <div style={overlay}>
+            <div style={sheet}>
+              <p style={sheetTitle}>中断したデータがあります</p>
+              <p style={sheetBody}>
+                前回作成した下書きが見つかりました。どうしますか？
+              </p>
+              <div style={sheetActions}>
+                <button style={primaryBtn} onClick={handleResume}>続きから再開</button>
+                <button style={secondaryBtn} onClick={handleRestart}>破棄して初めから</button>
+                <button style={ghostBtn} onClick={() => setShowResumeModal(false)}>キャンセル</button>
+              </div>
+            </div>
+          </div>
+      )}
+
+      {/* 試験開始前モーダル */}
+      {showStartModal && (
+        <PreExamStartModal
+          subjects={subjects}
+          onConfirm={handleStartModalConfirm}
+          onClose={() => setShowStartModal(false)}
+        />
+      )}
+
       {/* stopwatch */}
       {showStopwatchModal && (
         <div style={overlay}>
@@ -194,23 +282,6 @@ export default function ExamPage() {
               <button style={ghostBtn} onClick={() => setShowStopwatchModal(false)} disabled={stoppingTimer}>
                 キャンセル
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 中断データ再開モーダル */}
-      {showResumeModal && (
-        <div style={overlay}>
-          <div style={sheet}>
-            <p style={sheetTitle}>中断したデータがあります</p>
-            <p style={sheetBody}>
-              前回作成した下書きが見つかりました。どうしますか？
-            </p>
-            <div style={sheetActions}>
-              <button style={primaryBtn} onClick={handleResume}>続きから再開</button>
-              <button style={secondaryBtn} onClick={handleRestart}>破棄して初めから</button>
-              <button style={ghostBtn} onClick={() => setShowResumeModal(false)}>キャンセル</button>
             </div>
           </div>
         </div>
@@ -315,7 +386,7 @@ const overlay: React.CSSProperties = {
   display: 'flex',
   alignItems: 'flex-end',
   justifyContent: 'center',
-  zIndex: 1000,
+  zIndex: 1100,
 }
 
 const sheet: React.CSSProperties = {
@@ -380,3 +451,4 @@ const ghostBtn: React.CSSProperties = {
   fontWeight: 600,
   cursor: 'pointer',
 }
+

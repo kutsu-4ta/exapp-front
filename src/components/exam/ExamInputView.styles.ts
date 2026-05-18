@@ -10,7 +10,7 @@ export const container: React.CSSProperties = {
 export const stickyHeader: React.CSSProperties = {
   position: 'sticky',
   top: 0,
-  zIndex: 1000,
+  zIndex: 900,
   backgroundColor: 'rgba(255,255,255,0.98)',
   backdropFilter: 'blur(8px)',
   borderBottom: `1px solid ${c.border}`,
@@ -22,17 +22,18 @@ export const headerTopRow: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '16px',
+  marginBottom: '8px',
 }
 
-export const metaArea: React.CSSProperties = { flex: 1 }
-
-export const subjTxt: React.CSSProperties = { fontSize: '12px', fontWeight: 900 }
-
-export const yearTxt: React.CSSProperties = {
-  fontSize: font.xs,
-  color: c.textSub,
-  fontWeight: 700,
+export const examContextLine: React.CSSProperties = {
+  flex: 1,
+  fontSize: '13px',
+  fontWeight: 800,
+  color: c.text,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  marginRight: '8px',
 }
 
 export const statsBadge: React.CSSProperties = {
@@ -83,12 +84,6 @@ export const scoreVLine: React.CSSProperties = {
 
 export const contentBody: React.CSSProperties = { paddingTop: '10px' }
 
-export const setupRow: React.CSSProperties = {
-  display: 'flex',
-  gap: '8px',
-  marginBottom: '24px',
-}
-
 export const autoCompleteInput: React.CSSProperties = {
   width: '100%',
   padding: '8px 12px',
@@ -114,7 +109,10 @@ export const gridContainer: React.CSSProperties = {
   gap: '4px',
 }
 
-export const footer: React.CSSProperties = { marginTop: '40px', paddingBottom: '40px' }
+export const footer: React.CSSProperties = {
+  marginTop: '40px',
+  paddingBottom: 'calc(40px + env(safe-area-inset-bottom, 0px))',
+}
 
 export const footerActionGroup: React.CSSProperties = { display: 'flex', gap: '10px' }
 

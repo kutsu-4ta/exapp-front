@@ -29,22 +29,22 @@ export const subStyle: React.CSSProperties = {
 }
 
 export const sideControl: React.CSSProperties = {
-  width: '28px',
-  marginRight: '10px',
+  width: '44px',
+  marginRight: '8px',
   display: 'flex',
   flexDirection: 'column',
-  gap: '4px',
-  paddingTop: '2px',
+  justifyContent: 'space-between',
+  alignSelf: 'stretch',
 }
 
 export const sideBtn: React.CSSProperties = {
-  width: '24px',
-  height: '24px',
-  borderRadius: '6px',
+  width: '40px',
+  height: '40px',
+  borderRadius: '8px',
   border: `1px dashed ${c.border}`,
   backgroundColor: 'transparent',
   color: c.textSub,
-  fontSize: '14px',
+  fontSize: '16px',
   fontWeight: 700,
   cursor: 'pointer',
   display: 'flex',
@@ -61,8 +61,32 @@ export const layoutContainer: React.CSSProperties = {
 
 export const qNumberHeader: React.CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  gap: '6px',
   width: '100%',
+}
+
+export const questionTypeToggle: React.CSSProperties = {
+  display: 'flex',
+  gap: '4px',
+}
+
+export const questionTypeBtn: React.CSSProperties = {
+  padding: '3px 10px',
+  fontSize: font.xs,
+  fontWeight: 600,
+  borderRadius: '4px',
+  border: `1px solid ${c.border}`,
+  background: 'transparent',
+  color: c.textSub,
+  cursor: 'pointer',
+}
+
+export const questionTypeActive: React.CSSProperties = {
+  background: c.text,
+  color: '#fff',
+  border: `1px solid ${c.text}`,
 }
 
 export const controlsContent: React.CSSProperties = { width: '100%' }
@@ -103,6 +127,15 @@ export const typeToggleRow: React.CSSProperties = {
   alignItems: 'center',
 }
 
+export const typeToggleColumn: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  marginLeft: '8px',
+  paddingTop: '2px',
+  flexShrink: 0,
+}
+
 export const typeToggleBtn: React.CSSProperties = {
   padding: '3px 10px',
   fontSize: font.xs,
@@ -129,7 +162,15 @@ export const optionRow: React.CSSProperties = {
 export const optionLineRow: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '6px',
+  gap: '10px',
+}
+
+export const optionRightGroup: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  flex: 1,
+  minWidth: 0,
 }
 
 export const optionBtn: React.CSSProperties = {

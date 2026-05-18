@@ -4,51 +4,53 @@ import {ANSWER_OPTIONS, RANKS} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {c} from '@/styles/notion.ts'
 import {
-    activeCorrect,
-    activeIncorrect,
-    addSubQBtn,
-    alphabetToggleBtn,
-    alphabetToggleBtnActive,
-    alphabetToggleBtnDisabled,
-    answerGroup,
-    controlsContent,
-    descriptiveTextarea,
-    doubtBtn,
-    doubtBtnInline,
-    doubtRow,
-    excludeBtn,
-    excludeBtnActive,
-    generalMemoTextarea,
-    layoutContainer,
-    metaGroup,
-    miniLabel,
-    myAnswerDisplay,
-    noteInput,
-    optionActive,
-    optionBtn,
-    optionExcluded,
-    optionLineRow,
-    optionMemoInput,
-    parentStyle,
-    pointInput,
-    qNumberHeader,
-    qNumberParent,
-    qNumberSub,
-    questionItem,
-    rankBadge,
-    rankColors,
-    scoringBtnGroup,
-    scoringGroup,
-    scoringMeta,
-    scoringRow,
-    sideBtn,
-    sideControl,
-    statusBtn,
-    subStyle,
-    timeValue,
-    typeToggleActive,
-    typeToggleBtn,
-    typeToggleRow,
+  activeCorrect,
+  activeIncorrect,
+  alphabetToggleBtn,
+  alphabetToggleBtnActive,
+  answerGroup,
+  controlsContent,
+  descriptiveTextarea,
+  doubtBtn,
+  doubtBtnInline,
+  doubtRow,
+  excludeBtn,
+  excludeBtnActive,
+  generalMemoTextarea,
+  layoutContainer,
+  metaGroup,
+  miniLabel,
+  myAnswerDisplay,
+  noteInput,
+  optionActive,
+  optionBtn,
+  optionExcluded,
+  optionLineRow,
+  optionMemoInput,
+  optionRightGroup,
+  parentStyle,
+  pointInput,
+  qNumberHeader,
+  qNumberParent,
+  qNumberSub,
+  questionItem,
+  questionTypeActive,
+  questionTypeBtn,
+  questionTypeToggle,
+  rankBadge,
+  rankColors,
+  scoringBtnGroup,
+  scoringGroup,
+  scoringMeta,
+  scoringRow,
+  sideBtn,
+  sideControl,
+  statusBtn,
+  subStyle,
+  timeValue,
+  typeToggleActive,
+  typeToggleBtn,
+  typeToggleColumn,
 } from './QuestionRow.styles'
 
 function formatMs(ms: number | undefined): string {
@@ -57,6 +59,16 @@ function formatMs(ms: number | undefined): string {
   const m = Math.floor(totalSec / 60)
   const s = totalSec % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+function focusFix(el: HTMLElement | null) {
+  if (!el) return
+  requestAnimationFrame(() => {
+    el.scrollIntoView({
+      block: 'center',
+      behavior: 'smooth',
+    })
+  })
 }
 
 interface QuestionRowProps {
@@ -80,9 +92,29 @@ export function QuestionRow({
   onAddSub,
   onSetQuestionType,
 }: QuestionRowProps) {
+  const [isDescriptive, setIsDescriptive] = useState(
+    () =>
+      q.myAnswer !== '' && !ANSWER_OPTIONS.includes(q.myAnswer as (typeof ANSWER_OPTIONS)[number])
+  )
+
+  const [isAlphabet, setIsAlphabet] = useState(false)
+
+  const handleModeSwitch = (descriptive: boolean) => {
+    setIsDescriptive(descriptive)
+    onUpdate({
+      myAnswer: '',
+      note: null,
+      memos: {},
+      excludedOptions: [],
+    })
+  }
+
   const cycleRank = () => {
     const next = RANKS[(RANKS.indexOf(q.rank) + 1) % RANKS.length]
-    onUpdate({ rank: next })
+
+    onUpdate({
+      rank: next,
+    })
   }
 
   return (
@@ -97,97 +129,166 @@ export function QuestionRow({
             : `1px solid ${c.border}`,
       }}
     >
-      {/* ＋ / － side buttons */}
       {!isScoring && (
         <div style={sideControl}>
           <button
+            type="button"
             style={{ ...sideBtn, color: c.red }}
             onClick={q.isSub ? onRemoveSub : onRemoveParent}
-            title="削除"
           >
             －
           </button>
-          <button style={sideBtn} onClick={q.isSub ? onAddSub : onAddParent} title="追加">
+
+          <button type="button" style={sideBtn} onClick={q.isSub ? onAddSub : onAddParent}>
             ＋
           </button>
         </div>
       )}
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={layoutContainer}>
-          {/* 問番号 + 設問追加ボタン */}
           <div style={qNumberHeader}>
             <span style={q.isSub ? qNumberSub : qNumberParent}>{q.displayId}</span>
-            {!q.isSub && !q.hasChildren && !isScoring && (
-              <button style={addSubQBtn} onClick={() => onSetQuestionType('multi')}>
-                ＋ 設問を追加
-              </button>
+
+            {!q.isSub && !isScoring && (
+              <div style={questionTypeToggle}>
+                <button
+                  type="button"
+                  style={{
+                    ...questionTypeBtn,
+                    ...questionTypeActive,
+                  }}
+                  onClick={() => onSetQuestionType(q.hasChildren ? 'single' : 'multi')}
+                >
+                  {q.hasChildren ? '設問式' : '単独'}
+                </button>
+              </div>
             )}
           </div>
 
-          {/* 解答コントロール */}
           {!q.hasChildren && (
             <div style={controlsContent}>
               {isScoring ? (
                 <ScoringControls q={q} onUpdate={onUpdate} onCycleRank={cycleRank} />
               ) : (
-                <AnswerControls q={q} onUpdate={onUpdate} />
+                <AnswerControls
+                  q={q}
+                  onUpdate={onUpdate}
+                  isDescriptive={isDescriptive}
+                  isAlphabet={isAlphabet}
+                />
               )}
             </div>
           )}
         </div>
 
-        {/* 採点モードのメモ欄 */}
         {isScoring && !q.hasChildren && (
           <input
-            style={noteInput}
+            style={{
+              ...noteInput,
+              fontSize: 16,
+            }}
             placeholder="ミスの傾向、論点のメモ..."
             value={q.note ?? ''}
-            onChange={(e) => onUpdate({ note: e.target.value })}
+            onFocus={(e) => focusFix(e.currentTarget)}
+            onChange={(e) =>
+              onUpdate({
+                note: e.target.value,
+              })
+            }
           />
         )}
       </div>
+
+      {!isScoring && !q.hasChildren && (
+        <div style={typeToggleColumn}>
+          <div style={typeToggleColumn}>
+            <button
+              type="button"
+              style={{
+                ...typeToggleBtn,
+                ...typeToggleActive,
+              }}
+              onClick={() => handleModeSwitch(!isDescriptive)}
+            >
+              {isDescriptive ? '記述式' : '選択式'}
+            </button>
+
+            {!isDescriptive && (
+              <button
+                type="button"
+                style={{
+                  ...alphabetToggleBtn,
+                  ...(isAlphabet ? alphabetToggleBtnActive : {}),
+                }}
+                onClick={() => setIsAlphabet((v) => !v)}
+              >
+                A↔ア
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-// ── 解答入力コントロール ───────────────────────────────────────────────────────
-
 const ALPHA_MAP: Record<string, string> = {
-  ア: 'a',
-  イ: 'b',
-  ウ: 'c',
-  エ: 'd',
-  オ: 'e',
+  ア: 'A',
+  イ: 'B',
+  ウ: 'C',
+  エ: 'D',
+  オ: 'E',
 }
+
+const ALPHABET_OPTIONS = ['A', 'B', 'C', 'D', 'E'] as const
 
 function AnswerControls({
   q,
   onUpdate,
+  isDescriptive,
+  isAlphabet,
 }: {
   q: QuestionDraft
   onUpdate: (p: Partial<QuestionDraft>) => void
+  isDescriptive: boolean
+  isAlphabet: boolean
 }) {
-  const [isDescriptive, setIsDescriptive] = useState(
-    () =>
-      q.myAnswer !== '' && !ANSWER_OPTIONS.includes(q.myAnswer as (typeof ANSWER_OPTIONS)[number])
-  )
-  const [isAlphabet, setIsAlphabet] = useState(false)
-
   const memos = q.memos ?? {}
   const excludedOptions = q.excludedOptions ?? []
 
-  const handleModeSwitch = (descriptive: boolean) => {
-    setIsDescriptive(descriptive)
-    onUpdate({ myAnswer: '', note: null, memos: {}, excludedOptions: [] })
-  }
-
   const toggleExclude = (opt: string) => {
     const already = excludedOptions.includes(opt)
+
+    const appendText = '（×）'
+
+    const currentMemo = memos[opt] ?? ''
+
+    if (already) {
+      const cleanedMemo = currentMemo.replace(new RegExp(`\\s*${appendText}\\s*`), ' ').trim()
+
+      onUpdate({
+        excludedOptions: excludedOptions.filter((o) => o !== opt),
+        memos: {
+          ...memos,
+          [opt]: cleanedMemo,
+        },
+      })
+      return
+    }
+
+    const nextMemo = currentMemo.includes(appendText)
+      ? currentMemo
+      : currentMemo
+        ? `${currentMemo} ${appendText}`
+        : appendText
+
     onUpdate({
-      excludedOptions: already
-        ? excludedOptions.filter((o) => o !== opt)
-        : [...excludedOptions, opt],
+      excludedOptions: [...excludedOptions, opt],
+      memos: {
+        ...memos,
+        [opt]: nextMemo,
+      },
     })
   }
 
@@ -195,117 +296,220 @@ function AnswerControls({
 
   return (
     <div style={answerGroup}>
-      {/* トグル行: [選択式][記述式][a↔ア] */}
-      <div style={typeToggleRow}>
-        <button
-          style={{ ...typeToggleBtn, ...(isDescriptive ? {} : typeToggleActive) }}
-          onClick={() => handleModeSwitch(false)}
-        >
-          選択式
-        </button>
-        <button
-          style={{ ...typeToggleBtn, ...(isDescriptive ? typeToggleActive : {}) }}
-          onClick={() => handleModeSwitch(true)}
-        >
-          記述式
-        </button>
-        <button
-          style={{
-            ...alphabetToggleBtn,
-            ...(isAlphabet ? alphabetToggleBtnActive : {}),
-            ...(isDescriptive ? alphabetToggleBtnDisabled : {}),
-          }}
-          onClick={() => {
-            if (!isDescriptive) setIsAlphabet((v) => !v)
-          }}
-          disabled={isDescriptive}
-          title="ア→a / a→ア 切り替え"
-        >
-          a↔ア
-        </button>
-      </div>
-
       {isDescriptive ? (
-        /* 記述式: DoubtIcon + textarea */
         <div style={doubtRow}>
-          <button onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })} style={doubtBtnInline}>
+          <button
+            type="button"
+            onClick={() =>
+              onUpdate({
+                isDoubtful: !q.isDoubtful,
+              })
+            }
+            style={doubtBtnInline}
+          >
             <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
           </button>
+
           <textarea
-            style={descriptiveTextarea}
-            placeholder="解答を記述..."
+            style={{
+              ...descriptiveTextarea,
+              fontSize: 16,
+              touchAction: 'manipulation',
+            }}
             rows={2}
+            placeholder="解答を記述..."
             value={q.myAnswer}
+            onFocus={(e) => focusFix(e.currentTarget)}
             onChange={(e) => {
-              onUpdate({ myAnswer: e.target.value })
+              onUpdate({
+                myAnswer: e.target.value,
+              })
+
               e.target.style.height = 'auto'
-              e.target.style.height = e.target.scrollHeight + 'px'
+              e.target.style.height = `${e.target.scrollHeight}px`
             }}
           />
         </div>
       ) : (
-        /* 選択式: 各選択肢行 + DoubtIcon + 共通メモ */
         <>
-          {ANSWER_OPTIONS.map((opt) => {
-            const isSelected = q.myAnswer === opt
-            const isExcluded = excludedOptions.includes(opt)
-            return (
-              <div key={opt} style={optionLineRow}>
-                {/* 記号ボタン */}
-                <button
-                  style={{
-                    ...optionBtn,
-                    ...(isSelected ? optionActive : {}),
-                    ...(isExcluded && !isSelected ? optionExcluded : {}),
-                  }}
-                  onClick={() => onUpdate({ myAnswer: isSelected ? '' : opt })}
-                >
-                  <span style={isExcluded && !isSelected ? { textDecoration: 'line-through' } : {}}>
-                    {label(opt)}
-                  </span>
-                </button>
-
-                {/* 斜線ボタン */}
-                <button
-                  style={{ ...excludeBtn, ...(isExcluded ? excludeBtnActive : {}) }}
-                  onClick={() => toggleExclude(opt)}
-                  title="消去法"
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <line
-                      x1="1"
-                      y1="1"
-                      x2="11"
-                      y2="11"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-
-                {/* メモ入力 */}
-                <input
-                  type="text"
-                  style={optionMemoInput}
-                  placeholder={`${label(opt)}のメモ`}
-                  value={memos[opt] ?? ''}
-                  onChange={(e) => onUpdate({ memos: { ...memos, [opt]: e.target.value } })}
-                />
+          {isAlphabet ? (
+            <>
+              {/* A〜E 消去法メモ行 */}
+              {ALPHABET_OPTIONS.map((alpha) => {
+                const isExcluded = excludedOptions.includes(alpha)
+                return (
+                  <div
+                    key={`alpha-row-${alpha}`}
+                    style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}
+                  >
+                    <button
+                      type="button"
+                      style={{
+                        ...optionBtn,
+                        ...excludeBtn,
+                        ...(isExcluded ? excludeBtnActive : {}),
+                        marginRight: '10px',
+                        minWidth: '40px',
+                      }}
+                      onClick={() => toggleExclude(alpha)}
+                    >
+                      <span style={isExcluded ? { textDecoration: 'line-through' } : {}}>
+                        {alpha}
+                      </span>
+                    </button>
+                    <div style={optionRightGroup}>
+                      <input
+                        type="text"
+                        style={{ ...optionMemoInput, fontSize: 16 }}
+                        placeholder={`${alpha}のメモ`}
+                        value={memos[alpha] ?? ''}
+                        onFocus={(e) => focusFix(e.currentTarget)}
+                        onChange={(e) =>
+                          onUpdate({
+                            memos: { ...memos, [alpha]: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+              {/* 回答ボタン（ア〜オ）横並び */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                {ANSWER_OPTIONS.map((opt) => {
+                  const isSelected = q.myAnswer === opt
+                  const isExcluded = excludedOptions.includes(opt)
+                  return (
+                    <button
+                      key={`ans-${opt}`}
+                      type="button"
+                      style={{
+                        ...optionBtn,
+                        ...(isSelected ? optionActive : {}),
+                        ...(isExcluded && !isSelected ? optionExcluded : {}),
+                      }}
+                      onClick={() => onUpdate({ myAnswer: isSelected ? '' : opt })}
+                    >
+                      <span>{opt}</span>
+                    </button>
+                  )
+                })}
               </div>
-            )
-          })}
+            </>
+          ) : (
+            ANSWER_OPTIONS.map((opt) => {
+              const isSelected = q.myAnswer === opt
 
-          {/* DoubtIcon + 共通メモ */}
+              const isExcluded = excludedOptions.includes(opt)
+
+              return (
+                <div key={opt} style={optionLineRow}>
+                  <button
+                    type="button"
+                    style={{
+                      ...optionBtn,
+                      ...(isSelected ? optionActive : {}),
+                      ...(isExcluded && !isSelected ? optionExcluded : {}),
+                      marginRight: '10px',
+                    }}
+                    onClick={() =>
+                      onUpdate({
+                        myAnswer: isSelected ? '' : opt,
+                      })
+                    }
+                  >
+                    <span
+                      style={
+                        isExcluded && !isSelected
+                          ? {
+                              textDecoration: 'line-through',
+                            }
+                          : {}
+                      }
+                    >
+                      {label(opt)}
+                    </span>
+                  </button>
+
+                  <div style={optionRightGroup}>
+                    <button
+                      type="button"
+                      style={{
+                        ...excludeBtn,
+                        ...(isExcluded ? excludeBtnActive : {}),
+                      }}
+                      onClick={() => toggleExclude(opt)}
+                      title="消去法"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <line
+                          x1="2"
+                          y1="2"
+                          x2="12"
+                          y2="12"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+
+                    <input
+                      type="text"
+                      style={{
+                        ...optionMemoInput,
+                        fontSize: 16,
+                      }}
+                      placeholder={`${label(opt)}のメモ`}
+                      value={memos[opt] ?? ''}
+                      onFocus={(e) => focusFix(e.currentTarget)}
+                      onChange={(e) =>
+                        onUpdate({
+                          memos: {
+                            ...memos,
+                            [opt]: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              )
+            })
+          )}
+
           <div style={doubtRow}>
-            <button onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })} style={doubtBtnInline}>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate({
+                  isDoubtful: !q.isDoubtful,
+                })
+              }
+              style={doubtBtnInline}
+            >
               <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
             </button>
+
             <textarea
-              style={generalMemoTextarea}
-              placeholder="メモ（選択肢に依存しない）"
+              style={{
+                ...generalMemoTextarea,
+                fontSize: 16,
+              }}
+              placeholder="メモ"
               value={q.note ?? ''}
-              onChange={(e) => onUpdate({ note: e.target.value })}
+              onFocus={(e) => focusFix(e.currentTarget)}
+              onChange={(e) =>
+                onUpdate({
+                  note: e.target.value,
+                })
+              }
             />
           </div>
         </>
@@ -313,8 +517,6 @@ function AnswerControls({
     </div>
   )
 }
-
-// ── 採点コントロール ──────────────────────────────────────────────────────────
 
 function ScoringControls({
   q,
@@ -327,49 +529,102 @@ function ScoringControls({
 }) {
   return (
     <div style={scoringGroup}>
-      {/* 1行目: 自分の答え・○× ・疑義 */}
       <div style={scoringRow}>
         <div style={myAnswerDisplay}>{q.myAnswer || '-'}</div>
+
         <div style={scoringBtnGroup}>
           <button
-            onClick={() => onUpdate({ isCorrect: q.isCorrect === true ? null : true })}
-            style={{ ...statusBtn, ...(q.isCorrect === true ? activeCorrect : {}) }}
+            type="button"
+            onClick={() =>
+              onUpdate({
+                isCorrect: q.isCorrect === true ? null : true,
+              })
+            }
+            style={{
+              ...statusBtn,
+              ...(q.isCorrect === true ? activeCorrect : {}),
+            }}
           >
             ○
           </button>
+
           <button
-            onClick={() => onUpdate({ isCorrect: q.isCorrect === false ? null : false })}
-            style={{ ...statusBtn, ...(q.isCorrect === false ? activeIncorrect : {}) }}
+            type="button"
+            onClick={() =>
+              onUpdate({
+                isCorrect: q.isCorrect === false ? null : false,
+              })
+            }
+            style={{
+              ...statusBtn,
+              ...(q.isCorrect === false ? activeIncorrect : {}),
+            }}
           >
             ×
           </button>
         </div>
-        <button onClick={() => onUpdate({ isDoubtful: !q.isDoubtful })} style={doubtBtn}>
+
+        <button
+          type="button"
+          onClick={() =>
+            onUpdate({
+              isDoubtful: !q.isDoubtful,
+            })
+          }
+          style={doubtBtn}
+        >
           <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
         </button>
       </div>
 
-      {/* 2行目: RANK / POINT / TIME */}
       <div style={scoringMeta}>
         <div style={metaGroup}>
           <span style={miniLabel}>RANK</span>
-          <button onClick={onCycleRank} style={{ ...rankBadge, ...rankColors[q.rank] }}>
+          <button
+            type="button"
+            onClick={onCycleRank}
+            style={{
+              ...rankBadge,
+              ...rankColors[q.rank],
+            }}
+          >
             {q.rank}
           </button>
         </div>
+
         <div style={metaGroup}>
           <span style={miniLabel}>POINT</span>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '1px' }}>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '1px',
+            }}
+          >
             <input
               type="number"
-              style={pointInput}
+              style={{
+                ...pointInput,
+                fontSize: 16,
+              }}
               value={q.point}
-              onChange={(e) => onUpdate({ point: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                onUpdate({
+                  point: parseInt(e.target.value) || 0,
+                })
+              }
             />
             <span style={miniLabel}>pt</span>
           </div>
         </div>
-        <div style={{ ...metaGroup, marginLeft: 'auto' }}>
+
+        <div
+          style={{
+            ...metaGroup,
+            marginLeft: 'auto',
+          }}
+        >
           <span style={miniLabel}>TIME</span>
           <span style={timeValue}>{formatMs(q.answeredTimeMs)}</span>
         </div>
