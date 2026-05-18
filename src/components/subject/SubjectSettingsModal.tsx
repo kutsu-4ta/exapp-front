@@ -258,7 +258,7 @@ export function SubjectSettingsModal({
 const overlay: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
-  zIndex: 300,
+  zIndex: 1200,
   backgroundColor: 'rgba(0,0,0,0.45)',
   display: 'flex',
   alignItems: 'flex-end',

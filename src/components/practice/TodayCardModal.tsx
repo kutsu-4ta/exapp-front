@@ -146,7 +146,7 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Pr
 const overlay: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
-  zIndex: 300,
+  zIndex: 1200,
   backgroundColor: 'rgba(0,0,0,0.5)',
   display: 'flex',
   alignItems: 'flex-end',

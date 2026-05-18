@@ -157,7 +157,7 @@ export function ProblemNoteStep({
 const overlay: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
-  zIndex: 200,
+  zIndex: 1200,
   backgroundColor: 'rgba(0,0,0,0.4)',
   display: 'flex',
   alignItems: 'flex-end',

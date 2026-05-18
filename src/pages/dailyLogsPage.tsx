@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
-import {Link, useNavigate} from 'react-router-dom'
+import {Link, useNavigate, useSearchParams} from 'react-router-dom'
 import {CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts'
 import {fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
 import type {DailyLogSummary} from '../types/workspace'
@@ -49,7 +49,10 @@ function IconTrend({ active }: { active: boolean }) {
 
 export default function DailyLogsPage() {
   const navigate = useNavigate()
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const viewMode = (searchParams.get('view') as ViewMode) ?? 'list'
+  const setViewMode = (v: ViewMode) =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); v === 'list' ? n.delete('view') : n.set('view', v); return n }, { replace: true })
 
   // --- List state ---
   const [listLogs, setListLogs] = useState<DailyLogSummary[]>([])
@@ -504,7 +507,7 @@ const modalOverlay: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  zIndex: 1000,
+  zIndex: 1200,
 }
 const modalContent: React.CSSProperties = {
   backgroundColor: '#fff',

@@ -9,7 +9,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {FilterPill} from '../components/note/FilterPill'
 import {AddProblemModal} from '../components/note/AddProblemModal'
 import {c, font, pageHeading} from '../styles/notion'
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useSearchParams} from "react-router-dom";
 import type {DegBugfixConfig} from "@/lib/api/morningQuiz.ts";
 import {DegBugfixConfigModal} from "@/components/practice/DegBugfixConfigModal.tsx";
 
@@ -43,10 +43,20 @@ export default function NoteListPage() {
 
   const didMountRef = useRef(false)
 
-  const [filterSubject, setFilterSubject] = useState<string>('all')
-  const [filterQuery, setFilterQuery] = useState<string>('')
-  const [filterProficiency, setFilterProficiency] = useState<Proficiency | 'all'>('all')
-  const [filterFailureType, setFilterFailureType] = useState<FailureType | 'all'>('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filterSubject = searchParams.get('subject') ?? 'all'
+  const filterQuery = searchParams.get('q') ?? ''
+  const filterProficiency = (searchParams.get('proficiency') ?? 'all') as Proficiency | 'all'
+  const filterFailureType = (searchParams.get('failureType') ?? 'all') as FailureType | 'all'
+
+  const setFilterSubject = (v: string) =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); v === 'all' ? n.delete('subject') : n.set('subject', v); return n }, { replace: true })
+  const setFilterQuery = (v: string) =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); v ? n.set('q', v) : n.delete('q'); return n }, { replace: true })
+  const setFilterProficiency = (v: Proficiency | 'all') =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); v === 'all' ? n.delete('proficiency') : n.set('proficiency', v); return n }, { replace: true })
+  const setFilterFailureType = (v: FailureType | 'all') =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); v === 'all' ? n.delete('failureType') : n.set('failureType', v); return n }, { replace: true })
 
   const [showDegConfig, setShowDegConfig] = useState(false)
   const handleDegStart = (config: DegBugfixConfig) => {
@@ -59,19 +69,25 @@ export default function NoteListPage() {
 
   // 初回ロード
   useEffect(() => {
-    const cached = getCached<Problem[]>('note-problems')
-    if (cached) {
-      setProblems(cached)
-      setInitialLoading(false)
+    const initSubject = searchParams.get('subject')
+    const initQ = searchParams.get('q')
+    const hasFilter = !!(initSubject || initQ)
+
+    if (!hasFilter) {
+      const cached = getCached<Problem[]>('note-problems')
+      if (cached) {
+        setProblems(cached)
+        setInitialLoading(false)
+      }
     }
-    fetchProblems()
+    fetchProblems({ subjects: initSubject ? [initSubject] : undefined, q: initQ || undefined })
       .then((p) => {
         setProblems(p)
-        setCached('note-problems', p)
+        if (!hasFilter) setCached('note-problems', p)
       })
       .catch((e) => setError(e instanceof Error ? e.message : '読み込みエラー'))
       .finally(() => setInitialLoading(false))
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // フィルター変化時の再フェッチ（debounce 250ms）
   useEffect(() => {
