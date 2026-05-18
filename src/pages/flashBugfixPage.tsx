@@ -31,10 +31,12 @@ function MultipleChoiceView({
   subjectName,
   quizSessionMode,
   isDeg,
+  degConfig,
 }: {
   subjectName: string
   quizSessionMode: QuizSessionMode
   isDeg: boolean
+  degConfig: DegBugfixConfig | null
 }) {
   const themeKey = isDeg ? 'deg' : 'flash'
   const navigate = useNavigate()
@@ -244,6 +246,7 @@ export default function FlashBugfixPage() {
       subjectName={subjectName}
       quizSessionMode={quizSessionMode}
       isDeg={isDeg}
+      degConfig={degConfig}
     />
   )
 }
