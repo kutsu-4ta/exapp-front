@@ -63,6 +63,26 @@ function IconWeak({ active }: { active: boolean }) {
   )
 }
 
+function IconSprint({ active }: { active: boolean }) {
+  const c = active ? COLOR_ACTIVE : COLOR_INACTIVE
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={c}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="4" width="5" height="16" rx="1" />
+      <rect x="9.5" y="4" width="5" height="11" rx="1" />
+      <rect x="17" y="4" width="5" height="13" rx="1" />
+    </svg>
+  )
+}
+
 function IconExam({ active }: { active: boolean }) {
   const c = active ? COLOR_ACTIVE : COLOR_INACTIVE
   return (
@@ -91,6 +111,7 @@ const TABS = [
     matchPrefix: '/workspace',
     exact: false,
   },
+  { href: '/sprint', label: 'スプリント', Icon: IconSprint, matchPrefix: '/sprint', exact: false },
   { href: '/notelist', label: 'ノート', Icon: IconWeak, matchPrefix: '/note', exact: false },
   { href: '/exam', label: '過去問', Icon: IconExam, matchPrefix: '/exam', exact: false },
 ]

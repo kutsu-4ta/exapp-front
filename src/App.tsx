@@ -22,6 +22,7 @@ const SubjectPage = lazy(() => import('./pages/subjectPage'))
 const LoginPage = lazy(() => import('./pages/loginPage'))
 const PrivacyPage = lazy(() => import('./pages/privacyPage'))
 const TermsPage = lazy(() => import('./pages/termsPage'))
+const SprintPage = lazy(() => import('./pages/sprintPage'))
 
 function PageFallback() {
   return (
@@ -98,6 +99,7 @@ function App() {
               <Route path="/practice/:subject" element={<PracticeSessionPage />} />
               <Route path="/morning-bugfix" element={<MorningBugfixPage />} />
               <Route path="/subjects/:name/flash-bugfix" element={<FlashBugfixPage />} />
+              <Route path="/sprint" element={<SprintPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Route>

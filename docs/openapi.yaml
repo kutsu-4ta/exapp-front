@@ -892,10 +892,11 @@ components:
 
     StudyTicket:
       type: object
-      required: [ id, sprintId, title, acceptanceCriteria, dueDate, status, priority, ticketType, source, subCategories, createdAt ]
+      required: [ id, sprintId, subject, title, acceptanceCriteria, dueDate, status, priority, ticketType, source, subCategories, createdAt ]
       properties:
         id: { type: integer }
         sprintId: { type: integer }
+        subject: { type: string, description: '紐づく科目名' }
         title: { type: string }
         acceptanceCriteria: { type: string, description: '達成条件（曖昧な表現禁止）' }
         dueDate: { type: string, format: date }
@@ -913,12 +914,13 @@ components:
 
     StudyTicketInput:
       type: object
-      required: [ title, acceptanceCriteria, dueDate, priority, ticketType, source, subCategoryIds ]
+      required: [ subject, title, acceptanceCriteria, dueDate, priority, ticketType, source, subCategoryIds ]
       properties:
         sprintId:
           type: integer
           nullable: true
           description: '省略またはnullの場合はバックログに追加される'
+        subject: { type: string, description: '紐づく科目名（必須）' }
         title: { type: string, maxLength: 255 }
         acceptanceCriteria: { type: string, description: '達成条件（具体的に記述）' }
         dueDate: { type: string, format: date }
@@ -930,11 +932,12 @@ components:
           type: array
           minItems: 1
           items: { type: integer }
-          description: '小分類IDの配列（1つ以上必須）'
+          description: '小分類IDの配列（1つ以上必須、選択した科目に属するものに限る）'
 
     StudyTicketUpdateInput:
       type: object
       properties:
+        subject: { type: string, description: '紐づく科目名' }
         title: { type: string, maxLength: 255 }
         acceptanceCriteria: { type: string }
         dueDate: { type: string, format: date }
@@ -948,6 +951,24 @@ components:
           minItems: 1
           items: { type: integer }
           description: '送信した場合は全量置き換え（sync）'
+
+    # ── TicketNote ───────────────────────────────────────────────────────────────
+
+    TicketNote:
+      type: object
+      required: [ id, ticketId, body, createdAt, updatedAt ]
+      properties:
+        id: { type: integer }
+        ticketId: { type: integer }
+        body: { type: string, description: 'ノート本文（Markdown可）' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TicketNoteInput:
+      type: object
+      required: [ body ]
+      properties:
+        body: { type: string, maxLength: 2000, description: 'ノート本文' }
 
 
 paths:
@@ -3375,6 +3396,99 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+
+  # ── TicketNote ────────────────────────────────────────────────────────────────
+
+  /tickets/{id}/notes:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+        description: チケットID
+
+    get:
+      summary: チケットのノート一覧を取得する
+      tags: [ StudyTicket ]
+      description: 作成日昇順（スレッド順）で返す。
+      responses:
+        '200':
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TicketNote' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      summary: チケットにノートを追加する
+      tags: [ StudyTicket ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TicketNoteInput' }
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TicketNote' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /tickets/{id}/notes/{noteId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+        description: チケットID
+      - name: noteId
+        in: path
+        required: true
+        schema: { type: integer }
+        description: ノートID
+
+    put:
+      summary: ノートを更新する
+      tags: [ StudyTicket ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TicketNoteInput' }
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TicketNote' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+    delete:
+      summary: ノートを削除する
+      tags: [ StudyTicket ]
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /auth/logout:
     post:
