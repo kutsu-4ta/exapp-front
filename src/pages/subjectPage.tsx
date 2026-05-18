@@ -13,7 +13,7 @@ import {SubjectHeader} from "@/components/subject/SubjectHeader.tsx";
 import {TodaysFive} from "@/components/subject/TodaysFive.tsx";
 import {SubjectActivity} from "@/components/subject/SubjectActivity.tsx";
 import type {FailureType, Flashcard, SubjectAlertSettings, SubjectSettings} from "@/types/workspace.ts";
-import {DEFAULT_SUBJECT_ALERT_SETTINGS} from "@/types/workspace.ts";
+import {DEFAULT_SUBJECT_ALERT_SETTINGS, formatHours} from "@/types/workspace.ts";
 import {subjectUi} from "@/styles/subjectUI.ts";
 import {fetchSubjectAlertSettings, updateSubjectAlertSettings} from "@/lib/api/subjectAlertSettings.ts";
 import {useSettingsStore} from "@/lib/store/settings.ts";
@@ -26,7 +26,9 @@ import {PROF_COLORS} from "@/components/common/ProficiencySelector.tsx";
 import {FAILURE_COLORS, FAILURE_TYPES} from "@/components/common/FailureTypeSlecter.tsx";
 import {Skeleton} from "@/components/common/Skeleton.tsx";
 import {SubjectSettingsModal} from "@/components/subject/SubjectSettingsModal.tsx";
-import {SubCategoryList} from "@/components/subject/SubCategoryList.tsx";
+import {SubCategoryList} from "@/components/subject/SubCategoryList.tsx"
+import {fetchGeminiContext} from "@/lib/api/gemini.ts"
+import {StatusCopyModal} from "@/components/common/StatusCopyModal.tsx";
 
 
 export default function SubjectPage() {
@@ -61,6 +63,10 @@ export default function SubjectPage() {
     const items = subCategories.filter((sc) => sc.subject === subjectName)
     const [showFlashConfig, setShowFlashConfig] = useState(false)
     const [showSettings, setShowSettings] = useState(false)
+    const [statsCopying, setStatsCopying] = useState(false)
+    const [statsCopied, setStatsCopied] = useState(false)
+    const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+    const [copyText, setCopyText] = useState('')
     const handleFlashStart = (config: FlashBugfixConfig) => {
         setShowFlashConfig(false)
         navigate(`/subjects/${encodeURIComponent(subjectName)}/flash-bugfix`, { state: { config } })
@@ -135,6 +141,56 @@ export default function SubjectPage() {
         })
     }, [subjectName])
 
+    const handlePrepareStats = async () => {
+        if (statsCopying) return
+        setStatsCopying(true)
+        try {
+            const ctx = await fetchGeminiContext(viewYear, viewMonth)
+            const s = ctx.subjects.find((s) => s.subject === subjectName)
+            const lines = [`【科目ステータス: ${subjectName}】`]
+            lines.push(`期間: ${ctx.year}年${ctx.month}月`)
+            if (s?.finalTarget) lines.push(`最終目標: ${s.finalTarget}`)
+            if (s?.monthlyGoal) lines.push(`今月の目標: ${s.monthlyGoal}`)
+            lines.push('')
+            lines.push('【学習状況】')
+            lines.push(`学習時間: ${formatHours(s?.studyMinutes ?? 0)}`)
+            lines.push(`問題数: ${s?.problemCount ?? 0}問`)
+            if ((s?.failureStats ?? []).length > 0) {
+                lines.push('')
+                lines.push('【エラー傾向】')
+                s!.failureStats.forEach((f) =>
+                    lines.push(`  ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`)
+                )
+            }
+            if (s?.recentExamScore) {
+                const { examYear, score, completedAt } = s.recentExamScore
+                const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''
+                lines.push('')
+                lines.push('【直近の過去問】')
+                lines.push(`  ${examYear}年度 ${score}点${dateStr}`)
+            }
+            setCopyText(lines.join('\n'))
+            setIsCopyModalOpen(true)
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setStatsCopying(false)
+        }
+    }
+
+    const handleFinalCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(copyText)
+            setStatsCopied(true)
+            setTimeout(() => {
+                setStatsCopied(false)
+                setIsCopyModalOpen(false)
+            }, 800)
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
     // ── Derived Stats (all-time, not month-filtered) ─────────────────────────
     const profCounts = { '○': 0, '△': 0, '×': 0 }
     flashcards.forEach((f) => {
@@ -154,6 +210,7 @@ export default function SubjectPage() {
 
 
     return (
+        <>
         <div style={subjectUi.page}>
             <div style={subjectUi.container}>
 
@@ -331,6 +388,27 @@ export default function SubjectPage() {
                     />
                 </section>
 
+                {/* ステータスコピー */}
+                <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid rgba(55,53,47,0.08)' }}>
+                    <button
+                        onClick={handlePrepareStats}
+                        disabled={statsCopying}
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[rgba(55,53,47,0.12)] bg-[rgba(55,53,47,0.03)] text-[rgba(55,53,47,0.5)] text-[13px] font-semibold cursor-pointer disabled:opacity-50"
+                    >
+                        {statsCopied ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="9" y="2" width="6" height="4" rx="1" />
+                                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+                            </svg>
+                        )}
+                        <span>{statsCopied ? 'コピー済み' : statsCopying ? '取得中...' : 'ステータスをコピー'}</span>
+                    </button>
+                </div>
+
                 {showSettings && (
                     <SubjectSettingsModal
                         subjectName={subjectName}
@@ -354,6 +432,16 @@ export default function SubjectPage() {
                 )}
             </div>
         </div>
+
+        {isCopyModalOpen && (
+            <StatusCopyModal
+                text={copyText}
+                copied={statsCopied}
+                onCopy={handleFinalCopy}
+                onClose={() => setIsCopyModalOpen(false)}
+            />
+        )}
+        </>
     )
 }
 const emptyText: React.CSSProperties = {

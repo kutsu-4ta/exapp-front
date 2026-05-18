@@ -1,13 +1,14 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import type {
-    Sprint,
-    SprintInput,
-    SprintUpdateInput,
-    StudyTicket,
-    StudyTicketInput,
-    StudyTicketUpdateInput,
-    TicketStatus
+  Sprint,
+  SprintInput,
+  SprintUpdateInput,
+  StudyTicket,
+  StudyTicketInput,
+  StudyTicketUpdateInput,
+  TicketStatus
 } from '../types/sprint'
+import {PRIORITY_LABEL, STATUS_LABEL, TICKET_TYPE_LABEL} from '../types/sprint'
 import {useSprintStore} from '../lib/store/sprintStore'
 import {SprintBar} from '../components/sprint/SprintBar'
 import {SprintKpi} from '../components/sprint/SprintKpi'
@@ -19,6 +20,7 @@ import {TicketDrawer} from '../components/sprint/TicketDrawer'
 import {TicketFormModal} from '../components/sprint/TicketFormModal'
 import {c, font} from '../styles/notion'
 import {MarkdownContent} from '../components/common/MarkdownContent'
+import {StatusCopyModal} from '../components/common/StatusCopyModal'
 
 function useIsWide() {
   const [wide, setWide] = useState(() => window.innerWidth >= 768)
@@ -75,6 +77,9 @@ export default function SprintPage() {
   const [ticketsLoading, setTicketsLoading] = useState(false)
   const [statsLoading, setStatsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [statsCopied, setStatsCopied] = useState(false)
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+  const [copyText, setCopyText] = useState('')
 
   // Initial load
   useEffect(() => {
@@ -177,6 +182,55 @@ export default function SprintPage() {
 
   const currentSprint = sprints.find((s) => s.id === currentSprintId) ?? null
   const isCompleted = currentSprint?.status === 'completed'
+
+  const handlePrepareStats = () => {
+    if (!currentSprint) return
+    const lines = ['【スプリントステータス】']
+    lines.push(`スプリント: ${currentSprint.name}`)
+    if (currentSprint.goal) lines.push(`目標: ${currentSprint.goal}`)
+    if (currentSprint.startDate) {
+      lines.push(`期間: ${currentSprint.startDate} 〜 ${currentSprint.endDate ?? '?'}`)
+    }
+    lines.push(`状態: ${isCompleted ? '完了済み' : '進行中'}`)
+    lines.push('')
+    if (currentStats) {
+      lines.push('【KPI】')
+      lines.push(`合計: ${currentStats.total}件  完了: ${currentStats.done}  進行中: ${currentStats.doing}  未着手: ${currentStats.todo}`)
+      lines.push(`完了率: ${Math.round(currentStats.completionRate * 100)}%`)
+      if (currentStats.avgCompleteDays !== null) {
+        lines.push(`平均完了日数: ${currentStats.avgCompleteDays}日`)
+      }
+      lines.push('')
+    }
+    const groups: Array<[TicketStatus, string]> = [['doing', 'DOING'], ['todo', 'TODO'], ['done', 'DONE']]
+    for (const [status, label] of groups) {
+      const tickets = currentTickets.filter((t) => t.status === status)
+      if (tickets.length === 0) continue
+      lines.push(`[${label}]`)
+      tickets.forEach((t) => {
+        const prio = PRIORITY_LABEL[t.priority]
+        const type = TICKET_TYPE_LABEL[t.ticketType]
+        lines.push(`・${prio} ${t.title}  (${type} / ${STATUS_LABEL[t.status]} / 期限:${t.dueDate})`)
+        if (t.acceptanceCriteria) lines.push(`  → ${t.acceptanceCriteria}`)
+      })
+      lines.push('')
+    }
+    setCopyText(lines.join('\n'))
+    setIsCopyModalOpen(true)
+  }
+
+  const handleFinalCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setStatsCopied(true)
+      setTimeout(() => {
+        setStatsCopied(false)
+        setIsCopyModalOpen(false)
+      }, 800)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   if (!sprintsLoaded) {
     return (
@@ -374,23 +428,50 @@ export default function SprintPage() {
                   </div>
                 )}
               </div>
-              {!isCompleted && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button
-                  onClick={() => setTicketForm({ open: true, mode: 'create' })}
+                  onClick={handlePrepareStats}
+                  disabled={!currentSprint}
+                  title="ステータスをコピー"
                   style={{
-                    padding: '6px 14px',
-                    backgroundColor: c.blue,
-                    color: '#fff',
-                    border: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 32, height: 32,
                     borderRadius: '6px',
-                    fontSize: font.sm,
-                    fontWeight: 700,
+                    border: `1px solid ${c.border}`,
+                    background: 'transparent',
+                    color: statsCopied ? '#27ae60' : c.textHint,
                     cursor: 'pointer',
                   }}
                 >
-                  + チケット
+                  {statsCopied ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="4" rx="1" />
+                      <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+                    </svg>
+                  )}
                 </button>
-              )}
+                {!isCompleted && (
+                  <button
+                    onClick={() => setTicketForm({ open: true, mode: 'create' })}
+                    style={{
+                      padding: '6px 14px',
+                      backgroundColor: c.blue,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: font.sm,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + チケット
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* KPI */}
@@ -468,6 +549,41 @@ export default function SprintPage() {
 
           {/* Bottom spacer */}
           <div style={{ height: 80 }} />
+
+          {/* コピーボタン (モバイル固定) */}
+          <button
+            onClick={handlePrepareStats}
+            disabled={!currentSprint}
+            title="ステータスをコピー"
+            style={{
+              position: 'fixed',
+              bottom: `calc(68px + env(safe-area-inset-bottom))`,
+              left: '20px',
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              border: `1px solid ${c.border}`,
+              backgroundColor: '#fff',
+              color: statsCopied ? '#27ae60' : c.textHint,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 200,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}
+          >
+            {statsCopied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="4" rx="1" />
+                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+              </svg>
+            )}
+          </button>
 
           {/* FAB */}
           {!isCompleted && (
@@ -557,6 +673,15 @@ export default function SprintPage() {
         onSprintChange={handleTicketSprintChange}
         onDelete={handleTicketDelete}
       />
+
+      {isCopyModalOpen && (
+        <StatusCopyModal
+          text={copyText}
+          copied={statsCopied}
+          onCopy={handleFinalCopy}
+          onClose={() => setIsCopyModalOpen(false)}
+        />
+      )}
     </>
   )
 }

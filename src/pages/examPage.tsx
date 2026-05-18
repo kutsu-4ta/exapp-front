@@ -11,6 +11,8 @@ import {useTimer} from '../context/TimerContext'
 import {stopStopwatch} from '../lib/api/stopwatch'
 import {c, font} from '../styles/notion'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
+import {fetchGeminiContext} from '../lib/api/gemini'
+import {StatusCopyModal} from '../components/common/StatusCopyModal'
 
 export default function ExamPage() {
   const navigate = useNavigate()
@@ -42,6 +44,10 @@ export default function ExamPage() {
 
   const [showResumeModal, setShowResumeModal] = useState(false)
   const [pendingSessionId, setPendingSessionId] = useState<number | null>(null)
+  const [statsCopying, setStatsCopying] = useState(false)
+  const [statsCopied, setStatsCopied] = useState(false)
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+  const [copyText, setCopyText] = useState('')
 
   // リロード対応: URL に sessionId があるときセッションをフェッチする
   const activeSessionRef = useRef<ExamSession | null>(null)
@@ -216,6 +222,66 @@ export default function ExamPage() {
     navigate(-1)
   }
 
+  const now = new Date()
+  const handlePrepareStats = async () => {
+    if (statsCopying) return
+    setStatsCopying(true)
+    try {
+      const ctx = await fetchGeminiContext(now.getFullYear(), now.getMonth() + 1)
+      const lines = ['【過去問ステータス】']
+      lines.push(`期間: ${ctx.year}年${ctx.month}月`)
+      lines.push('')
+      lines.push('【科目別 直近スコア】')
+      for (const s of ctx.subjects) {
+        if (s.recentExamScore) {
+          const { examYear, score, completedAt } = s.recentExamScore
+          const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''
+          lines.push(`■ ${s.subject}: ${examYear}年度 ${score}点${dateStr}`)
+        } else {
+          lines.push(`■ ${s.subject}: 未実施`)
+        }
+      }
+      const withErrors = ctx.subjects.filter((s) => s.failureStats.length > 0)
+      if (withErrors.length > 0) {
+        lines.push('')
+        lines.push('【科目別 エラー傾向】')
+        for (const s of withErrors) {
+          lines.push(`■ ${s.subject}`)
+          s.failureStats.forEach((f) =>
+            lines.push(`  ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`)
+          )
+        }
+      }
+      if (ctx.recentDailyLogs.length > 0) {
+        lines.push('')
+        lines.push('【直近7日間】')
+        ctx.recentDailyLogs.forEach((log) => {
+          const label = `${log.date.replace(/-/g, '/')}: ${log.studyMinutes}分`
+          lines.push(log.reflection ? `  ${label} — ${log.reflection}` : `  ${label}`)
+        })
+      }
+      setCopyText(lines.join('\n'))
+      setIsCopyModalOpen(true)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setStatsCopying(false)
+    }
+  }
+
+  const handleFinalCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setStatsCopied(true)
+      setTimeout(() => {
+        setStatsCopied(false)
+        setIsCopyModalOpen(false)
+      }, 800)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   // ── view=input ──────────────────────────────────────────────────────────────
 
   if (view === 'input') {
@@ -302,6 +368,23 @@ export default function ExamPage() {
         <span style={pageTitle}>PAST EXAM</span>
         <div style={headerButtons}>
           <button
+            style={copyBtn}
+            onClick={handlePrepareStats}
+            disabled={statsCopying}
+            title="ステータスをコピー"
+          >
+            {statsCopied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="4" rx="1" />
+                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+              </svg>
+            )}
+          </button>
+          <button
             style={quickBtn}
             onClick={() => setSearchParams({view: 'quick-score'}, {replace: true})}
             disabled={starting || stoppingTimer}
@@ -321,6 +404,15 @@ export default function ExamPage() {
       {error && <p style={errorMsg}>{error}</p>}
 
       <AnalysisView key={analysisKey} onEdit={handleEditSession} />
+
+      {isCopyModalOpen && (
+        <StatusCopyModal
+          text={copyText}
+          copied={statsCopied}
+          onCopy={handleFinalCopy}
+          onClose={() => setIsCopyModalOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -368,6 +460,19 @@ const quickBtn: React.CSSProperties = {
   color: c.textSub,
   fontSize: font.sm,
   fontWeight: 600,
+  cursor: 'pointer',
+}
+
+const copyBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 34,
+  height: 34,
+  borderRadius: '8px',
+  border: `1px solid ${c.border}`,
+  background: '#fff',
+  color: c.textHint,
   cursor: 'pointer',
 }
 
