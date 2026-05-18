@@ -21,6 +21,7 @@ import {TicketFormModal} from '../components/sprint/TicketFormModal'
 import {c, font} from '../styles/notion'
 import {MarkdownContent} from '../components/common/MarkdownContent'
 import {StatusCopyModal} from '../components/common/StatusCopyModal'
+import {fetchSprintAiContext} from '../lib/api/aiContext'
 
 function useIsWide() {
   const [wide, setWide] = useState(() => window.innerWidth >= 768)
@@ -80,6 +81,9 @@ export default function SprintPage() {
   const [statsCopied, setStatsCopied] = useState(false)
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
+  const [aiContextLoading, setAiContextLoading] = useState(false)
+  const [aiCopied, setAiCopied] = useState(false)
+  const [copyModalMode, setCopyModalMode] = useState<'status' | 'ai'>('status')
 
   // Initial load
   useEffect(() => {
@@ -216,6 +220,7 @@ export default function SprintPage() {
       lines.push('')
     }
     setCopyText(lines.join('\n'))
+    setCopyModalMode('status')
     setIsCopyModalOpen(true)
   }
 
@@ -225,6 +230,33 @@ export default function SprintPage() {
       setStatsCopied(true)
       setTimeout(() => {
         setStatsCopied(false)
+        setIsCopyModalOpen(false)
+      }, 800)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleAiContextCopy = async () => {
+    setAiContextLoading(true)
+    try {
+      const text = await fetchSprintAiContext()
+      setCopyText(text)
+      setCopyModalMode('ai')
+      setIsCopyModalOpen(true)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setAiContextLoading(false)
+    }
+  }
+
+  const handleAiFinalCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setAiCopied(true)
+      setTimeout(() => {
+        setAiCopied(false)
         setIsCopyModalOpen(false)
       }, 800)
     } catch (e) {
@@ -430,6 +462,31 @@ export default function SprintPage() {
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button
+                  onClick={handleAiContextCopy}
+                  disabled={aiContextLoading}
+                  title="AIプランニング用コンテキストをコピー"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: 4,
+                    height: 32,
+                    padding: '0 10px',
+                    borderRadius: '6px',
+                    border: `1px solid ${c.border}`,
+                    background: 'transparent',
+                    color: c.textHint,
+                    cursor: aiContextLoading ? 'wait' : 'pointer',
+                    fontSize: font.xs,
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    opacity: aiContextLoading ? 0.6 : 1,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                  </svg>
+                  {aiContextLoading ? '取得中…' : 'AI向けコピー'}
+                </button>
+                <button
                   onClick={handlePrepareStats}
                   disabled={!currentSprint}
                   title="ステータスをコピー"
@@ -550,7 +607,7 @@ export default function SprintPage() {
           {/* Bottom spacer */}
           <div style={{ height: 80 }} />
 
-          {/* コピーボタン (モバイル固定) */}
+          {/* ステータスコピーボタン (モバイル固定) */}
           <button
             onClick={handlePrepareStats}
             disabled={!currentSprint}
@@ -583,6 +640,39 @@ export default function SprintPage() {
                 <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
               </svg>
             )}
+          </button>
+
+          {/* AI向けコピーボタン (モバイル固定) */}
+          <button
+            onClick={handleAiContextCopy}
+            disabled={aiContextLoading}
+            title="AIプランニング用コンテキストをコピー"
+            style={{
+              position: 'fixed',
+              bottom: `calc(68px + env(safe-area-inset-bottom))`,
+              left: '68px',
+              height: 40,
+              padding: '0 12px',
+              borderRadius: '20px',
+              border: `1px solid ${c.border}`,
+              backgroundColor: '#fff',
+              color: c.textHint,
+              cursor: aiContextLoading ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              zIndex: 200,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              opacity: aiContextLoading ? 0.6 : 1,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+            {aiContextLoading ? '取得中…' : 'AI向け'}
           </button>
 
           {/* FAB */}
@@ -677,8 +767,8 @@ export default function SprintPage() {
       {isCopyModalOpen && (
         <StatusCopyModal
           text={copyText}
-          copied={statsCopied}
-          onCopy={handleFinalCopy}
+          copied={copyModalMode === 'ai' ? aiCopied : statsCopied}
+          onCopy={copyModalMode === 'ai' ? handleAiFinalCopy : handleFinalCopy}
           onClose={() => setIsCopyModalOpen(false)}
         />
       )}
