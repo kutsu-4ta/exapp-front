@@ -309,18 +309,6 @@ export function ProblemQuickModal({
             <div style={section}>
               {editing ? (
                   <>
-              <textarea
-                  style={factorTextarea}
-                  value={draft.defeatReason ?? ""}
-                  onChange={(e) =>
-                      updateDraft(
-                          "defeatReason",
-                          e.target.value
-                      )
-                  }
-                  placeholder="敗因"
-              />
-
                     <FailureTypeSelector
                         value={draft.failureTypes}
                         onChange={(next) =>
@@ -379,16 +367,7 @@ export function ProblemQuickModal({
                       </label>
                     </div>
                   </>
-              ) : (
-                  <>
-                    {problem.defeatReason && (
-                        <div style={defeatRow}>
-                          <span style={defeatLabel}>敗因</span>
-                          <span style={defeatText}>{problem.defeatReason}</span>
-                        </div>
-                    )}
-                  </>
-              )}
+              ) : null}
             </div>
 
             {/* NOTE */}
@@ -688,39 +667,6 @@ const sectionLbl = {
   marginBottom: "8px",
 };
 
-const defeatRow: React.CSSProperties = {
-  display: "flex",
-  gap: "8px",
-  alignItems: "baseline",
-  marginBottom: "6px",
-};
-
-const defeatLabel: React.CSSProperties = {
-  flexShrink: 0,
-  fontSize: font.xs,
-  fontWeight: 700,
-  color: c.textHint,
-  letterSpacing: "0.05em",
-  textTransform: "uppercase",
-};
-
-const defeatText: React.CSSProperties = {
-  fontSize: font.base,
-  color: c.textSub,
-  lineHeight: 1.6,
-};
-
-const factorTextarea: React.CSSProperties = {
-  width: "100%",
-  minHeight: "80px",
-  padding: "12px",
-  borderRadius: "8px",
-  border: `1px solid ${c.border}`,
-  fontSize: "15px",
-  lineHeight: 1.7,
-  resize: "none",
-  marginBottom: "12px",
-};
 
 const noteTextarea: React.CSSProperties = {
   width: "100%",

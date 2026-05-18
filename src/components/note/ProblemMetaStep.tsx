@@ -95,7 +95,6 @@ export function ProblemMetaStep({
             subCategory: subCategory.trim(),
             questionRef: questionRef.trim(),
             note: initial?.note ?? null,
-            defeatReason: null,
             proficiency,
             failureTypes,
             isGoodQuestion: false,

@@ -4,6 +4,7 @@ export type MorningQuizQuestion = {
   id: string
   subject: string
   sub_category: string
+  sub_category_rank?: 'A' | 'B' | 'C' | 'D' | 'E' | null
   problem_context: {
     original_ref: string
     user_memo: string

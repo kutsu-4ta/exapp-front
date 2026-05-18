@@ -26,6 +26,7 @@ import {PROF_COLORS} from "@/components/common/ProficiencySelector.tsx";
 import {FAILURE_COLORS, FAILURE_TYPES} from "@/components/common/FailureTypeSlecter.tsx";
 import {Skeleton} from "@/components/common/Skeleton.tsx";
 import {SubjectSettingsModal} from "@/components/subject/SubjectSettingsModal.tsx";
+import {SubCategoryList} from "@/components/subject/SubCategoryList.tsx";
 
 
 export default function SubjectPage() {
@@ -182,6 +183,7 @@ export default function SubjectPage() {
                     saveSubjectSettings={saveSubjectSettings}
                     subjectName={subjectName}
                 />
+
                 {/* ACTIVITY */}
                 <section style={subjectUi.card}>
                     <div>
@@ -319,6 +321,16 @@ export default function SubjectPage() {
                         onStart={handleFlashStart}
                     />
                 )}
+
+                {/* SUB CATEGORIES */}
+                <section style={subjectUi.card}>
+                    <SubCategoryList
+                        subjectName={subjectName}
+                        subCategories={subCategories}
+                        setSubCategories={setSubCategories}
+                    />
+                </section>
+
                 {showSettings && (
                     <SubjectSettingsModal
                         subjectName={subjectName}

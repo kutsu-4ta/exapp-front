@@ -1,256 +1,438 @@
 import type {CSSProperties} from 'react'
-import {useState} from 'react'
-import {subjectUi} from "@/styles/subjectUI.ts";
+import {useEffect, useState} from 'react'
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+
+import type {SubCategory, SubCategoryRank} from '@/types/workspace.ts'
+import {addSubCategory, deleteSubCategory, updateSubCategory,} from '@/lib/api/subcategory.ts'
+
+const RANK_VALUES: SubCategoryRank[] = ['A', 'B', 'C', 'D', 'E']
+
+export const RANK_COLORS: Record<SubCategoryRank, string> = {
+  A: '#2383e2',
+  B: '#19a576',
+  C: '#f2ab26',
+  D: '#eb5757',
+  E: 'rgba(55,53,47,0.4)',
+}
+
+type Zone = SubCategoryRank | 'unset'
+
+type Props = {
+  subjectName: string
+  subCategories: SubCategory[]
+  setSubCategories: (v: SubCategory[]) => void
+}
 
 export function SubCategoryList({
-                                    subjectName,
-                                    subCategories,
-                                    setSubCategories,
-                                    addSubCategory,
-                                    updateSubCategory,
-                                    deleteSubCategory,
-                                }: any) {
-    const items = subCategories.filter((sc: any) => sc.subject === subjectName)
+                                  subjectName,
+                                  subCategories,
+                                  setSubCategories,
+                                }: Props) {
+  const items = subCategories.filter(sc => sc.subject === subjectName)
+  const itemsKey = items.map(sc => sc.id).join(',')
 
-    const [value, setValue] = useState('')
-    const [editingId, setEditingId] = useState<number | null>(null)
-    const [editingValue, setEditingValue] = useState('')
+  const [draftRanks, setDraftRanks] = useState<
+      Record<number, SubCategoryRank | null>
+  >(() => Object.fromEntries(items.map(sc => [sc.id, sc.rank])))
 
-    const handleAdd = async () => {
-        if (!value.trim()) return
-        const created = await addSubCategory({
-            subject: subjectName,
-            name: value,
-        })
-        setSubCategories([...subCategories, created])
-        setValue('')
+  const [saving, setSaving] = useState(false)
+  const [addValue, setAddValue] = useState('')
+  const [addLoading, setAddLoading] = useState(false)
+
+  const sensors = useSensors(
+      useSensor(PointerSensor, {
+        activationConstraint: { distance: 6 },
+      }),
+  )
+
+  useEffect(() => {
+    setDraftRanks(prev => {
+      const next: Record<number, SubCategoryRank | null> = {}
+      for (const sc of items) {
+        next[sc.id] = sc.id in prev ? prev[sc.id] : sc.rank
+      }
+      return next
+    })
+  }, [itemsKey])
+
+  const isDirty = items.some(sc => draftRanks[sc.id] !== sc.rank)
+
+  const byZone: Record<Zone, SubCategory[]> = {
+    unset: [],
+    A: [],
+    B: [],
+    C: [],
+    D: [],
+    E: [],
+  }
+
+  for (const sc of items) {
+    byZone[draftRanks[sc.id] ?? 'unset'].push(sc)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over) return
+
+    const id = Number(active.id)
+    const zone = over.id as Zone
+
+    setDraftRanks(prev => ({
+      ...prev,
+      [id]: zone === 'unset' ? null : zone,
+    }))
+  }
+
+  const handleSave = async () => {
+    const changed = items.filter(sc => draftRanks[sc.id] !== sc.rank)
+    if (!changed.length) return
+
+    setSaving(true)
+
+    try {
+      const results = await Promise.all(
+          changed.map(sc =>
+              updateSubCategory(sc.id, {
+                subject: subjectName,
+                name: sc.name,
+                rank: draftRanks[sc.id],
+              }),
+          ),
+      )
+
+      setSubCategories(
+          subCategories.map(sc => results.find(r => r.id === sc.id) ?? sc),
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAdd = async () => {
+    if (!addValue.trim()) return
+
+    setAddLoading(true)
+
+    try {
+      const created = await addSubCategory({
+        subject: subjectName,
+        name: addValue.trim(),
+      })
+
+      setSubCategories([...subCategories, created])
+      setAddValue('')
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
+  const handleDelete = async (sc: SubCategory) => {
+    if (
+        !window.confirm(
+            `「${sc.name}」を削除しますか？\nこの小分類に紐づく全てのデータが削除されます。`,
+        )
+    ) {
+      return
     }
 
-    const handleDelete = async (id: number) => {
-        const target = items.find((i: any) => i.id === id)
-        if (!target) return
+    await deleteSubCategory(sc.id)
 
-        const ok = window.confirm(`「${target.name}」を削除しますか？\nこの小分類に紐づく全てのデータが削除されます。`)
+    setSubCategories(subCategories.filter(x => x.id !== sc.id))
+  }
 
-        if (!ok) return
-        await deleteSubCategory(id)
-        setSubCategories(subCategories.filter((sc: any) => sc.id !== id))
-        setEditingId(null)
-    }
+  return (
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div>
+          <div style={headerRow}>
+            <span style={sectionTitle}>SUB CATEGORIES</span>
 
-    const handleUpdate = async (id: number) => {
-        // 値が空の場合は更新せずキャンセル扱いにするなどのガードも可能です
-        if (!editingValue.trim()) {
-            setEditingId(null)
-            return
-        }
+            <button
+                style={isDirty && !saving ? saveBtn : saveBtnDisabled}
+                onClick={handleSave}
+                disabled={!isDirty || saving}
+            >
+              {saving ? '保存中…' : 'Save'}
+            </button>
+          </div>
 
-        await updateSubCategory(id, {
-            subject: subjectName,
-            name: editingValue,
-        })
-        setSubCategories(subCategories.map((sc: any) =>
-            sc.id === id ? { ...sc, name: editingValue } : sc
-        ))
-        setEditingId(null)
-    }
+          <div>
+            <DropZone
+                zone="unset"
+                label="未設定"
+                items={byZone.unset}
+                onDelete={handleDelete}
+            />
 
-    return (
-        <div style={subjectUi.subContainer}>
-            <div style={sectionHeader}>
-                <span style={sectionTitle}>SUB CATEGORIES</span>
-            </div>
+            {RANK_VALUES.map(rank => (
+                <DropZone
+                    key={rank}
+                    zone={rank}
+                    label={rank}
+                    color={RANK_COLORS[rank]}
+                    items={byZone[rank]}
+                    onDelete={handleDelete}
+                />
+            ))}
+          </div>
 
-            <div style={listBlock}>
-                {items.map((sc: any, index: number) => (
-                    <div key={sc.id}>
-                        <div style={itemRow}>
-                            {editingId === sc.id ? (
-                                <>
-                                    <input
-                                        autoFocus
-                                        value={editingValue}
-                                        onChange={(e) => setEditingValue(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleUpdate(sc.id)
-                                            if (e.key === 'Escape') setEditingId(null) // Escキーでもキャンセル可能に
-                                        }}
-                                        // フォーム外をクリックした時に強制キャンセル
-                                        onBlur={() => setEditingId(null)}
-                                        style={editInput}
-                                    />
-                                    <div style={actionGroup}>
-                                        {/*
-                                            注意: onBlurが先に走るとSaveボタンが消えてクリックできなくなるため、
-                                            ボタン側は onMouseDown でイベントを拾うか、
-                                            重要度の高い操作はあえて確定をEnterに任せるのが一般的です。
-                                        */}
-                                        <button
-                                            style={textBtnPrimary}
-                                            onMouseDown={(e) => {
-                                                e.preventDefault() // onBlurより先に実行させる
-                                                handleUpdate(sc.id)
-                                            }}
-                                        >
-                                            Save
-                                        </button>
-                                        <button
-                                            style={{ ...textBtn, color: 'rgba(235, 87, 87, 0.8)' }}
-                                            onMouseDown={(e) => {
-                                                e.preventDefault()
-                                                handleDelete(sc.id)
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <span style={itemName}>{sc.name}</span>
-                                    <div style={actionGroup}>
-                                        <button
-                                            style={textBtn}
-                                            onClick={() => {
-                                                setEditingId(sc.id)
-                                                setEditingValue(sc.name)
-                                            }}
-                                        >
-                                            Edit
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                        {index < items.length - 1 && <div style={divider} />}
-                    </div>
-                ))}
+          <div style={addArea}>
+            <input
+                value={addValue}
+                onChange={e => setAddValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                placeholder="新しい小分類を追加..."
+                style={addInput}
+            />
 
-                <div style={addArea}>
-                    <input
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                        placeholder="新しい小分類を追加..."
-                        style={addInput}
-                    />
-                    <button
-                        style={value.trim() ? addBtnActive : addBtnDisabled}
-                        onClick={handleAdd}
-                        disabled={!value.trim()}
-                    >
-                        追加
-                    </button>
-                </div>
-            </div>
+            <button
+                style={
+                  addValue.trim() && !addLoading
+                      ? addBtnActive
+                      : addBtnDisabled
+                }
+                onClick={handleAdd}
+            >
+              {addLoading ? '…' : '追加'}
+            </button>
+          </div>
         </div>
-    )
+      </DndContext>
+  )
 }
-// ── Styles ──────────────────────────────────────────────────────────
 
-const sectionHeader: CSSProperties = {
-    marginBottom: '8px',
-    display: 'flex',
-    alignItems: 'center',
+function DropZone({
+                    zone,
+                    label,
+                    color,
+                    items,
+                    onDelete,
+                  }: {
+  zone: Zone
+  label: string
+  color?: string
+  items: SubCategory[]
+  onDelete: (sc: SubCategory) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: zone,
+  })
+
+  return (
+      <div
+          ref={setNodeRef}
+          style={{
+            ...zoneRow,
+            backgroundColor: isOver
+                ? color
+                    ? `${color}10`
+                    : 'rgba(55,53,47,0.03)'
+                : 'transparent',
+          }}
+      >
+      <span
+          style={
+            zone === 'unset'
+                ? zoneLabelUnset
+                : { ...zoneLabelRank, color }
+          }
+      >
+        {label}
+      </span>
+
+        <div style={chipRow}>
+          {items.map(sc => (
+              <Chip
+                  key={sc.id}
+                  sc={sc}
+                  accentColor={color}
+                  onDelete={() => onDelete(sc)}
+              />
+          ))}
+        </div>
+      </div>
+  )
+}
+
+function Chip({
+                sc,
+                accentColor,
+                onDelete,
+              }: {
+  sc: SubCategory
+  accentColor?: string
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+      useDraggable({
+        id: sc.id,
+      })
+
+  return (
+      <div
+          ref={setNodeRef}
+          {...listeners}
+          {...attributes}
+          style={{
+            ...chip,
+            opacity: isDragging ? 0.35 : 1,
+            transform: transform
+                ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+                : undefined,
+            borderColor: accentColor
+                ? `${accentColor}30`
+                : 'rgba(55,53,47,0.08)',
+            color: accentColor ?? 'rgba(55,53,47,0.65)',
+            backgroundColor: accentColor
+                ? `${accentColor}0d`
+                : 'rgba(55,53,47,0.03)',
+          }}
+      >
+        <span style={dragHandle}>⠿</span>
+
+        <span style={chipLabel}>{sc.name}</span>
+
+        <button
+            style={chipDeleteBtn}
+            onPointerDown={e => {
+              e.stopPropagation()
+              onDelete()
+            }}
+        >
+          ×
+        </button>
+      </div>
+  )
+}
+
+/* styles */
+
+const headerRow: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  marginBottom: '8px',
 }
 
 const sectionTitle: CSSProperties = {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'rgba(55, 53, 47, 0.35)',
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
+  fontSize: '11px',
+  fontWeight: 700,
+  color: 'rgba(55,53,47,0.35)',
+  letterSpacing: '0.06em',
 }
 
-const listBlock: CSSProperties = {
-    border: '1px solid rgba(55, 53, 47, 0.08)',
-    borderRadius: '10px',
-    backgroundColor: '#fff',
-    overflow: 'hidden',
+const saveBtn: CSSProperties = {
+  background: 'none',
+  border: 'none',
+  color: '#2383e2',
+  fontSize: '13px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  minHeight: '44px',
 }
 
-const itemRow: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 16px',
-    minHeight: '48px',
+const saveBtnDisabled: CSSProperties = {
+  ...saveBtn,
+  color: 'rgba(55,53,47,0.25)',
+  cursor: 'default',
 }
 
-const itemName: CSSProperties = {
-    fontSize: '14px',
-    fontWeight: 500,
-    color: '#37352f',
+const zoneRow: CSSProperties = {
+  display: 'flex',
+  gap: '10px',
+  padding: '10px 0',
+  borderBottom: '1px solid rgba(55,53,47,0.08)',
+  minHeight: '44px',
 }
 
-const editInput: CSSProperties = {
-    flex: 1,
-    fontSize: '14px',
-    border: 'none',
-    borderBottom: '1px solid #2383e2',
-    outline: 'none',
-    padding: '2px 0',
-    marginRight: '12px',
-    color: '#37352f',
+const zoneLabelUnset: CSSProperties = {
+  width: '32px',
+  fontSize: '10px',
+  fontWeight: 700,
+  color: 'rgba(55,53,47,0.3)',
+  paddingTop: '6px',
 }
 
-const actionGroup: CSSProperties = {
-    display: 'flex',
-    gap: '12px',
+const zoneLabelRank: CSSProperties = {
+  width: '32px',
+  fontSize: '14px',
+  fontWeight: 700,
+  textAlign: 'center',
+  paddingTop: '4px',
 }
 
-const textBtn: CSSProperties = {
-    background: 'none',
-    border: 'none',
-    fontSize: '12px',
-    fontWeight: 600,
-    color: 'rgba(55, 53, 47, 0.4)',
-    cursor: 'pointer',
-    padding: '4px',
+const chipRow: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '6px',
+  flex: 1,
 }
 
-const textBtnPrimary: CSSProperties = {
-    ...textBtn,
-    color: '#2383e2',
+const chip: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px',
+  padding: '6px 8px',
+  minHeight: '36px',
+  borderRadius: '6px',
+  border: '1px solid',
+  fontSize: '13px',
+  fontWeight: 500,
+  userSelect: 'none',
+  touchAction: 'none',
 }
 
-const divider: CSSProperties = {
-    height: '1px',
-    backgroundColor: 'rgba(55, 53, 47, 0.06)',
-    margin: '0 16px',
+const dragHandle: CSSProperties = {
+  fontSize: '11px',
+  opacity: 0.3,
+}
+
+const chipLabel: CSSProperties = {
+  maxWidth: '140px',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+
+const chipDeleteBtn: CSSProperties = {
+  border: 'none',
+  background: 'none',
+  padding: '0 0 0 2px',
+  fontSize: '14px',
+  color: 'inherit',
+  opacity: 0.35,
+  cursor: 'pointer',
 }
 
 const addArea: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '12px 16px',
-    backgroundColor: 'rgba(55, 53, 47, 0.02)',
-    gap: '12px',
+  display: 'flex',
+  gap: '8px',
+  paddingTop: '12px',
 }
 
 const addInput: CSSProperties = {
-    flex: 1,
-    background: 'transparent',
-    border: 'none',
-    fontSize: '13px',
-    outline: 'none',
-    color: '#37352f',
+  flex: 1,
+  border: 'none',
+  outline: 'none',
+  background: 'transparent',
+  fontSize: '16px',
 }
 
 const addBtnActive: CSSProperties = {
-    background: '#37352f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    padding: '4px 10px',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
+  background: 'none',
+  border: 'none',
+  color: '#37352f',
+  fontSize: '14px',
+  cursor: 'pointer',
 }
 
 const addBtnDisabled: CSSProperties = {
-    ...addBtnActive,
-    background: 'rgba(55, 53, 47, 0.1)',
-    color: 'rgba(55, 53, 47, 0.3)',
-    cursor: 'default',
+  ...addBtnActive,
+  opacity: 0.25,
 }

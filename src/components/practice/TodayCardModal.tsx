@@ -33,7 +33,6 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Pr
         subCategory: problem.subCategory,
         questionRef: problem.questionRef,
         note: note.trim() || null,
-        defeatReason: problem.defeatReason,
         proficiency,
         failureTypes,
         isGoodQuestion: problem.isGoodQuestion,

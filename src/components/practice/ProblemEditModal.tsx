@@ -53,7 +53,6 @@ export function ProblemEditModal({ problemId, onClose, initialProblem }: Props) 
         subCategory: problem.subCategory,
         questionRef: problem.questionRef,
         note: note.trim() || null,
-        defeatReason: problem.defeatReason,
         proficiency,
         failureTypes,
         isGoodQuestion: problem.isGoodQuestion,

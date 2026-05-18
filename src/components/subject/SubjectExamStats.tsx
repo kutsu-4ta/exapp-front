@@ -1,17 +1,10 @@
 import {useEffect, useState} from 'react'
 import {fetchExamSessions, fetchSubjectStats} from '../../lib/api/exam'
-import type {ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
+import type {ExamSessionSummary, ExamSubjectStats} from '../../types/exam'
 import {Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis} from 'recharts'
 import {subjectUi} from '../../styles/subjectUI'
 import {Skeleton} from '../common/Skeleton'
-
-const RANK_COLORS: Record<Rank, string> = {
-  A: '#2383e2',
-  B: '#19a576',
-  C: '#f2ab26',
-  D: '#eb5757',
-  E: 'rgba(55,53,47,0.25)',
-}
+import {RANK_COLORS} from "@/components/subject/SubCategoryList.tsx";
 
 function ScoreTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; pure: number; total: number } }> }) {
   if (!active || !payload?.length) return null

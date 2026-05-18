@@ -36,10 +36,13 @@ export const DEFAULT_SUBJECT_ALERT_SETTINGS: SubjectAlertSettings = {
   minutesThreshold: 30,
 }
 
+export type SubCategoryRank = 'A' | 'B' | 'C' | 'D' | 'E'
+
 export type SubCategory = {
   id: number
   subject: string
   name: string
+  rank: SubCategoryRank | null
   createdAt: string
   updatedAt: string
 }
@@ -47,6 +50,7 @@ export type SubCategory = {
 export type SubCategoryInput = {
   subject: string
   name: string
+  rank?: SubCategoryRank | null
 }
 
 export type MonthlySettings = {
@@ -161,7 +165,6 @@ export type Problem = {
   subCategory: string | null
   questionRef: string
   note: string | null
-  defeatReason: string | null
   proficiency: Proficiency
   failureTypes: FailureType[]
   isGoodQuestion: boolean
@@ -217,7 +220,6 @@ export type ProblemInput = {
   subCategory: string | null
   questionRef: string
   note: string | null
-  defeatReason: string | null
   proficiency: string
   failureTypes: string[]
   isGoodQuestion: boolean

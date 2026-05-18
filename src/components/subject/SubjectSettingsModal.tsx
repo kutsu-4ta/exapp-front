@@ -1,6 +1,4 @@
 import {useState} from 'react'
-import {addSubCategory, deleteSubCategory, updateSubCategory} from '@/lib/api/subcategory'
-import {SubCategoryList} from '@/components/subject/SubCategoryList'
 import {SubjectDangerZone} from '@/components/subject/SubjectDangerZone'
 import {SUBJECT_COLOR_OPTIONS, subjectPalette} from '@/styles/subjectUI'
 import type {SubCategory, SubjectAlertSettings, SubjectSettings} from '@/types/workspace'
@@ -219,19 +217,6 @@ export function SubjectSettingsModal({
                 {alertSaved && <span style={savedText}>保存しました</span>}
               </div>
             </div>
-          </div>
-
-          {/* SUBCATEGORY */}
-          <div style={section}>
-            <p style={sectionLabel}>SUB CATEGORIES</p>
-            <SubCategoryList
-              subjectName={subjectName}
-              subCategories={subCategories}
-              setSubCategories={setSubCategories}
-              addSubCategory={addSubCategory}
-              updateSubCategory={updateSubCategory}
-              deleteSubCategory={deleteSubCategory}
-            />
           </div>
 
           {/* DANGER ZONE */}
