@@ -1,22 +1,24 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import type {
-  Sprint,
-  SprintInput,
-  SprintUpdateInput,
-  StudyTicket,
-  StudyTicketInput,
-  StudyTicketUpdateInput,
-  TicketStatus
+    Sprint,
+    SprintInput,
+    SprintUpdateInput,
+    StudyTicket,
+    StudyTicketInput,
+    StudyTicketUpdateInput,
+    TicketStatus
 } from '../types/sprint'
 import {useSprintStore} from '../lib/store/sprintStore'
 import {SprintBar} from '../components/sprint/SprintBar'
 import {SprintKpi} from '../components/sprint/SprintKpi'
 import {SprintFormModal} from '../components/sprint/SprintFormModal'
+import {SprintRetroModal} from '../components/sprint/SprintRetroModal'
 import {TicketList} from '../components/sprint/TicketList'
 import {KanbanBoard} from '../components/sprint/KanbanBoard'
 import {TicketDrawer} from '../components/sprint/TicketDrawer'
 import {TicketFormModal} from '../components/sprint/TicketFormModal'
 import {c, font} from '../styles/notion'
+import {MarkdownContent} from '../components/common/MarkdownContent'
 
 function useIsWide() {
   const [wide, setWide] = useState(() => window.innerWidth >= 768)
@@ -38,6 +40,8 @@ type TicketFormState =
   | { open: false }
   | { open: true; mode: 'create' }
   | { open: true; mode: 'edit'; ticket: StudyTicket }
+
+type RetroFormState = { open: false } | { open: true; sprint: Sprint }
 
 export default function SprintPage() {
   const isWide = useIsWide()
@@ -61,11 +65,11 @@ export default function SprintPage() {
     removeTicket,
     moveTicketStatus,
     assignTicketToSprint,
-    invalidateStats,
   } = useSprintStore()
 
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all')
   const [sprintForm, setSprintForm] = useState<SprintFormState>({ open: false })
+  const [retroForm, setRetroForm] = useState<RetroFormState>({ open: false })
   const [ticketForm, setTicketForm] = useState<TicketFormState>({ open: false })
   const [selectedTicket, setSelectedTicket] = useState<StudyTicket | null>(null)
   const [ticketsLoading, setTicketsLoading] = useState(false)
@@ -119,18 +123,19 @@ export default function SprintPage() {
     await removeSprint(sprint.id).catch(() => setError('削除に失敗しました'))
   }
 
-  const handleSprintComplete = async (sprint: Sprint) => {
-    if (!window.confirm(`「${sprint.name}」を完了しますか？`)) return
-    await finishSprint(sprint.id).catch(() => setError('完了処理に失敗しました'))
+  const handleSprintComplete = (sprint: Sprint) => {
+    setRetroForm({ open: true, sprint })
+  }
+
+  const handleRetroSave = async (retrospective: string) => {
+    if (!retroForm.open) return
+    await finishSprint(retroForm.sprint.id, retrospective)
+    setRetroForm({ open: false })
   }
 
   // Ticket actions
   const handleTicketCreate = async (input: StudyTicketInput) => {
     await addTicket(input)
-    if (currentSprintId) {
-      invalidateStats(currentSprintId)
-      loadStats(currentSprintId).catch(() => {})
-    }
   }
 
   const handleTicketEdit = async (input: StudyTicketUpdateInput) => {
@@ -355,6 +360,19 @@ export default function SprintPage() {
                     完了済み
                   </span>
                 )}
+                {currentSprint?.goal && (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      fontSize: font.xs,
+                      color: c.textSub,
+                      lineHeight: 1.5,
+                      maxWidth: 360,
+                    }}
+                  >
+                    {currentSprint.goal}
+                  </div>
+                )}
               </div>
               {!isCompleted && (
                 <button
@@ -378,8 +396,13 @@ export default function SprintPage() {
             {/* KPI */}
             <SprintKpi stats={currentStats} loading={statsLoading} />
 
+            {/* Retrospective (completed sprints) */}
+            {isCompleted && currentSprint?.retrospective && (
+              <RetroSection retrospective={currentSprint.retrospective} />
+            )}
+
             {/* Kanban */}
-            <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ flex: 1, overflow: isCompleted ? 'auto' : 'hidden' }}>
               <KanbanBoard
                 tickets={currentTickets}
                 onTicketTap={setSelectedTicket}
@@ -404,14 +427,7 @@ export default function SprintPage() {
           <SprintKpi stats={currentStats} loading={statsLoading} />
 
           {currentSprint && (
-            <div
-              style={{
-                padding: '4px 16px 8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+            <div style={{ padding: '4px 16px 8px' }}>
               <div style={{ fontSize: font.xs, color: c.textHint }}>
                 {currentSprint.type === 'backlog'
                   ? 'バックログ'
@@ -422,7 +438,23 @@ export default function SprintPage() {
                   <span style={{ marginLeft: 6, color: '#27ae60', fontWeight: 600 }}>完了済み</span>
                 )}
               </div>
+              {currentSprint.goal && (
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: font.sm,
+                    color: c.textSub,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {currentSprint.goal}
+                </div>
+              )}
             </div>
+          )}
+
+          {isCompleted && currentSprint?.retrospective && (
+            <RetroSection retrospective={currentSprint.retrospective} />
           )}
 
           <TicketList
@@ -471,6 +503,14 @@ export default function SprintPage() {
 
       {/* ── Modals & Drawers ── */}
 
+      {retroForm.open && (
+        <SprintRetroModal
+          sprint={retroForm.sprint}
+          onSave={handleRetroSave}
+          onClose={() => setRetroForm({ open: false })}
+        />
+      )}
+
       {sprintForm.open && sprintForm.mode === 'create' && (
         <SprintFormModal
           mode="create"
@@ -518,5 +558,45 @@ export default function SprintPage() {
         onDelete={handleTicketDelete}
       />
     </>
+  )
+}
+
+function RetroSection({ retrospective }: { retrospective: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div
+      style={{
+        margin: '0 16px 12px',
+        borderRadius: 8,
+        border: `1px solid rgba(39,174,96,0.2)`,
+        backgroundColor: 'rgba(39,174,96,0.03)',
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: '100%',
+          padding: '10px 14px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: '12px', color: '#27ae60' }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontSize: font.sm, fontWeight: 700, color: '#27ae60', letterSpacing: '0.04em' }}>
+          振り返り
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 14px 14px' }}>
+          <MarkdownContent>{retrospective}</MarkdownContent>
+        </div>
+      )}
+    </div>
   )
 }

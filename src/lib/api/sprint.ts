@@ -35,8 +35,11 @@ export async function deleteSprint(id: number): Promise<void> {
   if (!res.ok) throw new Error('スプリントの削除に失敗しました')
 }
 
-export async function completeSprint(id: number): Promise<Sprint> {
-  const res = await apiFetch(`/api/sprints/${id}/complete`, { method: 'POST' })
+export async function completeSprint(id: number, retrospective: string): Promise<Sprint> {
+  const res = await apiFetch(`/api/sprints/${id}/complete`, {
+    method: 'POST',
+    body: JSON.stringify({ retrospective }),
+  })
   if (!res.ok) throw new Error('スプリントの完了に失敗しました')
   return res.json()
 }

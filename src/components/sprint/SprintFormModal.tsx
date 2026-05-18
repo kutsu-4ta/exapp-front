@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react'
 import type {Sprint, SprintInput, SprintUpdateInput} from '../../types/sprint'
-import {c, font, formInput, formLabel} from '../../styles/notion'
+import {c, font, formInput, formLabel, formTextarea} from '../../styles/notion'
 
 type Props =
   | { mode: 'create'; onSave: (input: SprintInput) => Promise<void>; onClose: () => void }
@@ -17,6 +17,7 @@ export function SprintFormModal(props: Props) {
   const isBacklog = sprint?.type === 'backlog'
 
   const [name, setName] = useState(sprint?.name ?? '')
+  const [goal, setGoal] = useState(sprint?.goal ?? '')
   const [startDate, setStartDate] = useState(sprint?.startDate ?? '')
   const [endDate, setEndDate] = useState(sprint?.endDate ?? '')
   const [saving, setSaving] = useState(false)
@@ -54,11 +55,12 @@ export function SprintFormModal(props: Props) {
       if (mode === 'create') {
         await (onSave as (input: SprintInput) => Promise<void>)({
           name: name.trim(),
+          goal: goal.trim() || undefined,
           startDate,
           endDate,
         })
       } else {
-        const input: SprintUpdateInput = { name: name.trim() }
+        const input: SprintUpdateInput = { name: name.trim(), goal: goal.trim() || undefined }
         if (!isBacklog) {
           if (startDate) input.startDate = startDate
           if (endDate) input.endDate = endDate
@@ -113,6 +115,17 @@ export function SprintFormModal(props: Props) {
               onChange={(e) => setName(e.target.value)}
               placeholder="例: 第1回スプリント"
               maxLength={100}
+            />
+          </div>
+
+          <div>
+            <label style={formLabel}>ゴール・テーマ（任意）</label>
+            <textarea
+              style={{ ...formTextarea, marginTop: 4, minHeight: 72, resize: 'vertical' }}
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="例: 財務・会計の弱点を潰す"
+              maxLength={500}
             />
           </div>
 

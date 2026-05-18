@@ -25,6 +25,7 @@ import {
   updateTicket,
 } from '../api/sprint'
 
+
 function patchTickets(
   cache: Record<number, StudyTicket[]>,
   ticketId: number,
@@ -54,7 +55,7 @@ interface SprintState {
   addSprint: (input: SprintInput) => Promise<Sprint>
   editSprint: (id: number, input: SprintUpdateInput) => Promise<void>
   removeSprint: (id: number) => Promise<void>
-  finishSprint: (id: number) => Promise<void>
+  finishSprint: (id: number, retrospective: string) => Promise<void>
 
   addTicket: (input: StudyTicketInput) => Promise<void>
   editTicket: (id: number, input: StudyTicketUpdateInput) => Promise<void>
@@ -147,10 +148,9 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
     })
   },
 
-  finishSprint: async (id) => {
-    const updated = await completeSprint(id)
+  finishSprint: async (id, retrospective) => {
+    const updated = await completeSprint(id, retrospective)
     set((s) => ({ sprints: s.sprints.map((sp) => (sp.id === id ? updated : sp)) }))
-    get().invalidateStats(id)
   },
 
   addTicket: async (input) => {
@@ -162,17 +162,20 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
         [sprintId]: [...(s.ticketsBySprintId[sprintId] ?? []), ticket],
       },
     }))
-    get().invalidateStats(sprintId)
+    fetchSprintStats(sprintId)
+      .then((stats) => set((s) => ({ statsCache: { ...s.statsCache, [sprintId]: stats } })))
+      .catch(() => {})
   },
 
   editTicket: async (id, input) => {
     const updated = await updateTicket(id, input)
     set((s) => ({ ticketsBySprintId: patchTickets(s.ticketsBySprintId, id, updated) }))
-    get().invalidateStats(updated.sprintId)
+    fetchSprintStats(updated.sprintId)
+      .then((stats) => set((s) => ({ statsCache: { ...s.statsCache, [updated.sprintId]: stats } })))
+      .catch(() => {})
   },
 
   removeTicket: async (id) => {
-    // Find which sprint has this ticket for stats invalidation
     const cache = get().ticketsBySprintId
     let sprintId: number | null = null
     for (const key in cache) {
@@ -190,7 +193,12 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
       }
       return { ticketsBySprintId: next }
     })
-    if (sprintId) get().invalidateStats(sprintId)
+    if (sprintId) {
+      const sid = sprintId
+      fetchSprintStats(sid)
+        .then((stats) => set((s) => ({ statsCache: { ...s.statsCache, [sid]: stats } })))
+        .catch(() => {})
+    }
   },
 
   finishTicket: async (id) => {
@@ -201,7 +209,9 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
     try {
       const updated = await completeTicketApi(id)
       set((s) => ({ ticketsBySprintId: patchTickets(s.ticketsBySprintId, id, updated) }))
-      get().invalidateStats(updated.sprintId)
+      fetchSprintStats(updated.sprintId)
+        .then((stats) => set((s) => ({ statsCache: { ...s.statsCache, [updated.sprintId]: stats } })))
+        .catch(() => {})
     } catch {
       set({ ticketsBySprintId: prev })
       throw new Error('完了処理に失敗しました')
@@ -216,7 +226,9 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
     try {
       const updated = await reopenTicketApi(id)
       set((s) => ({ ticketsBySprintId: patchTickets(s.ticketsBySprintId, id, updated) }))
-      get().invalidateStats(updated.sprintId)
+      fetchSprintStats(updated.sprintId)
+        .then((stats) => set((s) => ({ statsCache: { ...s.statsCache, [updated.sprintId]: stats } })))
+        .catch(() => {})
     } catch {
       set({ ticketsBySprintId: prev })
       throw new Error('再オープンに失敗しました')
@@ -231,7 +243,9 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
     try {
       const updated = await updateTicket(ticketId, { status: newStatus })
       set((s) => ({ ticketsBySprintId: patchTickets(s.ticketsBySprintId, ticketId, updated) }))
-      get().invalidateStats(updated.sprintId)
+      fetchSprintStats(updated.sprintId)
+        .then((stats) => set((s) => ({ statsCache: { ...s.statsCache, [updated.sprintId]: stats } })))
+        .catch(() => {})
     } catch {
       set({ ticketsBySprintId: prev })
     }
@@ -268,8 +282,12 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
         next[updated.sprintId] = [...(next[updated.sprintId] ?? []), updated]
         return { ticketsBySprintId: next }
       })
-      if (oldSprintId) get().invalidateStats(oldSprintId)
-      get().invalidateStats(newSprintId)
+      const refreshIds = [...new Set([oldSprintId, updated.sprintId].filter(Boolean))] as number[]
+      for (const sid of refreshIds) {
+        fetchSprintStats(sid)
+          .then((stats) => set((s) => ({ statsCache: { ...s.statsCache, [sid]: stats } })))
+          .catch(() => {})
+      }
     } catch {
       set({ ticketsBySprintId: prev })
     }

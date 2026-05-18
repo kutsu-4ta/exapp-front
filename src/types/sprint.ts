@@ -4,6 +4,8 @@ export type SprintStatus = 'active' | 'completed'
 export type Sprint = {
   id: number
   name: string
+  goal: string | null
+  retrospective: string | null
   type: SprintType
   status: SprintStatus
   startDate: string | null
@@ -14,12 +16,14 @@ export type Sprint = {
 
 export type SprintInput = {
   name: string
+  goal?: string
   startDate: string
   endDate: string
 }
 
 export type SprintUpdateInput = {
   name?: string
+  goal?: string
   startDate?: string
   endDate?: string
 }

@@ -797,6 +797,8 @@ components:
       properties:
         id: { type: integer }
         name: { type: string }
+        goal: { type: string, nullable: true, maxLength: 500, description: 'スプリントのテーマ・ゴール' }
+        retrospective: { type: string, nullable: true, description: 'スプリント完了時の振り返り（Markdown）' }
         type: { $ref: '#/components/schemas/SprintType' }
         status: { $ref: '#/components/schemas/SprintStatus' }
         startDate: { type: string, format: date, nullable: true }
@@ -809,6 +811,7 @@ components:
       required: [ name, startDate, endDate ]
       properties:
         name: { type: string, maxLength: 100, example: '第1回スプリント' }
+        goal: { type: string, maxLength: 500, description: 'スプリントのテーマ・ゴール（任意）' }
         startDate: { type: string, format: date }
         endDate: { type: string, format: date }
 
@@ -816,6 +819,7 @@ components:
       type: object
       properties:
         name: { type: string, maxLength: 100 }
+        goal: { type: string, nullable: true, maxLength: 500 }
         startDate: { type: string, format: date }
         endDate: { type: string, format: date }
 
@@ -3164,11 +3168,21 @@ paths:
       description: |
         `status` を `completed` に変更し `completedAt` をセットする。
         バックログおよびすでに完了済みのスプリントには 422 を返す。
+        振り返り（`retrospective`）は必須。
       parameters:
         - name: id
           in: path
           required: true
           schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ retrospective ]
+              properties:
+                retrospective: { type: string, description: '振り返り（Markdown）' }
       responses:
         '200':
           description: 完了成功
