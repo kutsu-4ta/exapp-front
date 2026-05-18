@@ -15,13 +15,7 @@ import {
     confirmHeader,
     confirmRow,
     correctActive,
-    descriptiveTextarea,
     doubtBtn,
-    doubtBtnInline,
-    doubtRow,
-    excludeBtn,
-    excludeBtnActive,
-    generalMemoTextarea,
     incorrectActive,
     judgeBtn,
     judgeRow,
@@ -36,8 +30,6 @@ import {
     optionBtn,
     optionDisabled,
     optionExcluded,
-    optionLineRow,
-    optionMemoInput,
     optionRow,
     parentHeader,
     qBlock,
@@ -54,6 +46,7 @@ import {
     typeToggleRow,
     wrap,
 } from './PracticeAnswerView.styles'
+import {AnswerInputPanel} from '@/components/exam/AnswerInputPanel.tsx'
 import {AddProblemModal} from '../note/AddProblemModal.tsx'
 import {addProblem, updateProblem} from '@/lib/api/problem.ts'
 import type {ProblemInput} from '@/types/workspace.ts'
@@ -99,11 +92,11 @@ type Props = {
 }
 
 const ALPHA_MAP: Record<string, string> = {
-  ア: 'a',
-  イ: 'b',
-  ウ: 'c',
-  エ: 'd',
-  オ: 'e',
+  ア: 'A',
+  イ: 'B',
+  ウ: 'C',
+  エ: 'D',
+  オ: 'E',
 }
 
 function displayLabel(opt: string, isAlphabet: boolean) {
@@ -454,104 +447,23 @@ export function PracticeAnswerView({
                   </button>
                 </div>
 
-                {a.isDescriptive ? (
-                  /* 記述式: DoubtIcon + textarea */
-                  <div style={doubtRow}>
-                    <button
-                      onClick={() => update(i, { isDoubtful: !a.isDoubtful })}
-                      style={doubtBtnInline}
-                    >
-                      <DoubtIcon size={18} color={a.isDoubtful ? '#f2994a' : c.textFaint} />
-                    </button>
-                    <textarea
-                      style={descriptiveTextarea}
-                      placeholder="解答を記述..."
-                      value={a.descriptiveText}
-                      onChange={(e) => update(i, { descriptiveText: e.target.value })}
-                    />
-                  </div>
-                ) : (
-                  /* 選択式: 各選択肢行 + DoubtIcon */
-                  <>
-                    {ANSWER_OPTIONS.map((opt) => {
-                      const label = displayLabel(opt, a.isAlphabet)
-                      const isSelected = a.selectedOption === opt
-                      const isExcluded = a.excludedOptions.includes(opt)
-                      return (
-                        <div key={opt} style={optionLineRow}>
-                          {/* 記号ボタン */}
-                          <button
-                            style={{
-                              ...optionBtn,
-                              ...(isSelected ? optionActive : {}),
-                              ...(isExcluded && !isSelected ? optionExcluded : {}),
-                            }}
-                            onClick={() =>
-                              update(i, {
-                                selectedOption: isSelected ? '' : opt,
-                              })
-                            }
-                          >
-                            <span
-                              style={
-                                isExcluded && !isSelected ? { textDecoration: 'line-through' } : {}
-                              }
-                            >
-                              {label}
-                            </span>
-                          </button>
-
-                          {/* 斜線ボタン */}
-                          <button
-                            style={{
-                              ...excludeBtn,
-                              ...(isExcluded ? excludeBtnActive : {}),
-                            }}
-                            onClick={() => toggleExclude(i, opt)}
-                            title="消去法"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                              <line
-                                x1="1"
-                                y1="1"
-                                x2="11"
-                                y2="11"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          </button>
-
-                          {/* メモ入力 */}
-                          <input
-                            type="text"
-                            style={optionMemoInput}
-                            placeholder={`${label}のメモ`}
-                            value={a.memos[opt] ?? ''}
-                            onChange={(e) => updateMemo(i, opt, e.target.value)}
-                          />
-                        </div>
-                      )
-                    })}
-
-                    {/* DoubtIcon + 共通メモ */}
-                    <div style={doubtRow}>
-                      <button
-                        onClick={() => update(i, { isDoubtful: !a.isDoubtful })}
-                        style={doubtBtnInline}
-                      >
-                        <DoubtIcon size={18} color={a.isDoubtful ? '#f2994a' : c.textFaint} />
-                      </button>
-                      <textarea
-                        style={generalMemoTextarea}
-                        placeholder="メモ（選択肢に依存しない）"
-                        value={a.generalMemo}
-                        onChange={(e) => update(i, { generalMemo: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
+                <AnswerInputPanel
+                    isDescriptive={a.isDescriptive}
+                    isAlphabet={a.isAlphabet}
+                    selectedOption={a.selectedOption}
+                    excludedOptions={a.excludedOptions}
+                    memos={a.memos}
+                    isDoubtful={a.isDoubtful}
+                    generalMemo={a.generalMemo}
+                    descriptiveText={a.descriptiveText}
+                    onSelectOption={(opt) => update(i, { selectedOption: opt })}
+                    onToggleExclude={(opt) => toggleExclude(i, opt)}
+                    onUpdateMemo={(opt, text) => updateMemo(i, opt, text)}
+                    onToggleDoubtful={() => update(i, { isDoubtful: !a.isDoubtful })}
+                    onUpdateGeneralMemo={(text) => update(i, { generalMemo: text })}
+                    onUpdateDescriptiveText={(text) => update(i, { descriptiveText: text })}
+                    generalMemoPlaceholder="メモ（選択肢に依存しない）"
+                />
               </div>
             </div>
           )

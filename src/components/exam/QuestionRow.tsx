@@ -4,54 +4,42 @@ import {ANSWER_OPTIONS, RANKS} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {c} from '@/styles/notion.ts'
 import {
-  activeCorrect,
-  activeIncorrect,
-  alphabetToggleBtn,
-  alphabetToggleBtnActive,
-  answerGroup,
-  controlsContent,
-  descriptiveTextarea,
-  doubtBtn,
-  doubtBtnInline,
-  doubtRow,
-  excludeBtn,
-  excludeBtnActive,
-  generalMemoTextarea,
-  layoutContainer,
-  metaGroup,
-  miniLabel,
-  myAnswerDisplay,
-  noteInput,
-  optionActive,
-  optionBtn,
-  optionExcluded,
-  optionLineRow,
-  optionMemoInput,
-  optionRightGroup,
-  parentStyle,
-  pointInput,
-  qNumberHeader,
-  qNumberParent,
-  qNumberSub,
-  questionItem,
-  questionTypeActive,
-  questionTypeBtn,
-  questionTypeToggle,
-  rankBadge,
-  rankColors,
-  scoringBtnGroup,
-  scoringGroup,
-  scoringMeta,
-  scoringRow,
-  sideBtn,
-  sideControl,
-  statusBtn,
-  subStyle,
-  timeValue,
-  typeToggleActive,
-  typeToggleBtn,
-  typeToggleColumn,
+    activeCorrect,
+    activeIncorrect,
+    alphabetToggleBtn,
+    alphabetToggleBtnActive,
+    controlsContent,
+    doubtBtn,
+    layoutContainer,
+    metaGroup,
+    miniLabel,
+    myAnswerDisplay,
+    noteInput,
+    parentStyle,
+    pointInput,
+    qNumberHeader,
+    qNumberParent,
+    qNumberSub,
+    questionItem,
+    questionTypeActive,
+    questionTypeBtn,
+    questionTypeToggle,
+    rankBadge,
+    rankColors,
+    scoringBtnGroup,
+    scoringGroup,
+    scoringMeta,
+    scoringRow,
+    sideBtn,
+    sideControl,
+    statusBtn,
+    subStyle,
+    timeValue,
+    typeToggleActive,
+    typeToggleBtn,
+    typeToggleColumn,
 } from './QuestionRow.styles'
+import {AnswerInputPanel} from './AnswerInputPanel'
 
 function formatMs(ms: number | undefined): string {
   if (ms === undefined) return '--:--'
@@ -233,289 +221,67 @@ export function QuestionRow({
   )
 }
 
-const ALPHA_MAP: Record<string, string> = {
-  ア: 'A',
-  イ: 'B',
-  ウ: 'C',
-  エ: 'D',
-  オ: 'E',
-}
-
-const ALPHABET_OPTIONS = ['A', 'B', 'C', 'D', 'E'] as const
-
 function AnswerControls({
-  q,
-  onUpdate,
-  isDescriptive,
-  isAlphabet,
+    q,
+    onUpdate,
+    isDescriptive,
+    isAlphabet,
 }: {
-  q: QuestionDraft
-  onUpdate: (p: Partial<QuestionDraft>) => void
-  isDescriptive: boolean
-  isAlphabet: boolean
+    q: QuestionDraft
+    onUpdate: (p: Partial<QuestionDraft>) => void
+    isDescriptive: boolean
+    isAlphabet: boolean
 }) {
-  const memos = q.memos ?? {}
-  const excludedOptions = q.excludedOptions ?? []
+    const memos = q.memos ?? {}
+    const excludedOptions = q.excludedOptions ?? []
 
-  const toggleExclude = (opt: string) => {
-    const already = excludedOptions.includes(opt)
+    const toggleExclude = (opt: string) => {
+        const already = excludedOptions.includes(opt)
+        const appendText = '（×）'
+        const currentMemo = memos[opt] ?? ''
 
-    const appendText = '（×）'
+        if (already) {
+            const cleanedMemo = currentMemo
+                .replace(new RegExp(`\\s*${appendText}\\s*`), ' ')
+                .trim()
+            onUpdate({
+                excludedOptions: excludedOptions.filter((o) => o !== opt),
+                memos: { ...memos, [opt]: cleanedMemo },
+            })
+            return
+        }
 
-    const currentMemo = memos[opt] ?? ''
+        const nextMemo = currentMemo.includes(appendText)
+            ? currentMemo
+            : currentMemo
+                ? `${currentMemo} ${appendText}`
+                : appendText
 
-    if (already) {
-      const cleanedMemo = currentMemo.replace(new RegExp(`\\s*${appendText}\\s*`), ' ').trim()
-
-      onUpdate({
-        excludedOptions: excludedOptions.filter((o) => o !== opt),
-        memos: {
-          ...memos,
-          [opt]: cleanedMemo,
-        },
-      })
-      return
+        onUpdate({
+            excludedOptions: [...excludedOptions, opt],
+            memos: { ...memos, [opt]: nextMemo },
+        })
     }
 
-    const nextMemo = currentMemo.includes(appendText)
-      ? currentMemo
-      : currentMemo
-        ? `${currentMemo} ${appendText}`
-        : appendText
-
-    onUpdate({
-      excludedOptions: [...excludedOptions, opt],
-      memos: {
-        ...memos,
-        [opt]: nextMemo,
-      },
-    })
-  }
-
-  const label = (opt: string) => (isAlphabet ? (ALPHA_MAP[opt] ?? opt) : opt)
-
-  return (
-    <div style={answerGroup}>
-      {isDescriptive ? (
-        <div style={doubtRow}>
-          <button
-            type="button"
-            onClick={() =>
-              onUpdate({
-                isDoubtful: !q.isDoubtful,
-              })
-            }
-            style={doubtBtnInline}
-          >
-            <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
-          </button>
-
-          <textarea
-            style={{
-              ...descriptiveTextarea,
-              fontSize: 16,
-              touchAction: 'manipulation',
-            }}
-            rows={2}
-            placeholder="解答を記述..."
-            value={q.myAnswer}
-            onFocus={(e) => focusFix(e.currentTarget)}
-            onChange={(e) => {
-              onUpdate({
-                myAnswer: e.target.value,
-              })
-
-              e.target.style.height = 'auto'
-              e.target.style.height = `${e.target.scrollHeight}px`
-            }}
-          />
-        </div>
-      ) : (
-        <>
-          {isAlphabet ? (
-            <>
-              {/* A〜E 消去法メモ行 */}
-              {ALPHABET_OPTIONS.map((alpha) => {
-                const isExcluded = excludedOptions.includes(alpha)
-                return (
-                  <div
-                    key={`alpha-row-${alpha}`}
-                    style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}
-                  >
-                    <button
-                      type="button"
-                      style={{
-                        ...optionBtn,
-                        ...excludeBtn,
-                        ...(isExcluded ? excludeBtnActive : {}),
-                        marginRight: '10px',
-                        minWidth: '40px',
-                      }}
-                      onClick={() => toggleExclude(alpha)}
-                    >
-                      <span style={isExcluded ? { textDecoration: 'line-through' } : {}}>
-                        {alpha}
-                      </span>
-                    </button>
-                    <div style={optionRightGroup}>
-                      <input
-                        type="text"
-                        style={{ ...optionMemoInput, fontSize: 16 }}
-                        placeholder={`${alpha}のメモ`}
-                        value={memos[alpha] ?? ''}
-                        onFocus={(e) => focusFix(e.currentTarget)}
-                        onChange={(e) =>
-                          onUpdate({
-                            memos: { ...memos, [alpha]: e.target.value },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-              {/* 回答ボタン（ア〜オ）横並び */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                {ANSWER_OPTIONS.map((opt) => {
-                  const isSelected = q.myAnswer === opt
-                  const isExcluded = excludedOptions.includes(opt)
-                  return (
-                    <button
-                      key={`ans-${opt}`}
-                      type="button"
-                      style={{
-                        ...optionBtn,
-                        ...(isSelected ? optionActive : {}),
-                        ...(isExcluded && !isSelected ? optionExcluded : {}),
-                      }}
-                      onClick={() => onUpdate({ myAnswer: isSelected ? '' : opt })}
-                    >
-                      <span>{opt}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            ANSWER_OPTIONS.map((opt) => {
-              const isSelected = q.myAnswer === opt
-
-              const isExcluded = excludedOptions.includes(opt)
-
-              return (
-                <div key={opt} style={optionLineRow}>
-                  <button
-                    type="button"
-                    style={{
-                      ...optionBtn,
-                      ...(isSelected ? optionActive : {}),
-                      ...(isExcluded && !isSelected ? optionExcluded : {}),
-                      marginRight: '10px',
-                    }}
-                    onClick={() =>
-                      onUpdate({
-                        myAnswer: isSelected ? '' : opt,
-                      })
-                    }
-                  >
-                    <span
-                      style={
-                        isExcluded && !isSelected
-                          ? {
-                              textDecoration: 'line-through',
-                            }
-                          : {}
-                      }
-                    >
-                      {label(opt)}
-                    </span>
-                  </button>
-
-                  <div style={optionRightGroup}>
-                    <button
-                      type="button"
-                      style={{
-                        ...excludeBtn,
-                        ...(isExcluded ? excludeBtnActive : {}),
-                      }}
-                      onClick={() => toggleExclude(opt)}
-                      title="消去法"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <line
-                          x1="2"
-                          y1="2"
-                          x2="12"
-                          y2="12"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
-
-                    <input
-                      type="text"
-                      style={{
-                        ...optionMemoInput,
-                        fontSize: 16,
-                      }}
-                      placeholder={`${label(opt)}のメモ`}
-                      value={memos[opt] ?? ''}
-                      onFocus={(e) => focusFix(e.currentTarget)}
-                      onChange={(e) =>
-                        onUpdate({
-                          memos: {
-                            ...memos,
-                            [opt]: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              )
-            })
-          )}
-
-          <div style={doubtRow}>
-            <button
-              type="button"
-              onClick={() =>
-                onUpdate({
-                  isDoubtful: !q.isDoubtful,
-                })
-              }
-              style={doubtBtnInline}
-            >
-              <DoubtIcon size={18} color={q.isDoubtful ? '#f2994a' : c.textFaint} />
-            </button>
-
-            <textarea
-              style={{
-                ...generalMemoTextarea,
-                fontSize: 16,
-              }}
-              placeholder="メモ"
-              value={q.note ?? ''}
-              onFocus={(e) => focusFix(e.currentTarget)}
-              onChange={(e) =>
-                onUpdate({
-                  note: e.target.value,
-                })
-              }
-            />
-          </div>
-        </>
-      )}
-    </div>
-  )
+    return (
+        <AnswerInputPanel
+            isDescriptive={isDescriptive}
+            isAlphabet={isAlphabet}
+            selectedOption={q.myAnswer}
+            excludedOptions={excludedOptions}
+            memos={memos}
+            isDoubtful={q.isDoubtful}
+            generalMemo={q.note ?? ''}
+            descriptiveText={q.myAnswer}
+            onSelectOption={(opt) => onUpdate({ myAnswer: opt })}
+            onToggleExclude={toggleExclude}
+            onUpdateMemo={(opt, text) => onUpdate({ memos: { ...memos, [opt]: text } })}
+            onToggleDoubtful={() => onUpdate({ isDoubtful: !q.isDoubtful })}
+            onUpdateGeneralMemo={(text) => onUpdate({ note: text })}
+            onUpdateDescriptiveText={(text) => onUpdate({ myAnswer: text })}
+            onFocus={focusFix}
+        />
+    )
 }
 
 function ScoringControls({
