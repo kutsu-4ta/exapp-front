@@ -4,6 +4,7 @@ import {fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {StatusCopyModal} from '../common/StatusCopyModal'
+import {ExamToTicketsModal} from './ExamToTicketsModal'
 
 interface SubjectDetailViewProps {
   subject: string
@@ -22,6 +23,8 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
   const [copied, setCopied] = useState(false)
+  const [ticketsModalOpen, setTicketsModalOpen] = useState(false)
+  const [ticketCreatedMsg, setTicketCreatedMsg] = useState<string | null>(null)
 
   const handleSessionTap = async (sessionId: number) => {
     setSessionLoading(true)
@@ -184,6 +187,15 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {selectedSession.questions.length > 0 && (
+                      <button
+                        style={ticketizeBtn}
+                        onClick={() => setTicketsModalOpen(true)}
+                        title="チケット一括生成"
+                      >
+                        + チケット化
+                      </button>
+                    )}
                     <button
                       style={copyIconBtn}
                       onClick={() => setCopyModalOpen(true)}
@@ -254,6 +266,22 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
           onCopy={handleCopy}
           onClose={() => setCopyModalOpen(false)}
         />
+      )}
+
+      {ticketsModalOpen && selectedSession && (
+        <ExamToTicketsModal
+          session={selectedSession}
+          onClose={() => setTicketsModalOpen(false)}
+          onCreated={(count) => {
+            setTicketsModalOpen(false)
+            setTicketCreatedMsg(`${count}件のチケットをバックログに追加しました`)
+            setTimeout(() => setTicketCreatedMsg(null), 3000)
+          }}
+        />
+      )}
+
+      {ticketCreatedMsg && (
+        <div style={toastMsg}>{ticketCreatedMsg}</div>
       )}
     </div>
   )
@@ -394,7 +422,7 @@ const editSessionBtn: React.CSSProperties = {
 const modalOverlay: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
-  zIndex: 300,
+  zIndex: 1001,
   background: 'rgba(0,0,0,0.45)',
   display: 'flex',
   alignItems: 'flex-end',
@@ -478,6 +506,32 @@ const modalQNote: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
+}
+const ticketizeBtn: React.CSSProperties = {
+  padding: '4px 10px',
+  border: '1px solid rgba(35,131,226,0.35)',
+  borderRadius: '6px',
+  background: 'rgba(35,131,226,0.08)',
+  color: '#2383e2',
+  fontSize: '11px',
+  fontWeight: 700,
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+}
+const toastMsg: React.CSSProperties = {
+  position: 'fixed',
+  bottom: 'calc(80px + env(safe-area-inset-bottom))',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  background: '#37352f',
+  color: '#fff',
+  padding: '10px 18px',
+  borderRadius: '20px',
+  fontSize: '12px',
+  fontWeight: 700,
+  zIndex: 500,
+  whiteSpace: 'nowrap',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
 }
 const modalQResult = (isCorrect: boolean | null): React.CSSProperties => ({
   fontSize: '13px',

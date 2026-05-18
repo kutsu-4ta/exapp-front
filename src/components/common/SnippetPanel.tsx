@@ -109,7 +109,7 @@ export function SnippetPanel({ open, onClose, topbarHeight }: Props) {
           top: topbarHeight,
           left: 0,
           right: 0,
-          zIndex: 999,
+          zIndex: 1002,
           backgroundColor: 'rgba(255,255,255,0.97)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
@@ -277,7 +277,7 @@ export function SnippetPanel({ open, onClose, topbarHeight }: Props) {
       {/* Backdrop */}
       {open && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 998 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1001 }}
           onClick={onClose}
         />
       )}
