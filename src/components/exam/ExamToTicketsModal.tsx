@@ -3,6 +3,7 @@ import type {ExamQuestion, ExamSession, Rank} from '../../types/exam'
 import {RANKS} from '../../types/exam'
 import {createTicket, fetchSprints} from '../../lib/api/sprint'
 import type {Sprint, TicketPriority} from '../../types/sprint'
+import {useSprintStore} from '../../lib/store/sprintStore'
 import {fetchSubCategories} from '../../lib/api/subcategory'
 import type {SubCategory} from '../../types/workspace'
 import {LoadingSpinner} from '../common/LoadingSpinner'
@@ -49,6 +50,7 @@ function buildCriteria(rank: Rank, questions: ExamQuestion[]): string {
 }
 
 export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
+  const loadTickets = useSprintStore((s) => s.loadTickets)
   const [sprints, setSprints] = useState<Sprint[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [sprintsLoading, setSprintsLoading] = useState(true)
@@ -145,6 +147,7 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
       )
       setCreatedCount(selectedGroups.length)
       setDone(true)
+      loadTickets(backlogSprint.id).catch(() => {})
     } catch (e) {
       console.error(e)
     } finally {
@@ -182,9 +185,12 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
           margin: '-8px auto 16px',
         }} />
 
-        <h3 style={{ margin: '0 0 4px', fontSize: font.md, fontWeight: 700, color: c.text }}>
-          チケット一括生成
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+          <h3 style={{ margin: 0, fontSize: font.md, fontWeight: 700, color: c.text }}>
+            チケット一括生成
+          </h3>
+          <button onClick={onClose} style={closeBtn} aria-label="閉じる">×</button>
+        </div>
         <p style={{ margin: '0 0 20px', fontSize: font.sm, color: c.textHint }}>
           {session.subject} — {session.examYear}
         </p>
@@ -446,6 +452,17 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
       </div>
     </div>
   )
+}
+
+const closeBtn: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: '18px',
+  color: 'rgba(55,53,47,0.4)',
+  lineHeight: 1,
+  padding: '0 2px',
+  flexShrink: 0,
 }
 
 const btnPrimary: React.CSSProperties = {

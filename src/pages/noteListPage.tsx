@@ -8,6 +8,7 @@ import {getCached, invalidateCache, setCached} from '../lib/pageCache'
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {FilterPill} from '../components/note/FilterPill'
 import {AddProblemModal} from '../components/note/AddProblemModal'
+import {NoteToTicketsModal} from '../components/note/NoteToTicketsModal'
 import {c, font, pageHeading} from '../styles/notion'
 import {useNavigate, useSearchParams} from "react-router-dom";
 import type {DegBugfixConfig} from "@/lib/api/morningQuiz.ts";
@@ -58,6 +59,7 @@ export default function NoteListPage() {
   const setFilterFailureType = (v: FailureType | 'all') =>
     setSearchParams((p) => { const n = new URLSearchParams(p); v === 'all' ? n.delete('failureType') : n.set('failureType', v); return n }, { replace: true })
 
+  const [showNoteToTickets, setShowNoteToTickets] = useState(false)
   const [showDegConfig, setShowDegConfig] = useState(false)
   const handleDegStart = (config: DegBugfixConfig) => {
     setShowDegConfig(false)
@@ -195,6 +197,11 @@ export default function NoteListPage() {
           >
             <h1 style={{ ...pageHeading, marginBottom: 0 }}>Note</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {grouped.flatMap((g) => g.items).length > 0 && (
+                <button style={ticketizeBtn} onClick={() => setShowNoteToTickets(true)}>
+                  チケット化 ({grouped.flatMap((g) => g.items).length})
+                </button>
+              )}
               <button style={degBugfixBtn} onClick={() => setShowDegConfig(true)}>
                 ★ DegBugfix
               </button>
@@ -358,6 +365,17 @@ export default function NoteListPage() {
           </svg>
         </button>
       )}
+      {showNoteToTickets && (
+        <NoteToTicketsModal
+          problems={grouped.flatMap((g) => g.items)}
+          allSubCategories={subCategories}
+          onClose={() => setShowNoteToTickets(false)}
+          onCreated={(count) => {
+            setShowNoteToTickets(false)
+            console.log(`${count}件のチケットを作成しました`)
+          }}
+        />
+      )}
       {showDegConfig && (
         <DegBugfixConfigModal
           subjects={subjects}
@@ -368,6 +386,17 @@ export default function NoteListPage() {
       )}
     </div>
   )
+}
+
+const ticketizeBtn: React.CSSProperties = {
+  padding: '5px 10px',
+  backgroundColor: 'rgba(35,131,226,0.08)',
+  color: c.blue,
+  border: '1px solid rgba(35,131,226,0.2)',
+  borderRadius: '6px',
+  fontSize: '11px',
+  fontWeight: 700,
+  cursor: 'pointer',
 }
 
 const degBugfixBtn: React.CSSProperties = {

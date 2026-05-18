@@ -39,7 +39,7 @@ function MultipleChoiceView({
   const themeKey = isDeg ? 'deg' : 'flash'
   const navigate = useNavigate()
   const session = useQuizSession(quizSessionMode)
-  const {phase, setPhase, startTimeRef} = session
+  const {phase, setPhase, startTimeRef, results} = session
 
   const handleComplete = async () => {
     if (phase === 'saving') return
@@ -47,15 +47,35 @@ function MultipleChoiceView({
     try {
       const elapsedMs = Date.now() - startTimeRef.current
       const totalMinutes = Math.max(1, Math.ceil(elapsedMs / 60_000))
-      await addStudySession({
-        dailyLogDate: todayString(),
-        subject: subjectName,
-        material: isDeg ? 'DegBugfix' : 'FlashBugfix',
-        subCategory: null,
-        minutes: totalMinutes,
-        timeSlot: currentTimeSlot(),
-        memo: null,
-      })
+      const timeSlot = currentTimeSlot()
+
+      if (isDeg && !degConfig?.subject) {
+        const uniqueSubjects = [...new Set(results.map((r) => r.question.subject))]
+        const minutesPerSubject = Math.max(1, Math.ceil(totalMinutes / uniqueSubjects.length))
+        await Promise.all(
+          uniqueSubjects.map((subject) =>
+            addStudySession({
+              dailyLogDate: todayString(),
+              subject,
+              material: 'DegBugfix',
+              subCategory: null,
+              minutes: minutesPerSubject,
+              timeSlot,
+              memo: null,
+            })
+          )
+        )
+      } else {
+        await addStudySession({
+          dailyLogDate: todayString(),
+          subject: subjectName,
+          material: isDeg ? 'DegBugfix' : 'FlashBugfix',
+          subCategory: null,
+          minutes: totalMinutes,
+          timeSlot,
+          memo: null,
+        })
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -130,7 +150,7 @@ function WordCardView({
 function DegWordCardView({degConfig}: {degConfig: DegBugfixConfig}) {
   const navigate = useNavigate()
   const cardSession = useFlashCardSession(() => fetchDegWordCard(degConfig))
-  const {phase, setPhase, startTimeRef} = cardSession
+  const {phase, setPhase, startTimeRef, results} = cardSession
 
   const handleComplete = async () => {
     if (phase === 'saving') return
@@ -138,15 +158,35 @@ function DegWordCardView({degConfig}: {degConfig: DegBugfixConfig}) {
     try {
       const elapsedMs = Date.now() - startTimeRef.current
       const totalMinutes = Math.max(1, Math.ceil(elapsedMs / 60_000))
-      await addStudySession({
-        dailyLogDate: todayString(),
-        subject: degConfig.subject ?? 'すべての科目',
-        material: 'DegBugfix',
-        subCategory: null,
-        minutes: totalMinutes,
-        timeSlot: currentTimeSlot(),
-        memo: null,
-      })
+      const timeSlot = currentTimeSlot()
+
+      if (!degConfig.subject) {
+        const uniqueSubjects = [...new Set(results.map((r) => r.question.subject))]
+        const minutesPerSubject = Math.max(1, Math.ceil(totalMinutes / uniqueSubjects.length))
+        await Promise.all(
+          uniqueSubjects.map((subject) =>
+            addStudySession({
+              dailyLogDate: todayString(),
+              subject,
+              material: 'DegBugfix',
+              subCategory: null,
+              minutes: minutesPerSubject,
+              timeSlot,
+              memo: null,
+            })
+          )
+        )
+      } else {
+        await addStudySession({
+          dailyLogDate: todayString(),
+          subject: degConfig.subject,
+          material: 'DegBugfix',
+          subCategory: null,
+          minutes: totalMinutes,
+          timeSlot,
+          memo: null,
+        })
+      }
     } catch (e) {
       console.error(e)
     } finally {

@@ -1,6 +1,7 @@
-import type {DragEndEvent} from '@dnd-kit/core'
-import {DndContext, useDraggable, useDroppable} from '@dnd-kit/core'
+import type {DragEndEvent, DragStartEvent} from '@dnd-kit/core'
+import {DndContext, DragOverlay, useDraggable, useDroppable} from '@dnd-kit/core'
 import {CSS} from '@dnd-kit/utilities'
+import {useState} from 'react'
 import type {StudyTicket, TicketStatus} from '../../types/sprint'
 import {TicketCard} from './TicketCard'
 import {c, font} from '../../styles/notion'
@@ -30,7 +31,7 @@ function DraggableCard({
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.45 : 1,
+    opacity: isDragging ? 0 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',
     touchAction: 'none',
   }
@@ -75,7 +76,6 @@ function KanbanColumn({
               : 'rgba(55,53,47,0.02)'
           : 'rgba(55,53,47,0.015)',
         transition: 'border-color 0.15s, background 0.15s',
-        overflow: 'hidden',
       }}
     >
       {/* Column header */}
@@ -150,7 +150,15 @@ function KanbanColumn({
 }
 
 export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
+  const [activeTicket, setActiveTicket] = useState<StudyTicket | null>(null)
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const ticketId = Number(event.active.id)
+    setActiveTicket(tickets.find((t) => t.id === ticketId) ?? null)
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveTicket(null)
     const { active, over } = event
     if (!over) return
     const ticketId = Number(active.id)
@@ -162,7 +170,7 @@ export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
   }
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         style={{
           display: 'flex',
@@ -182,6 +190,13 @@ export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
           />
         ))}
       </div>
+      <DragOverlay>
+        {activeTicket ? (
+          <div style={{ cursor: 'grabbing', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', borderRadius: 8 }}>
+            <TicketCard ticket={activeTicket} compact />
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   )
 }

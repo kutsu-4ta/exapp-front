@@ -69,7 +69,7 @@ export function TopBar() {
         style={{
           position: 'sticky',
           top: 0,
-          zIndex: 1000,
+          zIndex: 1200,
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
