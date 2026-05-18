@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
+import {getCached, setCached} from '../lib/pageCache'
 import {useAuthStore} from '../lib/store/auth'
 import {useSettingsStore} from '../lib/store/settings'
 import {logout as apiLogout} from '../lib/api/authenticate'
@@ -55,32 +56,58 @@ export default function ProfilePage() {
 
   // Initial Load
   useEffect(() => {
-    const loadProfile = async () => {
-      setProfileLoading(true)
-      try {
-        const data = await fetchUserProfile()
-        if (data) {
-          setNickname(data.nickname || '')
-          setOccupation(data.occupation || '')
-          setGoal(data.goal || '')
-          setWeakAreas(data.weakAreas || '')
-          setStrongAreas(data.strongAreas || '')
-          setInterests(data.interests || '')
-          setIsTokenRegistered(data.geminiTokenSet)
-        }
-      } catch (e) {
-        setProfileError(e instanceof Error ? e.message : '読み込みに失敗しました')
-      } finally {
-        setProfileLoading(false)
-      }
+    type ProfileCache = { nickname: string; occupation: string; goal: string; weakAreas: string; strongAreas: string; interests: string; geminiTokenSet: boolean }
+
+    const applyProfile = (data: ProfileCache) => {
+      setNickname(data.nickname)
+      setOccupation(data.occupation)
+      setGoal(data.goal)
+      setWeakAreas(data.weakAreas)
+      setStrongAreas(data.strongAreas)
+      setInterests(data.interests)
+      setIsTokenRegistered(data.geminiTokenSet)
     }
 
-    loadProfile()
+    // キャッシュがあればフォームを即表示
+    const cachedProfile = getCached<ProfileCache>('profile-data')
+    if (cachedProfile) {
+      applyProfile(cachedProfile)
+      setProfileLoading(false)
+    } else {
+      setProfileLoading(true)
+    }
+
+    fetchUserProfile()
+      .then((data) => {
+        if (data) {
+          const profileCache: ProfileCache = {
+            nickname: data.nickname || '',
+            occupation: data.occupation || '',
+            goal: data.goal || '',
+            weakAreas: data.weakAreas || '',
+            strongAreas: data.strongAreas || '',
+            interests: data.interests || '',
+            geminiTokenSet: data.geminiTokenSet,
+          }
+          applyProfile(profileCache)
+          setCached('profile-data', profileCache)
+        }
+      })
+      .catch((e) => setProfileError(e instanceof Error ? e.message : '読み込みに失敗しました'))
+      .finally(() => setProfileLoading(false))
+
+    // Gemini設定もキャッシュ付き並列フェッチ
+    const cachedGemini = getCached<{ geminiModel: GeminiModel }>('profile-gemini-settings')
+    if (cachedGemini?.geminiModel) {
+      setGeminiModel(cachedGemini.geminiModel)
+      setActiveModel(cachedGemini.geminiModel as AiModel)
+    }
     fetchGeminiSettings()
       .then((s) => {
         if (s.geminiModel) {
           setGeminiModel(s.geminiModel)
           setActiveModel(s.geminiModel as AiModel)
+          setCached('profile-gemini-settings', { geminiModel: s.geminiModel })
         }
       })
       .catch(() => {})
@@ -111,6 +138,7 @@ export default function ProfilePage() {
         strongAreas,
         interests,
       })
+      setCached('profile-data', { nickname, occupation, goal, weakAreas, strongAreas, interests, geminiTokenSet: isTokenRegistered })
       setProfileSaved(true)
       setTimeout(() => setProfileSaved(false), 2000)
     } catch (e) {

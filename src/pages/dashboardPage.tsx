@@ -78,7 +78,10 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
   const [alertItems, setAlertItems] = useState<AlertStatusItem[]>([])
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [todayLogLoading, setTodayLogLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
+  // 後方互換: スケルトン表示制御に使う
+  const isInitialLoading = todayLogLoading
 
   // 前日未完了バナー（4時以降のみ）
   const isPastCutoff = now.getHours() >= 4
@@ -92,6 +95,7 @@ export default function DashboardPage() {
   const [chartTargetMin, setChartTargetMin] = useState(140)
   const [chartTargetMax, setChartTargetMax] = useState(180)
   const [chartLoading, setChartLoading] = useState(false)
+  const [chartReady, setChartReady] = useState(false)
 
   // Inline goal editor for chart month
   const [isEditingChartGoal, setIsEditingChartGoal] = useState(false)
@@ -101,43 +105,55 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const todayKey = `dashboard-today-log-${todayString()}`
-    const cachedStats = getCached<DashboardStats>('dashboard-stats')
-    const cachedTodayLog = getCached<DailyLog>(todayKey)
-
-    if (cachedStats) setStats(cachedStats)
-    if (cachedTodayLog) setTodayLog(cachedTodayLog)
-
-    // キャッシュがある場合でも初期ローディング状態は一度解除する
-    if (cachedStats && cachedTodayLog) setIsInitialLoading(false)
-
-    // 前日の暦日付（4時以降のみ使用）
     const calendarYesterday = (() => {
       const d = new Date()
       d.setDate(d.getDate() - 1)
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     })()
 
+    // Phase 1: TODAY カード — キャッシュがあれば即表示、同時にバックグラウンド更新
+    const cachedTodayLog = getCached<DailyLog>(todayKey)
+    if (cachedTodayLog) {
+      setTodayLog(cachedTodayLog)
+      setTodayLogLoading(false)
+    }
+    fetchDailyLog(todayString())
+      .then((log) => {
+        setTodayLog(log)
+        setCached(todayKey, log)
+      })
+      .catch(console.error)
+      .finally(() => setTodayLogLoading(false))
+
+    // Phase 2: 重い集計・アラート — TODAY カードをブロックせず並列実行
+    const cachedStats = getCached<DashboardStats>('dashboard-stats')
+    if (cachedStats) {
+      setStats(cachedStats)
+      setStatsLoading(false)
+    }
     Promise.all([
       fetchDashboardStats(),
-      fetchDailyLog(todayString()),
       fetchAlertStatus(),
       isPastCutoff ? fetchDailyLog(calendarYesterday) : Promise.resolve(null),
     ])
-      .then(([s, log, alert, prevLog]) => {
+      .then(([s, alert, prevLog]) => {
         setStats(s)
         setCached('dashboard-stats', s)
-        setTodayLog(log)
-        setCached(todayKey, log)
         setAlertItems(alert)
         if (prevLog && !prevLog.isCompleted && prevLog.totalMinutes > 0) {
           setPrevDayLog(prevLog)
         }
       })
       .catch(console.error)
-      .finally(() => setIsInitialLoading(false))
+      .finally(() => setStatsLoading(false))
+
+    // Phase 3: チャートは初期レンダー後に遅延起動し、Phase1/2 と競合しない
+    const chartTimer = setTimeout(() => setChartReady(true), 0)
+    return () => clearTimeout(chartTimer)
   }, [])
 
   useEffect(() => {
+    if (!chartReady) return
     const cacheKey = `dashboard-monthly-${chartYear}-${chartMonth}`
     type MonthlyCache = {
       logs: DailyLogSummary[]
@@ -169,7 +185,7 @@ export default function DashboardPage() {
       })
       .catch(console.error)
       .finally(() => setChartLoading(false))
-  }, [chartYear, chartMonth])
+  }, [chartReady, chartYear, chartMonth])
 
   const handleCompletePrevDay = async () => {
     if (!prevDayLog) return
@@ -523,7 +539,7 @@ export default function DashboardPage() {
 
         {/* 統計カード */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          {isInitialLoading ? (
+          {statsLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="p-4 rounded-xl border border-[rgba(55,53,47,0.06)] space-y-2">
                 <Skeleton className="h-3 w-12" />
@@ -686,7 +702,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {isInitialLoading ? (
+        {statsLoading ? (
           <div className="mb-10 space-y-4">
             <Skeleton className="h-4 w-32" />
             <div className="grid grid-cols-1 gap-2">

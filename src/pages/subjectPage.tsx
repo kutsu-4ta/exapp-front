@@ -1,5 +1,6 @@
 import {useNavigate, useParams} from "react-router-dom";
 import {useEffect, useState} from "react";
+import {getCached, setCached} from "@/lib/pageCache";
 import {
     deleteSubject,
     fetchFlashcards,
@@ -90,29 +91,59 @@ export default function SubjectPage() {
         }
     }
 
+    // Phase 1: settings — キャッシュで即表示、バックグラウンド更新
     useEffect(() => {
-        setGoalLoading(true)
-
-        fetchSubjectMonthlyGoal(subjectName, viewYear, viewMonth)
-            .then((g) => setMonthlyGoal(g.goal ?? ''))
-            .finally(() => setGoalLoading(false))
-    }, [subjectName, viewYear, viewMonth])
-
-    useEffect(() => {
+        const cacheKey = `subject-settings-${subjectName}`
+        const cached = getCached<SubjectSettings>(cacheKey)
+        if (cached) {
+            setSettings(cached)
+            setSubjectColor(subjectName, cached.themeColor)
+            setSettingsLoaded(true)
+        }
         fetchSubjectSettings(subjectName)
             .then((s) => {
                 setSettings(s)
                 setSubjectColor(subjectName, s.themeColor)
                 setSettingsLoaded(true)
+                setCached(cacheKey, s)
             })
             .catch(() => setSettingsLoaded(true))
-    }, [subjectName])
 
-    useEffect(() => {
+        // Phase 3: alert settings — モーダル専用、独立実行
         fetchSubjectAlertSettings(subjectName)
             .then((s) => setLocalSubjectAlertSettings(s))
             .catch(() => {})
+
+        // Phase 4: flashcards — スクロール下部、初期レンダー後に遅延起動
+        const timer = setTimeout(() => {
+            setStatsLoading(true)
+            fetchFlashcards(subjectName, 500)
+                .then((cards) => setFlashcards(cards as Flashcard[]))
+                .catch(() => {})
+                .finally(() => setStatsLoading(false))
+        }, 0)
+        return () => clearTimeout(timer)
     }, [subjectName])
+
+    // Phase 2: monthly goal — 月切り替えのたびにキャッシュ付き再フェッチ
+    useEffect(() => {
+        const cacheKey = `subject-goal-${subjectName}-${viewYear}-${viewMonth}`
+        const cached = getCached<string>(cacheKey)
+        if (cached !== null) {
+            setMonthlyGoal(cached)
+            setGoalLoading(false)
+        } else {
+            setGoalLoading(true)
+        }
+        fetchSubjectMonthlyGoal(subjectName, viewYear, viewMonth)
+            .then((g) => {
+                const goal = g.goal ?? ''
+                setMonthlyGoal(goal)
+                setCached(cacheKey, goal)
+            })
+            .catch(() => {})
+            .finally(() => setGoalLoading(false))
+    }, [subjectName, viewYear, viewMonth])
 
     const handleAlertSave = async () => {
         setAlertSaving(true)
@@ -129,17 +160,6 @@ export default function SubjectPage() {
         }
     }
 
-    useEffect(() => {
-        setStatsLoading(true)
-        Promise.all([
-            // fetchSubjectStats(subjectName).catch(() => null),
-            fetchFlashcards(subjectName, 500).catch(() => []),
-        ]).then(([cards]) => {
-            // setExamStats(stats as ExamSubjectStats | null)
-            setFlashcards(cards as Flashcard[])
-            setStatsLoading(false)
-        })
-    }, [subjectName])
 
     const handlePrepareStats = async () => {
         if (statsCopying) return
