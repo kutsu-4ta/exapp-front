@@ -1,5 +1,6 @@
 import type {StudySession, StudySessionInput, SubCategory} from '../../types/workspace'
 import {useSettingsStore} from '../../lib/store/settings'
+import {useWorkspaceDraftStore} from '../../lib/store/workspaceDraft'
 import {useEffect, useId, useRef, useState} from 'react'
 import {
     contentLayout,
@@ -10,9 +11,12 @@ import {
     inputGroup,
     materialText,
     memoText,
+    notionDisabledSaveBtn,
     notionMainInp,
     notionMemoInp,
     notionNumInp,
+    notionSaveBtn,
+    notionSavedLabel,
     notionSubInp,
     readonlyRow,
     subjectText,
@@ -24,6 +28,7 @@ import {
 type SaveInput = Omit<StudySessionInput, 'dailyLogDate' | 'timeSlot'>
 
 type Props = {
+    rowKey: string
     session?: StudySession
     initialMinutes?: number
     initialSubject?: string
@@ -35,33 +40,49 @@ type Props = {
 }
 
 export function StudyBlockRow({
-                                  session,
-                                  initialMinutes,
-                                  initialSubject,
-                                  initialMaterial,
-                                  subCategories = [],
-                                  onSave,
-                                  onDelete,
-                                  readonly,
-                              }: Props) {
+    rowKey,
+    session,
+    initialMinutes,
+    initialSubject,
+    initialMaterial,
+    subCategories = [],
+    onSave,
+    onDelete,
+    readonly,
+}: Props) {
     const uid = useId()
     const subjects = useSettingsStore((s) => s.subjects)
     const materials = useSettingsStore((s) => s.materials)
     const lastUsedMaterial = useSettingsStore((s) => s.lastUsedMaterial)
     const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial)
 
+    const draft = useWorkspaceDraftStore((s) => s.drafts[rowKey])
+    const setDraft = useWorkspaceDraftStore((s) => s.setDraft)
+    const clearDraft = useWorkspaceDraftStore((s) => s.clearDraft)
+
     const savedIdRef = useRef<number | null>(session?.id ?? null)
-    const timerRef = useRef<number | null>(null)
-    const lastSavedRef = useRef<string>('')
 
-    const [minutes, setMinutes] = useState(String(session?.minutes ?? initialMinutes ?? ''))
-    const [subject, setSubject] = useState(session?.subject ?? initialSubject ?? '')
-    const [material, setMaterial] = useState(session?.material ?? initialMaterial ?? lastUsedMaterial)
-    const [subCategoryName, setSubCategoryName] = useState(session?.subCategory ?? '')
-    const [memo, setMemo] = useState(session?.memo ?? '')
+    // セッションが既存ならその値をハッシュ化して「保存済み」の基準にする
+    const lastSavedRef = useRef<string>(
+        session
+            ? JSON.stringify({
+                  minutes: session.minutes,
+                  subject: session.subject.trim(),
+                  material: session.material.trim(),
+                  subCategory: (session.subCategory ?? '').trim() || null,
+                  memo: (session.memo ?? '').trim() || null,
+              })
+            : ''
+    )
 
+    const [minutes, setMinutes] = useState(draft?.minutes ?? String(session?.minutes ?? initialMinutes ?? ''))
+    const [subject, setSubject] = useState(draft?.subject ?? session?.subject ?? initialSubject ?? '')
+    const [material, setMaterial] = useState(draft?.material ?? session?.material ?? initialMaterial ?? lastUsedMaterial)
+    const [subCategoryName, setSubCategoryName] = useState(draft?.subCategoryName ?? session?.subCategory ?? '')
+    const [memo, setMemo] = useState(draft?.memo ?? session?.memo ?? '')
+
+    const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
-    const [saveSuccessVisible, setSaveSuccessVisible] = useState(false)
 
     const [menuOpen, setMenuOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement | null>(null)
@@ -82,76 +103,50 @@ export function StudyBlockRow({
 
     const serialize = () => JSON.stringify(buildPayload())
 
-    const save = async () => {
-        if (!isValid) return
+    // 現在の入力値が最後にAPIへ保存した値と一致するか
+    const isSaved = isValid && serialize() === lastSavedRef.current
 
-        const payload = buildPayload()
-        const hash = serialize()
+    const updateDraft = (patch: Partial<{minutes: string; subject: string; material: string; subCategoryName: string; memo: string}>) => {
+        setDraft(rowKey, {minutes, subject, material, subCategoryName, memo, ...patch})
+    }
 
-        if (hash === lastSavedRef.current) return
+    const handleConfirm = async () => {
+        if (!isValid || saving || isSaved) return
 
+        setSaving(true)
+        setSaveError(null)
         try {
+            const payload = buildPayload()
+            const hash = serialize()
             const newId = await onSave(savedIdRef.current, payload)
             savedIdRef.current = newId
             lastSavedRef.current = hash
             setLastUsedMaterial(payload.material)
-
-            setSaveError(null)
-
-            setSaveSuccessVisible(true)
-
-            window.setTimeout(() => {
-                setSaveSuccessVisible(false)
-            }, 3000)
-
+            clearDraft(rowKey)
         } catch (e) {
             setSaveError(e instanceof Error ? e.message : '保存失敗')
+        } finally {
+            setSaving(false)
         }
-    }
-
-    const scheduleAutoSave = () => {
-        if (!isValid) return
-
-        if (timerRef.current) {
-            window.clearTimeout(timerRef.current)
-        }
-
-        timerRef.current = window.setTimeout(() => {
-            save()
-        }, 600)
     }
 
     const handleDelete = async () => {
-        const id = savedIdRef.current
-        await onDelete(id)
+        clearDraft(rowKey)
+        await onDelete(savedIdRef.current)
     }
-
-    useEffect(() => {
-        return () => {
-            if (timerRef.current) window.clearTimeout(timerRef.current)
-        }
-    }, [])
 
     useEffect(() => {
         function onPointerDown(e: PointerEvent) {
             if (!menuOpen) return
             if (!menuRef.current) return
-
-            const target = e.target as Node
-
-            if (!menuRef.current.contains(target)) {
+            if (!menuRef.current.contains(e.target as Node)) {
                 setMenuOpen(false)
-
                 e.preventDefault()
                 e.stopPropagation()
             }
         }
-
         document.addEventListener('pointerdown', onPointerDown, true)
-
-        return () => {
-            document.removeEventListener('pointerdown', onPointerDown, true)
-        }
+        return () => document.removeEventListener('pointerdown', onPointerDown, true)
     }, [menuOpen])
 
     if (readonly) {
@@ -178,34 +173,28 @@ export function StudyBlockRow({
                         value={minutes}
                         onChange={(e) => {
                             setMinutes(e.target.value)
-                            scheduleAutoSave()
+                            updateDraft({minutes: e.target.value})
                         }}
-                        onBlur={save}
                         placeholder="0"
                         style={notionNumInp}
                     />
                     <span style={unitText}>min</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 6, position: 'relative', flex: 1}}>
                     <input
                         list={`${uid}-subj`}
                         value={subject}
                         onChange={(e) => {
                             setSubject(e.target.value)
                             setSubCategoryName('')
-                            scheduleAutoSave()
+                            updateDraft({subject: e.target.value, subCategoryName: ''})
                         }}
-                        onBlur={save}
                         placeholder="科目"
                         style={notionMainInp}
                     />
 
-                    {/* 3点メニュー（科目の右） */}
-                    <button
-                        type="button"
-                        onClick={() => setMenuOpen(v => !v)}
-                    >
+                    <button type="button" onClick={() => setMenuOpen(v => !v)}>
                         ⋯
                     </button>
 
@@ -219,7 +208,6 @@ export function StudyBlockRow({
                                     setMenuOpen(false)
                                 }}
                             />
-
                             <div ref={menuRef} style={menu}>
                                 <button
                                     style={dangerItem}
@@ -249,8 +237,8 @@ export function StudyBlockRow({
                     value={subCategoryName}
                     onChange={(e) => {
                         setSubCategoryName(e.target.value)
+                        updateDraft({subCategoryName: e.target.value})
                     }}
-                    onBlur={save}
                     placeholder="小分類"
                     style={notionSubInp}
                 />
@@ -260,9 +248,8 @@ export function StudyBlockRow({
                     value={material}
                     onChange={(e) => {
                         setMaterial(e.target.value)
-                        scheduleAutoSave()
+                        updateDraft({material: e.target.value})
                     }}
-                    onBlur={save}
                     placeholder="教材"
                     style={notionSubInp}
                 />
@@ -282,24 +269,31 @@ export function StudyBlockRow({
                 </datalist>
             </div>
 
-            {/* MEMO */}
+            {/* MEMO + SAVE BUTTON */}
             <div style={flexRow}>
                 <input
                     value={memo}
                     onChange={(e) => {
                         setMemo(e.target.value)
-                        scheduleAutoSave()
+                        updateDraft({memo: e.target.value})
                     }}
-                    onBlur={save}
                     placeholder="備考"
                     style={notionMemoInp}
                 />
 
-                {saveSuccessVisible ?
-                    <div style={saveSuccessStyle}>
-                        自動保存済み
-                    </div> : <span>&nbsp;</span>
-                }
+                {saving ? (
+                    <span style={notionSavedLabel}>...</span>
+                ) : isSaved ? (
+                    <span style={notionSavedLabel}>saved</span>
+                ) : (
+                    <button
+                        style={isValid ? notionSaveBtn : notionDisabledSaveBtn}
+                        onClick={handleConfirm}
+                        disabled={!isValid}
+                    >
+                        save
+                    </button>
+                )}
             </div>
 
             {saveError && <p style={errorStyle}>{saveError}</p>}
@@ -331,15 +325,10 @@ const dangerItem: React.CSSProperties = {
     border: 'none',
     cursor: 'pointer',
 }
+
 const overlay: React.CSSProperties = {
     position: 'fixed',
     inset: 0,
     background: 'transparent',
     zIndex: 40,
-}
-
-export const saveSuccessStyle: React.CSSProperties = {
-    fontSize: '11px',
-    color: '#19a576',
-    fontWeight: 500,
 }

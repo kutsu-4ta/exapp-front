@@ -86,14 +86,22 @@ export const tinyLabel: React.CSSProperties = {
 
 export const notionSaveBtn: React.CSSProperties = {
   fontSize: '12px',
-  fontWeight: 500,
-  padding: '4px 10px',
+  fontWeight: 700,
+  padding: '4px 12px',
   borderRadius: '3px',
-  border: '1px solid rgba(55, 53, 47, 0.16)',
+  border: 'none',
   cursor: 'pointer',
-  background: '#fff',
-  transition: 'all 0.15s ease',
-  color: '#37352f',
+  background: '#2383e2',
+  transition: 'opacity 0.15s ease',
+  color: '#fff',
+  whiteSpace: 'nowrap',
+}
+
+export const notionSavedLabel: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 500,
+  color: 'rgba(55, 53, 47, 0.3)',
+  whiteSpace: 'nowrap',
 }
 
 export const notionDisabledSaveBtn: React.CSSProperties = {

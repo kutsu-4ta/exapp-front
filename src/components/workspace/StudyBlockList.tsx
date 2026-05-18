@@ -2,19 +2,36 @@
 import {useRef, useState} from 'react'
 import type {StudySession, StudySessionInput, SubCategory, TimeSlot} from '../../types/workspace'
 import {StudyBlockRow} from './StudyBlockRow'
+import {useWorkspaceDraftStore} from '../../lib/store/workspaceDraft'
 
 const SLOTS: { slot: TimeSlot; label: string }[] = [
   { slot: 'morning', label: '朝' },
   { slot: 'lunch', label: '昼' },
   { slot: 'night', label: '夜' },
-  { slot: 'commute', label: '隙間' },
 ]
+
+const VALID_SLOTS = new Set<TimeSlot>(SLOTS.map((s) => s.slot))
 
 function getCurrentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
   if (h >= 5 && h < 11) return 'morning'
   if (h >= 11 && h < 17) return 'lunch'
   return 'night'
+}
+
+/** `${date}:nr-${slot}-${N}` 形式のキーをパースして slot と N を返す */
+function parseDraftKey(
+  key: string,
+  date: string,
+): {slot: TimeSlot; n: number} | null {
+  const prefix = `${date}:nr-`
+  if (!key.startsWith(prefix)) return null
+  const rest = key.slice(prefix.length)
+  const match = rest.match(/^([^-]+)-(\d+)$/)
+  if (!match) return null
+  const slot = match[1] as TimeSlot
+  if (!VALID_SLOTS.has(slot)) return null
+  return {slot, n: parseInt(match[2], 10)}
 }
 
 type Props = {
@@ -51,35 +68,56 @@ export function StudyBlockList({
   onDelete,
 }: Props) {
   const rowCounter = useRef(0)
-
   const hasInitial = !readonly && (initialMinutes != null || !!initialSubject)
-
   const initialSlot = getCurrentTimeSlot()
 
   const [expandedSlots, setExpandedSlots] = useState<Set<TimeSlot>>(() => {
     const set = new Set(sessions.map((s) => s.timeSlot))
     if (hasInitial) set.add(initialSlot)
+
+    if (!readonly) {
+      const {drafts} = useWorkspaceDraftStore.getState()
+      for (const key of Object.keys(drafts)) {
+        const parsed = parseDraftKey(key, date)
+        if (parsed) set.add(parsed.slot)
+      }
+    }
+
     return set
   })
 
   const [newRows, setNewRows] = useState<NewRow[]>(() => {
-    if (hasInitial) {
-      rowCounter.current = 1
-      return [
-        {
-          id: `nr-${initialSlot}-0`,
-          slot: initialSlot,
-          defaultMinutes: initialMinutes,
-          defaultSubject: initialSubject,
-          defaultMaterial: initialMaterial,
-        },
-      ]
+    const rows: NewRow[] = []
+    let maxN = 0
+
+    if (!readonly) {
+      const {drafts} = useWorkspaceDraftStore.getState()
+      for (const key of Object.keys(drafts)) {
+        const parsed = parseDraftKey(key, date)
+        if (!parsed) continue
+        rows.push({id: key, slot: parsed.slot})
+        maxN = Math.max(maxN, parsed.n)
+      }
     }
-    return []
+
+    rowCounter.current = maxN
+
+    if (hasInitial) {
+      rowCounter.current++
+      rows.push({
+        id: `${date}:nr-${initialSlot}-${rowCounter.current}`,
+        slot: initialSlot,
+        defaultMinutes: initialMinutes,
+        defaultSubject: initialSubject,
+        defaultMaterial: initialMaterial,
+      })
+    }
+
+    return rows
   })
 
   function nextId(slot: TimeSlot): string {
-    return `nr-${slot}-${++rowCounter.current}`
+    return `${date}:nr-${slot}-${++rowCounter.current}`
   }
 
   function toggleSlot(slot: TimeSlot) {
@@ -90,19 +128,37 @@ export function StudyBlockList({
     } else {
       next.add(slot)
       if (!readonly) {
-        setNewRows((prev) => [...prev, { id: nextId(slot), slot }])
+        // ドラフトストアにこのスロットの下書き行があれば復元、なければ新規追加
+        const {drafts} = useWorkspaceDraftStore.getState()
+        const draftRows = Object.keys(drafts)
+          .map((key) => {
+            const parsed = parseDraftKey(key, date)
+            return parsed?.slot === slot ? {id: key, slot, n: parsed.n} : null
+          })
+          .filter((r): r is {id: string; slot: TimeSlot; n: number} => r !== null)
+
+        if (draftRows.length > 0) {
+          setNewRows((prev) => [
+            ...prev,
+            ...draftRows.map(({id, slot: s}) => ({id, slot: s})),
+          ])
+          const maxN = Math.max(...draftRows.map((r) => r.n))
+          rowCounter.current = Math.max(rowCounter.current, maxN)
+        } else {
+          setNewRows((prev) => [...prev, {id: nextId(slot), slot}])
+        }
       }
     }
     setExpandedSlots(next)
   }
 
   function addRow(slot: TimeSlot) {
-    setNewRows((prev) => [...prev, { id: nextId(slot), slot }])
+    setNewRows((prev) => [...prev, {id: nextId(slot), slot}])
   }
 
   return (
     <div>
-      {SLOTS.map(({ slot, label }, i) => {
+      {SLOTS.map(({slot, label}, i) => {
         const slotSessions = sessions.filter((s) => s.timeSlot === slot)
         const slotNewRows = newRows.filter((r) => r.slot === slot)
         const isExpanded = expandedSlots.has(slot)
@@ -111,10 +167,10 @@ export function StudyBlockList({
         return (
           <div
             key={slot}
-            style={{ borderBottom: isLast ? 'none' : '1px solid rgba(55, 53, 47, 0.08)' }}
+            style={{borderBottom: isLast ? 'none' : '1px solid rgba(55, 53, 47, 0.08)'}}
           >
             <button onClick={() => toggleSlot(slot)} style={slotHeader}>
-              <span style={{ ...arrow, transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+              <span style={{...arrow, transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'}}>
                 ▼
               </span>
               <span style={slotLabelText}>{label}</span>
@@ -126,11 +182,11 @@ export function StudyBlockList({
                 {slotSessions.map((s) => (
                   <StudyBlockRow
                     key={s.id}
+                    rowKey={String(s.id)}
                     session={s}
                     subCategories={subCategories}
                     onSave={async (_, input) => {
-                      // 既存データの更新
-                      await onUpdate(s.id, { timeSlot: s.timeSlot, ...input })
+                      await onUpdate(s.id, {timeSlot: s.timeSlot, ...input})
                       return s.id
                     }}
                     onDelete={async () => onDelete(s.id)}
@@ -142,13 +198,13 @@ export function StudyBlockList({
                   slotNewRows.map((row) => (
                     <StudyBlockRow
                       key={row.id}
+                      rowKey={row.id}
                       initialMinutes={row.defaultMinutes}
                       initialSubject={row.defaultSubject}
                       initialMaterial={row.defaultMaterial}
                       subCategories={subCategories}
                       onSave={async (currentId, input) => {
                         if (currentId === null) {
-                          // 新規作成
                           const newSession = await onAdd({
                             dailyLogDate: date,
                             timeSlot: slot,
@@ -157,8 +213,7 @@ export function StudyBlockList({
                           setNewRows((prev) => prev.filter((r) => r.id !== row.id))
                           return newSession.id
                         }
-                        // IDがある場合は更新
-                        await onUpdate(currentId, { timeSlot: slot, ...input })
+                        await onUpdate(currentId, {timeSlot: slot, ...input})
                         return currentId
                       }}
                       onDelete={async () => {
@@ -166,6 +221,7 @@ export function StudyBlockList({
                       }}
                     />
                   ))}
+
                 {!readonly && (
                   <button onClick={() => addRow(slot)} style={addButton}>
                     <span>+</span> 追加
@@ -198,7 +254,7 @@ const arrow: React.CSSProperties = {
   color: 'rgba(55, 53, 47, 0.3)',
   transition: 'transform 0.15s ease',
 }
-const slotLabelText: React.CSSProperties = { fontSize: '14px', fontWeight: 600, color: '#37352f' }
+const slotLabelText: React.CSSProperties = {fontSize: '14px', fontWeight: 600, color: '#37352f'}
 const badge: React.CSSProperties = {
   fontSize: '12px',
   color: 'rgba(55, 53, 47, 0.4)',
