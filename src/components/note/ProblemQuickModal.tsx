@@ -77,15 +77,14 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate, hideQu
     navigate(`/subjects/${encodeURIComponent(problem.subject)}/flash-bugfix`, { state: { preloadedSession } });
   }
 
-  function scheduleSave(nextNote: string, nextDraft?: Problem) {
+  function scheduleSave(nextNote: string) {
     setSaveSuccessVisible(false);
     setIsSaving(true);
     window.clearTimeout(timerRef.current ?? 0);
     timerRef.current = window.setTimeout(async () => {
       try {
-        const updated = await updateProblem(problem.id, { ...(nextDraft ?? draft), note: nextNote });
+        const updated = await updateProblem(problem.id, { ...problem, note: nextNote });
         onUpdate(updated);
-        if (updated.materialName) setLastUsedMaterial(updated.materialName);
         setSaveSuccessVisible(true);
         successTimerRef.current = window.setTimeout(() => setSaveSuccessVisible(false), 3000);
       } finally {
@@ -95,9 +94,23 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate, hideQu
   }
 
   function updateDraft<K extends keyof Problem>(key: K, value: Problem[K]) {
-    const next = { ...draft, [key]: value };
-    setDraft(next);
-    scheduleSave(note, next);
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleMetaSave() {
+    window.clearTimeout(timerRef.current ?? 0);
+    setSaveSuccessVisible(false);
+    setIsSaving(true);
+    try {
+      const updated = await updateProblem(problem.id, { ...draft, note });
+      onUpdate(updated);
+      if (updated.materialName) setLastUsedMaterial(updated.materialName);
+      setEditing(false);
+      setSaveSuccessVisible(true);
+      successTimerRef.current = window.setTimeout(() => setSaveSuccessVisible(false), 3000);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleCopy() {
@@ -127,7 +140,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate, hideQu
         <div style={headerRight}>
           {(isSaving || saveSuccessVisible) && (
             <span style={isSaving ? saveLabelSaving : saveLabelSuccess}>
-              {isSaving ? "保存中…" : "自動保存済み"}
+              {isSaving ? "保存中…" : "保存済み"}
             </span>
           )}
           <button style={{ ...iconBtn, background: editing ? "#eef5ff" : "none", borderRadius: "6px" }} onClick={() => setEditing((v) => !v)} title={editing ? "編集終了" : "編集"}>
@@ -188,6 +201,12 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate, hideQu
                 <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
                   <input type="checkbox" checked={draft.isFormula} onChange={(e) => updateDraft("isFormula", e.target.checked)} />公式
                 </label>
+              </div>
+              <div style={metaSaveRow}>
+                <button onClick={() => { setEditing(false); setDraft(problem); }} style={metaCancelBtn}>キャンセル</button>
+                <button onClick={handleMetaSave} disabled={isSaving} style={{ ...metaConfirmBtn, opacity: isSaving ? 0.6 : 1 }}>
+                  {isSaving ? "保存中…" : "保存"}
+                </button>
               </div>
             </>
           ) : null}
@@ -258,6 +277,9 @@ const noteTextarea: React.CSSProperties = { width: "100%", minHeight: "500px", p
 const markdownPreview: React.CSSProperties = { padding: "12px", borderRadius: "8px", border: `1px solid ${c.border}`, minHeight: "500px", fontSize: "15px", lineHeight: 1.7 }
 const saveLabelSuccess: React.CSSProperties = { fontSize: "12px", color: "#19a576" }
 const saveLabelSaving: React.CSSProperties = { fontSize: "12px", color: "#19a576" }
+const metaSaveRow: React.CSSProperties = { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }
+const metaCancelBtn: React.CSSProperties = { padding: "6px 14px", fontSize: "12px", fontWeight: 600, color: "rgba(55,53,47,0.5)", border: "1px solid rgba(55,53,47,0.12)", borderRadius: 7, background: "transparent", cursor: "pointer" }
+const metaConfirmBtn: React.CSSProperties = { padding: "6px 18px", fontSize: "12px", fontWeight: 700, color: "#fff", backgroundColor: "#2383e2", border: "none", borderRadius: 7, cursor: "pointer" }
 export const deleteBtn: React.CSSProperties = { padding: "8px 16px", backgroundColor: "transparent", border: "none", fontSize: "13px", width: "100%", color: "rgba(235, 87, 87, 0.6)", cursor: "pointer", fontWeight: 500 }
 const goodQuizBtn: React.CSSProperties = { width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", borderRadius: "10px", border: `1px solid rgba(234,179,8,0.35)`, backgroundColor: "rgba(254,249,195,0.5)", cursor: "pointer", textAlign: "left" }
 const goodQuizBtnLabel: React.CSSProperties = { flex: 1, fontSize: "13px", fontWeight: 700, color: "#92400e" }
