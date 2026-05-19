@@ -453,31 +453,31 @@ export default function SprintPage() {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  onClick={handleAiContextCopy}
-                  disabled={aiContextLoading}
-                  title="AIプランニング用コンテキストをコピー"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    gap: 4,
-                    height: 32,
-                    padding: '0 10px',
-                    borderRadius: '6px',
-                    border: `1px solid ${c.border}`,
-                    background: 'transparent',
-                    color: c.textHint,
-                    cursor: aiContextLoading ? 'wait' : 'pointer',
-                    fontSize: font.xs,
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    opacity: aiContextLoading ? 0.6 : 1,
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                  </svg>
-                  {aiContextLoading ? '取得中…' : 'AI向けコピー'}
-                </button>
+                {/*<button*/}
+                {/*  onClick={handleAiContextCopy}*/}
+                {/*  disabled={aiContextLoading}*/}
+                {/*  title="AIプランニング用コンテキストをコピー"*/}
+                {/*  style={{*/}
+                {/*    display: 'flex', alignItems: 'center', justifyContent: 'center',*/}
+                {/*    gap: 4,*/}
+                {/*    height: 32,*/}
+                {/*    padding: '0 10px',*/}
+                {/*    borderRadius: '6px',*/}
+                {/*    border: `1px solid ${c.border}`,*/}
+                {/*    background: 'transparent',*/}
+                {/*    color: c.textHint,*/}
+                {/*    cursor: aiContextLoading ? 'wait' : 'pointer',*/}
+                {/*    fontSize: font.xs,*/}
+                {/*    fontWeight: 700,*/}
+                {/*    letterSpacing: '0.04em',*/}
+                {/*    opacity: aiContextLoading ? 0.6 : 1,*/}
+                {/*  }}*/}
+                {/*>*/}
+                {/*  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">*/}
+                {/*    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>*/}
+                {/*  </svg>*/}
+                {/*  {aiContextLoading ? '取得中…' : 'AI向けコピー'}*/}
+                {/*</button>*/}
                 <button
                   onClick={handlePrepareStats}
                   disabled={!currentSprint}
