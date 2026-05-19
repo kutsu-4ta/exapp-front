@@ -33,7 +33,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
       setSelectedSession(session)
       const lines: string[] = []
       lines.push(`【試験詳細】${session.subject} - ${session.examYear}`)
-      lines.push(`日時: ${session.completedAt?.slice(0, 10).replace(/-/g, '/') ?? '未完了'}`)
+      lines.push(`日時: ${session.createdAt.slice(0, 10).replace(/-/g, '/')}`)
       lines.push(`TOTAL: ${session.totalScore} / PURE: ${session.pureScore}`)
       lines.push(`正解: ${session.correctCount}問 / 不正解: ${session.incorrectCount}問 / 疑問: ${session.doubtfulCount}問`)
       if (session.questions.length > 0) {
@@ -115,7 +115,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
             </div>
             {sessions.length === 0 && <p style={stateText}>記録がありません</p>}
             {[...sessions]
-              .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
+              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
               .map((s) => (
                 <div
                   key={s.id}
@@ -124,7 +124,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                 >
                   <div style={sessionRowLeft}>
                     <span style={sessionDate}>
-                      {s.completedAt?.slice(5, 10).replace('-', '/') ?? '--'}
+                      {s.createdAt.slice(5, 10).replace('-', '/')}
                     </span>
                     <span style={sessionYear}>{s.examYear}</span>
                   </div>
@@ -183,7 +183,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                   <div>
                     <div style={modalTitle}>{selectedSession.examYear}</div>
                     <div style={modalSubtitle}>
-                      {selectedSession.completedAt?.slice(0, 10).replace(/-/g, '/') ?? ''}
+                      {selectedSession.createdAt.slice(0, 10).replace(/-/g, '/')}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
