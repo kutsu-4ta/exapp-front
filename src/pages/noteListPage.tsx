@@ -1,4 +1,4 @@
-import type {FailureType, Problem, ProblemInput, Proficiency} from '../types/workspace'
+import type {FailureType, Problem, ProblemInput, Proficiency, SubCategoryRank} from '../types/workspace'
 import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
 import {ProblemCard} from '../components/note/ProblemCard'
@@ -10,9 +10,52 @@ import {FilterPill} from '../components/note/FilterPill'
 import {AddProblemModal} from '../components/note/AddProblemModal'
 import {NoteToTicketsModal} from '../components/note/NoteToTicketsModal'
 import {c, font, pageHeading} from '../styles/notion'
-import {useNavigate, useSearchParams} from "react-router-dom";
-import type {DegBugfixConfig} from "@/lib/api/morningQuiz.ts";
-import {DegBugfixConfigModal} from "@/components/practice/DegBugfixConfigModal.tsx";
+import {useNavigate, useSearchParams} from 'react-router-dom'
+import type {DegBugfixConfig} from '@/lib/api/morningQuiz.ts'
+import {DegBugfixConfigModal} from '@/components/practice/DegBugfixConfigModal.tsx'
+import {BottomSheet, sheetBodyStyle, sheetCloseBtnStyle, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
+
+type DetailFilter = {
+  subCategory: string
+  proficiency: Proficiency | 'all'
+  failureType: FailureType | 'all'
+  isGoodQuestion: boolean | null
+  isFormula: boolean | null
+  solvedFrom: string
+  solvedTo: string
+}
+
+const DETAIL_INIT: DetailFilter = {
+  subCategory: '',
+  proficiency: 'all',
+  failureType: 'all',
+  isGoodQuestion: null,
+  isFormula: null,
+  solvedFrom: '',
+  solvedTo: '',
+}
+
+const RANK_VALUES: SubCategoryRank[] = ['A', 'B', 'C', 'D', 'E']
+
+const RANK_ACTIVE: Record<SubCategoryRank, { bg: string; color: string }> = {
+  A: { bg: 'rgba(35,131,226,0.12)', color: '#2383e2' },
+  B: { bg: 'rgba(25,165,118,0.12)', color: '#19a576' },
+  C: { bg: 'rgba(242,171,38,0.15)', color: '#c98b00' },
+  D: { bg: 'rgba(235,87,87,0.12)', color: '#eb5757' },
+  E: { bg: 'rgba(55,53,47,0.08)', color: 'rgba(55,53,47,0.55)' },
+}
+
+function detailActiveCount(f: DetailFilter): number {
+  return [
+    f.subCategory !== '',
+    f.proficiency !== 'all',
+    f.failureType !== 'all',
+    f.isGoodQuestion !== null,
+    f.isFormula !== null,
+    f.solvedFrom !== '',
+    f.solvedTo !== '',
+  ].filter(Boolean).length
+}
 
 function SkeletonCard({ isLast = false }: { isLast?: boolean }) {
   return (
@@ -37,7 +80,6 @@ export default function NoteListPage() {
   const subCategories = useSettingsStore((s) => s.subCategories)
   const [problems, setProblems] = useState<Problem[]>([])
   const [initialLoading, setInitialLoading] = useState(true)
-  const [filterLoading, setFilterLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [quickProblem, setQuickProblem] = useState<Problem | null>(null)
@@ -46,18 +88,13 @@ export default function NoteListPage() {
 
   const [searchParams, setSearchParams] = useSearchParams()
   const filterSubject = searchParams.get('subject') ?? 'all'
-  const filterQuery = searchParams.get('q') ?? ''
-  const filterProficiency = (searchParams.get('proficiency') ?? 'all') as Proficiency | 'all'
-  const filterFailureType = (searchParams.get('failureType') ?? 'all') as FailureType | 'all'
 
   const setFilterSubject = (v: string) =>
     setSearchParams((p) => { const n = new URLSearchParams(p); v === 'all' ? n.delete('subject') : n.set('subject', v); return n }, { replace: true })
-  const setFilterQuery = (v: string) =>
-    setSearchParams((p) => { const n = new URLSearchParams(p); v ? n.set('q', v) : n.delete('q'); return n }, { replace: true })
-  const setFilterProficiency = (v: Proficiency | 'all') =>
-    setSearchParams((p) => { const n = new URLSearchParams(p); v === 'all' ? n.delete('proficiency') : n.set('proficiency', v); return n }, { replace: true })
-  const setFilterFailureType = (v: FailureType | 'all') =>
-    setSearchParams((p) => { const n = new URLSearchParams(p); v === 'all' ? n.delete('failureType') : n.set('failureType', v); return n }, { replace: true })
+
+  const [filterRank, setFilterRank] = useState<SubCategoryRank | 'all'>('all')
+  const [detailFilter, setDetailFilter] = useState<DetailFilter>(DETAIL_INIT)
+  const [showDetailFilter, setShowDetailFilter] = useState(false)
 
   const [showNoteToTickets, setShowNoteToTickets] = useState(false)
   const [showDegConfig, setShowDegConfig] = useState(false)
@@ -69,11 +106,23 @@ export default function NoteListPage() {
     })
   }
 
+  // 小分類 → ランク逆引きマップ
+  const subCategoryRankMap = useMemo(() => {
+    const map = new Map<string, SubCategoryRank | null>()
+    subCategories.forEach((sc) => map.set(sc.name, sc.rank ?? null))
+    return map
+  }, [subCategories])
+
+  // 詳細モーダルの小分類候補（現在の科目フィルター内のもの）
+  const availableSubCategories = useMemo(() => {
+    const src = filterSubject === 'all' ? problems : problems.filter((p) => p.subject === filterSubject)
+    return [...new Set(src.map((p) => p.subCategory).filter(Boolean) as string[])].sort()
+  }, [problems, filterSubject])
+
   // 初回ロード
   useEffect(() => {
     const initSubject = searchParams.get('subject')
-    const initQ = searchParams.get('q')
-    const hasFilter = !!(initSubject || initQ)
+    const hasFilter = !!initSubject
 
     if (!hasFilter) {
       const cached = getCached<Problem[]>('note-problems')
@@ -82,7 +131,7 @@ export default function NoteListPage() {
         setInitialLoading(false)
       }
     }
-    fetchProblems({ subjects: initSubject ? [initSubject] : undefined, q: initQ || undefined })
+    fetchProblems({ subjects: initSubject ? [initSubject] : undefined })
       .then((p) => {
         setProblems(p)
         if (!hasFilter) setCached('note-problems', p)
@@ -91,27 +140,20 @@ export default function NoteListPage() {
       .finally(() => setInitialLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // フィルター変化時の再フェッチ（debounce 250ms）
+  // 科目フィルター変化時の再フェッチ
   useEffect(() => {
     if (!didMountRef.current) {
       didMountRef.current = true
       return
     }
-    const subjects = filterSubject === 'all' ? undefined : [filterSubject]
-    const q = filterQuery.trim() || undefined
-    setFilterLoading(true)
-    const timer = setTimeout(() => {
-      fetchProblems({ subjects, q })
-        .then(setProblems)
-        .catch(console.error)
-        .finally(() => setFilterLoading(false))
-    }, 250)
-    return () => clearTimeout(timer)
-  }, [filterSubject, filterQuery])
+    const subjectsParam = filterSubject === 'all' ? undefined : [filterSubject]
+    fetchProblems({ subjects: subjectsParam })
+      .then(setProblems)
+      .catch(console.error)
+  }, [filterSubject])
 
   const handleAddProblem = useCallback(async (input: ProblemInput) => {
     const p = await addProblem(input)
-
     setProblems((prev) => [p, ...prev])
     invalidateCache('note-problems')
     return p
@@ -119,17 +161,13 @@ export default function NoteListPage() {
 
   const handleProblemUpdate = useCallback(async (id: number, input: ProblemInput) => {
     const updated = await updateProblem(id, input)
-
     setProblems((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-
     invalidateCache('note-problems')
-
     return updated
   }, [])
 
   const handleUpdate = useCallback((updated: Problem) => {
     setProblems((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-
     setQuickProblem(updated)
     invalidateCache('note-problems')
   }, [])
@@ -142,64 +180,43 @@ export default function NoteListPage() {
 
   const grouped = useMemo(() => {
     const filtered = problems
-        .filter((p) => filterSubject === 'all' || p.subject === filterSubject)
-        .filter((p) => filterProficiency === 'all' || p.proficiency === filterProficiency)
-        .filter(
-            (p) =>
-                filterFailureType === 'all' || p.failureTypes.includes(filterFailureType as FailureType)
-        )
+      .filter((p) => filterSubject === 'all' || p.subject === filterSubject)
+      .filter((p) => filterRank === 'all' || subCategoryRankMap.get(p.subCategory ?? '') === filterRank)
+      .filter((p) => !detailFilter.subCategory || p.subCategory === detailFilter.subCategory)
+      .filter((p) => detailFilter.proficiency === 'all' || p.proficiency === detailFilter.proficiency)
+      .filter((p) => detailFilter.failureType === 'all' || p.failureTypes.includes(detailFilter.failureType as FailureType))
+      .filter((p) => detailFilter.isGoodQuestion === null || p.isGoodQuestion === detailFilter.isGoodQuestion)
+      .filter((p) => detailFilter.isFormula === null || p.isFormula === detailFilter.isFormula)
+      .filter((p) => !detailFilter.solvedFrom || p.solvedAt >= detailFilter.solvedFrom)
+      .filter((p) => !detailFilter.solvedTo || p.solvedAt <= detailFilter.solvedTo)
 
-    // All のときは科目分けせず、そのまま降順
     if (filterSubject === 'all') {
-      return [
-        {
-          subject: 'all',
-          items: [...filtered].sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() -
-              new Date(a.createdAt).getTime()
-          ),
-        },
-      ]
+      return [{
+        subject: 'all',
+        items: [...filtered].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      }]
     }
 
-    // 個別科目のときは今まで通り
-    const subjectList =
-        subjects.length > 0 ? subjects : [...new Set(filtered.map((p) => p.subject))]
-
+    const subjectList = subjects.length > 0 ? subjects : [...new Set(filtered.map((p) => p.subject))]
     return subjectList
-        .map((s) => ({
-          subject: s,
-          items: filtered.filter((p) => p.subject === s),
-        }))
-        .filter((g) => g.items.length > 0)
-  }, [problems, filterSubject, filterProficiency, filterFailureType, subjects])
+      .map((s) => ({ subject: s, items: filtered.filter((p) => p.subject === s) }))
+      .filter((g) => g.items.length > 0)
+  }, [problems, filterSubject, filterRank, detailFilter, subjects, subCategoryRankMap])
+
+  const activeDetail = detailActiveCount(detailFilter)
+  const totalItems = grouped.flatMap((g) => g.items).length
 
   return (
     <div style={container}>
       <div style={stickyHeader}>
-        <div
-          style={{
-            ...headerContent,
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: '12px',
-          }}
-        >
+        <div style={headerInner}>
           {/* 1段目: タイトルとメインアクション */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%',
-            }}
-          >
+          <div style={titleRow}>
             <h1 style={{ ...pageHeading, marginBottom: 0 }}>Note</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {grouped.flatMap((g) => g.items).length > 0 && (
+              {totalItems > 0 && (
                 <button style={ticketizeBtn} onClick={() => setShowNoteToTickets(true)}>
-                  チケット化 ({grouped.flatMap((g) => g.items).length})
+                  チケット化 ({totalItems})
                 </button>
               )}
               <button style={degBugfixBtn} onClick={() => setShowDegConfig(true)}>
@@ -208,81 +225,49 @@ export default function NoteListPage() {
             </div>
           </div>
 
-          {/* 2段目: フィルタコントロール */}
-          <div
-            style={{
-              ...controls,
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'flex-start',
-              gap: '8px',
-            }}
-          >
-            <div style={searchWrap}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                style={{ color: 'rgba(55,53,47,0.4)', flexShrink: 0 }}
+          {/* 2段目: ランクフィルター + 詳細ボタン */}
+          <div style={rankRow}>
+            <div style={rankPills}>
+              <button
+                style={{
+                  ...rankPillBase,
+                  backgroundColor: filterRank === 'all' ? 'rgba(55,53,47,0.08)' : 'transparent',
+                  color: filterRank === 'all' ? c.text : c.textSub,
+                  fontWeight: filterRank === 'all' ? 600 : 400,
+                }}
+                onClick={() => setFilterRank('all')}
               >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="search"
-                placeholder="キーワード検索"
-                value={filterQuery}
-                onChange={(e) => setFilterQuery(e.target.value)}
-                style={searchInput}
-              />
-              {filterLoading && (
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{
-                    animation: 'spin 0.8s linear infinite',
-                    color: 'rgba(55,53,47,0.4)',
-                    flexShrink: 0,
-                  }}
-                >
-                  <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
-                  <path d="M12 2a10 10 0 0 1 10 10" />
-                </svg>
-              )}
+                すべて
+              </button>
+              {RANK_VALUES.map((r) => {
+                const active = filterRank === r
+                return (
+                  <button
+                    key={r}
+                    style={{
+                      ...rankPillBase,
+                      backgroundColor: active ? RANK_ACTIVE[r].bg : 'transparent',
+                      color: active ? RANK_ACTIVE[r].color : c.textSub,
+                      fontWeight: active ? 700 : 400,
+                    }}
+                    onClick={() => setFilterRank(active ? 'all' : r)}
+                  >
+                    {r}
+                  </button>
+                )
+              })}
             </div>
-            <select
-              style={select}
-              value={filterProficiency}
-              onChange={(e) => setFilterProficiency(e.target.value as Proficiency | 'all')}
+            <button
+              style={{ ...detailBtn, ...(activeDetail > 0 ? detailBtnActive : {}) }}
+              onClick={() => setShowDetailFilter(true)}
             >
-              <option value="all">習熟度: すべて</option>
-              {PROFICIENCY_VALUES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-            <select
-              style={select}
-              value={filterFailureType}
-              onChange={(e) => setFilterFailureType(e.target.value as FailureType | 'all')}
-            >
-              <option value="all">属性: すべて</option>
-              {FAILURE_TYPE_VALUES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
+              詳細
+              {activeDetail > 0 && <span style={detailBadge}>{activeDetail}</span>}
+            </button>
           </div>
         </div>
+
+        {/* 3段目: 科目ピル */}
         <div style={subjectScroll}>
           <FilterPill active={filterSubject === 'all'} onClick={() => setFilterSubject('all')}>
             All
@@ -322,13 +307,13 @@ export default function NoteListPage() {
         )}
 
         {grouped.map(({ subject, items }) => (
-            <section key={subject} style={section}>
-              {subject !== 'all' && (
-                  <div style={sectionHeader}>
-                    <span style={sectionLabel}>{subject}</span>
-                    <span style={badge}>{items.length}</span>
-                  </div>
-              )}
+          <section key={subject} style={section}>
+            {subject !== 'all' && (
+              <div style={sectionHeader}>
+                <span style={sectionLabel}>{subject}</span>
+                <span style={badge}>{items.length}</span>
+              </div>
+            )}
             <div style={cardGrid}>
               {items.map((p, i) => (
                 <Fragment key={p.id}>
@@ -350,21 +335,15 @@ export default function NoteListPage() {
         />
       )}
 
-      {!showAddForm && !quickProblem && !showDegConfig && (
+      {!showAddForm && !quickProblem && !showDegConfig && !showDetailFilter && (
         <button style={fab} onClick={() => setShowAddForm(true)}>
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
         </button>
       )}
+
       {showNoteToTickets && (
         <NoteToTicketsModal
           problems={grouped.flatMap((g) => g.items)}
@@ -376,6 +355,7 @@ export default function NoteListPage() {
           }}
         />
       )}
+
       {showDegConfig && (
         <DegBugfixConfigModal
           subjects={subjects}
@@ -384,9 +364,130 @@ export default function NoteListPage() {
           onStart={handleDegStart}
         />
       )}
+
+      {showDetailFilter && (
+        <BottomSheet onClose={() => setShowDetailFilter(false)} height="85vh">
+          <div style={sheetFlexHeaderStyle}>
+            <span style={detailModalTitle}>詳細検索</span>
+            <button style={sheetCloseBtnStyle} onClick={() => setShowDetailFilter(false)}>×</button>
+          </div>
+          <div style={sheetBodyStyle}>
+
+            {/* 小分類 */}
+            <div style={detailSection}>
+              <p style={detailLabel}>小分類</p>
+              <select
+                style={detailSelect}
+                value={detailFilter.subCategory}
+                onChange={(e) => setDetailFilter((f) => ({ ...f, subCategory: e.target.value }))}
+              >
+                <option value="">すべて</option>
+                {availableSubCategories.map((sc) => (
+                  <option key={sc} value={sc}>{sc}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 習熟度 */}
+            <div style={detailSection}>
+              <p style={detailLabel}>習熟度</p>
+              <div style={segControl}>
+                <button
+                  style={{ ...segBtn, ...(detailFilter.proficiency === 'all' ? segBtnActive : {}) }}
+                  onClick={() => setDetailFilter((f) => ({ ...f, proficiency: 'all' }))}
+                >
+                  すべて
+                </button>
+                {PROFICIENCY_VALUES.map((v) => (
+                  <button
+                    key={v}
+                    style={{ ...segBtn, ...(detailFilter.proficiency === v ? segBtnActive : {}) }}
+                    onClick={() => setDetailFilter((f) => ({ ...f, proficiency: v as Proficiency }))}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 属性 */}
+            <div style={detailSection}>
+              <p style={detailLabel}>属性</p>
+              <div style={pillGroup}>
+                <button
+                  style={{ ...filterPillBtn, ...(detailFilter.failureType === 'all' ? pillBtnActive : {}) }}
+                  onClick={() => setDetailFilter((f) => ({ ...f, failureType: 'all' }))}
+                >
+                  すべて
+                </button>
+                {FAILURE_TYPE_VALUES.map((v) => (
+                  <button
+                    key={v}
+                    style={{ ...filterPillBtn, ...(detailFilter.failureType === v ? pillBtnActive : {}) }}
+                    onClick={() => setDetailFilter((f) => ({ ...f, failureType: v as FailureType }))}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* フラグ */}
+            <div style={detailSection}>
+              <p style={detailLabel}>フラグ</p>
+              <div style={pillGroup}>
+                <button
+                  style={{ ...filterPillBtn, ...(detailFilter.isGoodQuestion === true ? pillBtnActive : {}) }}
+                  onClick={() => setDetailFilter((f) => ({ ...f, isGoodQuestion: f.isGoodQuestion === true ? null : true }))}
+                >
+                  ★ 良問
+                </button>
+                <button
+                  style={{ ...filterPillBtn, ...(detailFilter.isFormula === true ? pillBtnActive : {}) }}
+                  onClick={() => setDetailFilter((f) => ({ ...f, isFormula: f.isFormula === true ? null : true }))}
+                >
+                  公式
+                </button>
+              </div>
+            </div>
+
+            {/* 解いた日 */}
+            <div style={detailSection}>
+              <p style={detailLabel}>解いた日</p>
+              <div style={dateRow}>
+                <input
+                  type="date"
+                  style={dateInput}
+                  value={detailFilter.solvedFrom}
+                  onChange={(e) => setDetailFilter((f) => ({ ...f, solvedFrom: e.target.value }))}
+                />
+                <span style={{ fontSize: 13, color: c.textSub }}>〜</span>
+                <input
+                  type="date"
+                  style={dateInput}
+                  value={detailFilter.solvedTo}
+                  onChange={(e) => setDetailFilter((f) => ({ ...f, solvedTo: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* クリア */}
+            {activeDetail > 0 && (
+              <button
+                style={clearBtn}
+                onClick={() => setDetailFilter(DETAIL_INIT)}
+              >
+                フィルターをクリア
+              </button>
+            )}
+          </div>
+        </BottomSheet>
+      )}
     </div>
   )
 }
+
+// ── Styles ──
 
 const ticketizeBtn: React.CSSProperties = {
   padding: '5px 10px',
@@ -416,50 +517,86 @@ const stickyHeader: React.CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 100,
-  backgroundColor: 'rgba(255, 255, 255, 0.98)',
+  backgroundColor: 'rgba(255,255,255,0.98)',
   backdropFilter: 'blur(8px)',
   borderBottom: `1px solid ${c.border}`,
-  padding: '12px 16px',
+  padding: '12px 16px 8px',
 }
-const headerContent: React.CSSProperties = {
+
+const headerInner: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+  maxWidth: '720px',
+  margin: '0 auto 10px',
+}
+
+const titleRow: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  maxWidth: '720px',
-  margin: '0 auto 12px',
 }
-const controls: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center' }
 
-const select: React.CSSProperties = {
-  padding: '4px 8px',
-  fontSize: '12px',
-  borderRadius: '4px',
-  border: `1px solid rgba(55, 53, 47, 0.16)`,
-  backgroundColor: 'transparent',
-  color: c.textSub,
-  outline: 'none',
-  cursor: 'pointer',
-}
-const searchWrap: React.CSSProperties = {
+const rankRow: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '6px',
-  flex: 1,
-  minWidth: 0,
-  padding: '4px 8px',
-  borderRadius: '4px',
-  border: '1px solid rgba(55, 53, 47, 0.16)',
-  backgroundColor: 'transparent',
+  justifyContent: 'space-between',
+  gap: '8px',
 }
-const searchInput: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  border: 'none',
-  outline: 'none',
+
+const rankPills: React.CSSProperties = {
+  display: 'flex',
+  gap: '2px',
+  flexWrap: 'nowrap',
+}
+
+const rankPillBase: React.CSSProperties = {
+  padding: '4px 11px',
   fontSize: '12px',
-  backgroundColor: 'transparent',
-  color: c.text,
+  borderRadius: '4px',
+  border: 'none',
+  whiteSpace: 'nowrap',
+  cursor: 'pointer',
+  transition: 'background 0.15s',
+  fontFamily: 'inherit',
 }
+
+const detailBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '5px',
+  padding: '4px 12px',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: c.textSub,
+  border: `1px solid rgba(55,53,47,0.14)`,
+  borderRadius: '6px',
+  background: 'transparent',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+}
+
+const detailBtnActive: React.CSSProperties = {
+  color: c.blue,
+  borderColor: 'rgba(35,131,226,0.35)',
+  backgroundColor: 'rgba(35,131,226,0.06)',
+}
+
+const detailBadge: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: '16px',
+  height: '16px',
+  borderRadius: '8px',
+  backgroundColor: c.blue,
+  color: '#fff',
+  fontSize: '10px',
+  fontWeight: 700,
+  padding: '0 4px',
+}
+
 const subjectScroll: React.CSSProperties = {
   display: 'flex',
   gap: '4px',
@@ -469,18 +606,22 @@ const subjectScroll: React.CSSProperties = {
   paddingBottom: '4px',
   scrollbarWidth: 'none',
 }
+
 const mainContent: React.CSSProperties = {
   maxWidth: '720px',
   margin: '0 auto',
   padding: '40px 20px 100px',
 }
+
 const section: React.CSSProperties = { marginBottom: '32px' }
+
 const sectionHeader: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '8px',
   marginBottom: '12px',
 }
+
 const sectionLabel: React.CSSProperties = {
   fontSize: font.sm,
   fontWeight: 700,
@@ -488,14 +629,16 @@ const sectionLabel: React.CSSProperties = {
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
 }
+
 const badge: React.CSSProperties = {
   fontSize: font.xs,
-  backgroundColor: 'rgba(55, 53, 47, 0.06)',
+  backgroundColor: 'rgba(55,53,47,0.06)',
   color: c.textSub,
   padding: '1px 6px',
   borderRadius: '10px',
   fontWeight: 600,
 }
+
 const cardGrid: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
@@ -511,6 +654,7 @@ const cardDivider: React.CSSProperties = {
   backgroundColor: 'rgba(0,0,0,0.05)',
   margin: '0 16px',
 }
+
 const fab: React.CSSProperties = {
   position: 'fixed',
   bottom: '80px',
@@ -521,25 +665,28 @@ const fab: React.CSSProperties = {
   backgroundColor: c.blue,
   color: c.bg,
   border: 'none',
-  boxShadow: '0 4px 12px rgba(35, 131, 226, 0.35)',
+  boxShadow: '0 4px 12px rgba(35,131,226,0.35)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
   zIndex: 1000,
 }
+
 const mutedText: React.CSSProperties = {
-  color: 'rgba(55, 53, 47, 0.4)',
+  color: 'rgba(55,53,47,0.4)',
   textAlign: 'center',
   marginTop: '60px',
   fontSize: font.base,
 }
+
 const errorText: React.CSSProperties = {
   color: c.red,
   textAlign: 'center',
   padding: '2rem',
   fontSize: font.base,
 }
+
 const emptyState: React.CSSProperties = { padding: '60px 0' }
 
 const skeletonCard: React.CSSProperties = {
@@ -555,4 +702,121 @@ const sk: React.CSSProperties = {
   borderRadius: '4px',
   backgroundColor: 'rgba(55,53,47,0.08)',
   animation: 'weakSkeleton 1.4s ease-in-out infinite',
+}
+
+// ── Detail modal styles ──
+
+const detailModalTitle: React.CSSProperties = {
+  fontSize: '15px',
+  fontWeight: 700,
+  color: c.text,
+}
+
+const detailSection: React.CSSProperties = {
+  marginBottom: '24px',
+}
+
+const detailLabel: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 700,
+  color: c.textSub,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  marginBottom: '10px',
+}
+
+const detailSelect: React.CSSProperties = {
+  width: '100%',
+  padding: '9px 12px',
+  fontSize: '13px',
+  border: `1px solid rgba(55,53,47,0.14)`,
+  borderRadius: '8px',
+  backgroundColor: '#fff',
+  color: c.text,
+  outline: 'none',
+}
+
+const segControl: React.CSSProperties = {
+  display: 'flex',
+  gap: '4px',
+  backgroundColor: 'rgba(55,53,47,0.05)',
+  borderRadius: '8px',
+  padding: '3px',
+}
+
+const segBtn: React.CSSProperties = {
+  flex: 1,
+  border: 'none',
+  borderRadius: '6px',
+  padding: '7px 4px',
+  fontSize: '13px',
+  cursor: 'pointer',
+  background: 'transparent',
+  color: 'rgba(55,53,47,0.4)',
+  fontWeight: 400,
+  fontFamily: 'inherit',
+  transition: 'all 0.15s',
+}
+
+const segBtnActive: React.CSSProperties = {
+  backgroundColor: '#fff',
+  color: c.text,
+  fontWeight: 700,
+  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+}
+
+const pillGroup: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '6px',
+}
+
+const filterPillBtn: React.CSSProperties = {
+  padding: '5px 12px',
+  fontSize: '12px',
+  fontWeight: 500,
+  border: `1px solid rgba(55,53,47,0.14)`,
+  borderRadius: '999px',
+  background: 'transparent',
+  color: c.textSub,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  transition: 'all 0.15s',
+}
+
+const pillBtnActive: React.CSSProperties = {
+  backgroundColor: 'rgba(55,53,47,0.08)',
+  color: c.text,
+  fontWeight: 700,
+  borderColor: 'rgba(55,53,47,0.25)',
+}
+
+const dateRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+}
+
+const dateInput: React.CSSProperties = {
+  flex: 1,
+  padding: '8px 10px',
+  fontSize: '13px',
+  border: `1px solid rgba(55,53,47,0.14)`,
+  borderRadius: '8px',
+  backgroundColor: '#fff',
+  color: c.text,
+  outline: 'none',
+}
+
+const clearBtn: React.CSSProperties = {
+  width: '100%',
+  padding: '11px',
+  fontSize: '13px',
+  fontWeight: 600,
+  color: c.red,
+  border: `1px solid rgba(235,87,87,0.2)`,
+  borderRadius: '8px',
+  background: 'rgba(235,87,87,0.04)',
+  cursor: 'pointer',
+  marginTop: '8px',
 }
