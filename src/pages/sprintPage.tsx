@@ -453,31 +453,6 @@ export default function SprintPage() {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {/*<button*/}
-                {/*  onClick={handleAiContextCopy}*/}
-                {/*  disabled={aiContextLoading}*/}
-                {/*  title="AIプランニング用コンテキストをコピー"*/}
-                {/*  style={{*/}
-                {/*    display: 'flex', alignItems: 'center', justifyContent: 'center',*/}
-                {/*    gap: 4,*/}
-                {/*    height: 32,*/}
-                {/*    padding: '0 10px',*/}
-                {/*    borderRadius: '6px',*/}
-                {/*    border: `1px solid ${c.border}`,*/}
-                {/*    background: 'transparent',*/}
-                {/*    color: c.textHint,*/}
-                {/*    cursor: aiContextLoading ? 'wait' : 'pointer',*/}
-                {/*    fontSize: font.xs,*/}
-                {/*    fontWeight: 700,*/}
-                {/*    letterSpacing: '0.04em',*/}
-                {/*    opacity: aiContextLoading ? 0.6 : 1,*/}
-                {/*  }}*/}
-                {/*>*/}
-                {/*  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">*/}
-                {/*    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>*/}
-                {/*  </svg>*/}
-                {/*  {aiContextLoading ? '取得中…' : 'AI向けコピー'}*/}
-                {/*</button>*/}
                 <button
                   onClick={handlePrepareStats}
                   disabled={!currentSprint}
@@ -632,39 +607,6 @@ export default function SprintPage() {
                 <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
               </svg>
             )}
-          </button>
-
-          {/* AI向けコピーボタン (モバイル固定) */}
-          <button
-            onClick={handleAiContextCopy}
-            disabled={aiContextLoading}
-            title="AIプランニング用コンテキストをコピー"
-            style={{
-              position: 'fixed',
-              bottom: `calc(68px + env(safe-area-inset-bottom))`,
-              left: '68px',
-              height: 40,
-              padding: '0 12px',
-              borderRadius: '20px',
-              border: `1px solid ${c.border}`,
-              backgroundColor: '#fff',
-              color: c.textHint,
-              cursor: aiContextLoading ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              zIndex: 200,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              opacity: aiContextLoading ? 0.6 : 1,
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-            </svg>
-            {aiContextLoading ? '取得中…' : 'AI向け'}
           </button>
 
           {/* FAB */}
