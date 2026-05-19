@@ -20,6 +20,7 @@ import {KanbanBoard} from '../components/sprint/KanbanBoard'
 import {TicketDrawer} from '../components/sprint/TicketDrawer'
 import {TicketFormModal} from '../components/sprint/TicketFormModal'
 import {c, font} from '../styles/notion'
+import {useIsTablet} from '../hooks/useIsTablet'
 import {MarkdownContent} from '../components/common/MarkdownContent'
 import {StatusCopyModal} from '../components/common/StatusCopyModal'
 import {fetchSprintAiContext} from '../lib/api/aiContext'
@@ -78,6 +79,7 @@ type RetroFormState = { open: false } | { open: true; sprint: Sprint }
 
 export default function SprintPage() {
   const isWide = useIsWide()
+  const isTablet = useIsTablet()
 
   const {
     sprints,
@@ -289,7 +291,8 @@ export default function SprintPage() {
         <div
           style={{
             display: 'flex',
-            height: 'calc(100dvh - 38px - 56px)',
+            // iPad: SideNav があり BottomNav なし → 56px 分余白不要
+            height: isTablet ? 'calc(100dvh - 38px)' : 'calc(100dvh - 38px - 56px)',
             overflow: 'hidden',
           }}
         >

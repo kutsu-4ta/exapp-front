@@ -120,11 +120,11 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
   const progressData = useMemo(() => {
     if (filterSubject === 'すべて') return []
     return sessions
-      .filter((s) => s.subject === filterSubject)
-      .sort((a, b) => a.completedAt.localeCompare(b.completedAt))
+      .filter((s) => s.subject === filterSubject && s.completedAt != null)
+      .sort((a, b) => a.completedAt!.localeCompare(b.completedAt!))
       .map((s, i) => ({
         label: `第${i + 1}回`,
-        date: s.completedAt.slice(5, 10).replace('-', '/'),
+        date: s.completedAt!.slice(5, 10).replace('-', '/'),
         examYear: s.examYear,
         total: s.totalScore,
         pure: s.pureScore,

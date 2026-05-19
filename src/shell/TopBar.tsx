@@ -6,7 +6,7 @@ import {StopWatchWidget} from '../components/dashboard/StopWatchWidget'
 import {SnippetPanel} from '../components/common/SnippetPanel'
 
 // TopBar の高さ（ダイアログの top 座標と合わせる）
-const TOPBAR_HEIGHT = 38
+export const TOPBAR_HEIGHT = 38
 
 export function TopBar() {
   const location = useLocation()

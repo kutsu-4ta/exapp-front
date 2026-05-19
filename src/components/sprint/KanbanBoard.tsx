@@ -1,10 +1,24 @@
 import type {DragEndEvent, DragStartEvent} from '@dnd-kit/core'
-import {DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors} from '@dnd-kit/core'
+import {DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors} from '@dnd-kit/core'
 import {CSS} from '@dnd-kit/utilities'
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import type {StudyTicket, TicketStatus} from '../../types/sprint'
 import {TicketCard} from './TicketCard'
 import {c, font} from '../../styles/notion'
+
+/** タッチスクリーン（iPad・スマートフォン）か否かを検出 */
+function useIsTouchDevice() {
+  const [isTouch, setIsTouch] = useState(
+    () => window.matchMedia('(pointer: coarse)').matches,
+  )
+  useEffect(() => {
+    const mql = window.matchMedia('(pointer: coarse)')
+    const handler = (e: MediaQueryListEvent) => setIsTouch(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+  return isTouch
+}
 
 type Props = {
   tickets: StudyTicket[]
@@ -18,29 +32,82 @@ const COLUMNS: { status: TicketStatus; label: string; color: string }[] = [
   { status: 'done', label: 'DONE', color: '#27ae60' },
 ]
 
+// ── DraggableCard ─────────────────────────────────────────────────────────────
+//
+// Mouse (isTouch=false):  既存の挙動をそのまま維持
+//   → カード全体が drag ターゲット / cursor:grab
+//
+// Touch (isTouch=true):  iPad 最適化
+//   → 左端のハンドル（⠿）のみ drag ターゲット / touchAction:none
+//   → カード本体は touchAction を設定しないのでネイティブスクロールが有効
+
 function DraggableCard({
   ticket,
   onTap,
+  isTouch,
 }: {
   ticket: StudyTicket
   onTap: (t: StudyTicket) => void
+  isTouch: boolean
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: String(ticket.id),
-  })
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({ id: String(ticket.id) })
 
-  const style: React.CSSProperties = {
+  const wrapperStyle: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
+    display: 'flex',
+    alignItems: 'stretch',
   }
 
+  if (isTouch) {
+    // iPad: ハンドルのみドラッグ、カード本体はスクロール可
+    return (
+      <div ref={setNodeRef} style={wrapperStyle} {...attributes}>
+        {/* ドラッグハンドル */}
+        <div
+          {...listeners}
+          style={{
+            width: 28,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            touchAction: 'none',
+            cursor: 'grab',
+            color: 'rgba(55,53,47,0.18)',
+            fontSize: 18,
+            borderRadius: '8px 0 0 8px',
+            backgroundColor: 'rgba(55,53,47,0.02)',
+            border: `1px solid ${c.border}`,
+            borderRight: 'none',
+          }}
+          aria-label="ドラッグして並べ替え"
+        >
+          ⠿
+        </div>
+        {/* カード本体 */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <TicketCard ticket={ticket} onClick={!isDragging ? onTap : undefined} compact />
+        </div>
+      </div>
+    )
+  }
+
+  // Desktop/mouse: 既存の挙動を維持
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={{ ...wrapperStyle, cursor: isDragging ? 'grabbing' : 'grab' }}
+      {...attributes}
+      {...listeners}
+    >
       <TicketCard ticket={ticket} onClick={!isDragging ? onTap : undefined} compact />
     </div>
   )
 }
+
+// ── KanbanColumn ──────────────────────────────────────────────────────────────
 
 function KanbanColumn({
   status,
@@ -48,12 +115,14 @@ function KanbanColumn({
   color,
   tickets,
   onTicketTap,
+  isTouch,
 }: {
   status: TicketStatus
   label: string
   color: string
   tickets: StudyTicket[]
   onTicketTap: (t: StudyTicket) => void
+  isTouch: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -89,14 +158,7 @@ function KanbanColumn({
             status === 'done' ? 'rgba(39,174,96,0.05)' : 'rgba(55,53,47,0.015)',
         }}
       >
-        <span
-          style={{
-            fontSize: font.sm,
-            fontWeight: 700,
-            color,
-            letterSpacing: '0.06em',
-          }}
-        >
+        <span style={{ fontSize: font.sm, fontWeight: 700, color, letterSpacing: '0.06em' }}>
           {label}
         </span>
         <span
@@ -140,7 +202,7 @@ function KanbanColumn({
           </div>
         ) : (
           tickets.map((t) => (
-            <DraggableCard key={t.id} ticket={t} onTap={onTicketTap} />
+            <DraggableCard key={t.id} ticket={t} onTap={onTicketTap} isTouch={isTouch} />
           ))
         )}
       </div>
@@ -148,12 +210,15 @@ function KanbanColumn({
   )
 }
 
+// ── KanbanBoard ───────────────────────────────────────────────────────────────
+
 export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
+  const isTouch = useIsTouchDevice()
   const [activeTicket, setActiveTicket] = useState<StudyTicket | null>(null)
 
+  // distance:5 でクリックとドラッグを区別。マウス・タッチ共通。
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -175,14 +240,7 @@ export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div
-        style={{
-          display: 'flex',
-          gap: '10px',
-          height: '100%',
-          padding: '0 16px 16px',
-        }}
-      >
+      <div style={{ display: 'flex', gap: '10px', height: '100%', padding: '0 16px 16px' }}>
         {COLUMNS.map(({ status, label, color }) => (
           <KanbanColumn
             key={status}
@@ -191,6 +249,7 @@ export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
             color={color}
             tickets={tickets.filter((t) => t.status === status)}
             onTicketTap={onTicketTap}
+            isTouch={isTouch}
           />
         ))}
       </div>

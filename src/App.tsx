@@ -7,6 +7,8 @@ import {useAuthStore} from './lib/store/auth'
 import {LoadingSpinner} from './components/common/LoadingSpinner'
 import {BottomNav} from './shell/BottomNav'
 import {TopBar} from '@/shell/TopBar'
+import {SideNav, SIDENAV_WIDTH} from './shell/SideNav'
+import {useIsTablet} from './hooks/useIsTablet'
 
 // Pages — ルート単位で遅延ロード
 const DashboardPage = lazy(() => import('./pages/dashboardPage'))
@@ -44,6 +46,7 @@ function PrivateRoute() {
 
 // ナビゲーションバーを表示する共通レイアウト
 function AppLayout() {
+  const isTablet = useIsTablet()
   const loadSubjects = useSettingsStore((s) => s.loadSubjects)
   const loadMaterials = useSettingsStore((s) => s.loadMaterials)
   const loadSubCategories = useSettingsStore((s) => s.loadSubCategories)
@@ -54,6 +57,20 @@ function AppLayout() {
     loadSubCategories()
   }, [])
 
+  if (isTablet) {
+    // iPad: 左サイドバー + コンテンツ
+    return (
+      <TimerProvider>
+        <TopBar />
+        <SideNav />
+        <main style={{ marginLeft: SIDENAV_WIDTH, paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <Outlet />
+        </main>
+      </TimerProvider>
+    )
+  }
+
+  // PC・スマホ: 既存のまま（変更なし）
   return (
     <TimerProvider>
       <TopBar />
