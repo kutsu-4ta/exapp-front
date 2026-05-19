@@ -1,5 +1,5 @@
 import type {DragEndEvent, DragStartEvent} from '@dnd-kit/core'
-import {DndContext, DragOverlay, useDraggable, useDroppable} from '@dnd-kit/core'
+import {DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors} from '@dnd-kit/core'
 import {CSS} from '@dnd-kit/utilities'
 import {useState} from 'react'
 import type {StudyTicket, TicketStatus} from '../../types/sprint'
@@ -33,7 +33,6 @@ function DraggableCard({
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',
-    touchAction: 'none',
   }
 
   return (
@@ -152,6 +151,11 @@ function KanbanColumn({
 export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
   const [activeTicket, setActiveTicket] = useState<StudyTicket | null>(null)
 
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  )
+
   const handleDragStart = (event: DragStartEvent) => {
     const ticketId = Number(event.active.id)
     setActiveTicket(tickets.find((t) => t.id === ticketId) ?? null)
@@ -170,7 +174,7 @@ export function KanbanBoard({ tickets, onTicketTap, onStatusChange }: Props) {
   }
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         style={{
           display: 'flex',
