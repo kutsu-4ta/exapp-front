@@ -19,9 +19,10 @@ type Props = {
   onDelete: (id: number) => void;
   onUpdate: (problem: Problem) => void;
   hideQuizzes?: boolean;
+  zIndex?: number;
 };
 
-export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate, hideQuizzes = false }: Props) {
+export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate, hideQuizzes = false, zIndex }: Props) {
   const navigate = useNavigate();
   const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial);
   const subjectColors = useSettingsStore((s) => s.subjectColors);
@@ -134,7 +135,7 @@ export function ProblemQuickModal({ problem, onClose, onDelete, onUpdate, hideQu
   }
 
   return (
-    <BottomSheet onClose={onClose} height="90vh">
+    <BottomSheet onClose={onClose} height="90vh" zIndex={zIndex}>
       <div style={sheetFlexHeaderStyle}>
         <button onClick={onClose} disabled={isSaving} style={{ ...sheetCloseBtnStyle, opacity: isSaving ? 0.7 : 1 }}>×</button>
         <div style={headerRight}>

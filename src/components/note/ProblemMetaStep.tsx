@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {useSettingsStore} from '../../lib/store/settings'
 import type {FailureType, Problem, ProblemInput, Proficiency, SubCategory,} from '../../types/workspace'
 import {todayString} from '../../types/workspace'
@@ -16,6 +16,9 @@ import {
 
 import {ProficiencySelector} from '@/components/common/ProficiencySelector.tsx'
 import {FailureTypeSelector} from '@/components/common/FailureTypeSlecter.tsx'
+import {fetchProblems} from '@/lib/api/problem.ts'
+import {Star} from 'lucide-react'
+import {ProblemQuickModal} from '@/components/note/ProblemQuickModal.tsx'
 
 type Props = {
     initial?: Partial<ProblemInput>
@@ -58,14 +61,58 @@ export function ProblemMetaStep({
     )
 
     const [isFormula, setIsFormula] = useState(initial?.isFormula ?? false)
+    const [isGoodQuestion, setIsGoodQuestion] = useState(initial?.isGoodQuestion ?? false)
 
     const [loading, setLoading] = useState(false)
     const [analyzing, setAnalyzing] = useState(false)
     const [loadingMsgIdx, setLoadingMsgIdx] = useState<number>(0)
     const [error, setError] = useState<string | null>(null)
+    const [dupProblem, setDupProblem] = useState<Problem | null>(null)
+    const [dupModalOpen, setDupModalOpen] = useState(false)
 
     const fileRef = useRef<HTMLInputElement>(null)
     const timerRef = useRef<number | null>(null)
+    const dupDebounceRef = useRef<number | null>(null)
+    const isFirstRenderRef = useRef(true)
+
+    async function searchDuplicate(mat: string, ref: string) {
+        if (!mat.trim() || !ref.trim()) {
+            setDupProblem(null)
+            return
+        }
+        try {
+            const results = await fetchProblems({ q: ref, limit: 50 })
+            const found = results.find(
+                (p) =>
+                    p.materialName?.trim() === mat.trim() &&
+                    p.questionRef.trim() === ref.trim()
+            )
+            setDupProblem(found ?? null)
+        } catch {
+            // silently ignore search errors
+        }
+    }
+
+    // マウント時に即時検索
+    useEffect(() => {
+        searchDuplicate(material, questionRef)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // 教材・問題番号の変更を 600ms デバウンスで検索
+    useEffect(() => {
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false
+            return
+        }
+        if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
+        dupDebounceRef.current = window.setTimeout(() => {
+            searchDuplicate(material, questionRef)
+        }, 600)
+        return () => {
+            if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
+        }
+    }, [material, questionRef])
 
     function isValid(): boolean {
         return (
@@ -96,7 +143,7 @@ export function ProblemMetaStep({
             note: initial?.note ?? null,
             proficiency,
             failureTypes,
-            isGoodQuestion: false,
+            isGoodQuestion,
             isFormula,
             solvedAt: todayString(),
         }
@@ -155,7 +202,7 @@ export function ProblemMetaStep({
 
     return (
         <div style={editableRow}>
-            {/* 科目 */}
+            {/* 科目（必須） */}
             <input
                 list="subjects"
                 value={subject}
@@ -163,7 +210,7 @@ export function ProblemMetaStep({
                     setSubject(e.target.value)
                     setSubCategory('')
                 }}
-                placeholder="科目"
+                placeholder="科目 *"
                 style={{ ...notionMainInp, width: '100%' }}
             />
             <datalist id="subjects">
@@ -172,7 +219,7 @@ export function ProblemMetaStep({
                 ))}
             </datalist>
 
-            {/* 教材 */}
+            {/* 教材（任意） */}
             <input
                 list="materials"
                 value={material}
@@ -186,31 +233,64 @@ export function ProblemMetaStep({
                 ))}
             </datalist>
 
-            {/* 小分類 */}
+            {/* 小分類（必須）— key={subject} で科目変更時に datalist を強制再生成 */}
             <input
                 list="subcats"
                 value={subCategory}
                 onChange={(e) => setSubCategory(e.target.value)}
-                placeholder="小分類"
+                placeholder="小分類 *"
                 style={notionSubInp}
             />
-            <datalist id="subcats">
+            <datalist id="subcats" key={subject}>
                 {subCategories
-                    .filter((x) => x.subject === subject)
+                    .filter((x) => x.subject === subject.trim())
                     .map((x) => (
                         <option key={x.id} value={x.name} />
                     ))}
             </datalist>
 
-            {/* 問題番号 */}
+            {/* 問題番号（必須） */}
             <div style={flexRow}>
                 <input
                     value={questionRef}
                     onChange={(e) => setQuestionRef(e.target.value)}
-                    placeholder="問題番号"
+                    placeholder="問題番号 *"
                     style={{ ...notionSubInp, flex: 1, width: 'auto' }}
                 />
             </div>
+
+            {/* 重複警告バナー */}
+            {dupProblem && (
+                <div style={dupWarningStyle}>
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>⚠ 同じ教材・問題番号が既に登録されています</span>
+                    <span style={{ fontSize: 12 }}>
+                        {[dupProblem.materialName, dupProblem.questionRef].filter(Boolean).join(' · ')}
+                        {dupProblem.subCategory ? ` — ${dupProblem.subCategory}` : ''}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setDupModalOpen(true)}
+                        style={dupViewBtnStyle}
+                    >
+                        登録済みノートを見る →
+                    </button>
+                </div>
+            )}
+
+            {/* 重複ノート詳細（URL変更なし・演習フローを維持） */}
+            {dupProblem && dupModalOpen && (
+                <ProblemQuickModal
+                    problem={dupProblem}
+                    onClose={() => setDupModalOpen(false)}
+                    onDelete={() => {
+                        setDupProblem(null)
+                        setDupModalOpen(false)
+                    }}
+                    onUpdate={(updated) => setDupProblem(updated)}
+                    hideQuizzes
+                    zIndex={3000}
+                />
+            )}
 
             <div style={{ marginTop: '12px' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -223,11 +303,14 @@ export function ProblemMetaStep({
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: '12px' }}>
-                <FailureTypeSelector value={failureTypes} onChange={setFailureTypes} />
+            <div style={{ marginTop: '12px' }}>
+                <span style={{ ...tinyLabel, display: 'block', marginBottom: '6px' }}>属性 *</span>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <FailureTypeSelector value={failureTypes} onChange={setFailureTypes} />
+                </div>
             </div>
 
-            <div style={{ marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: '10px' }}>
                 <button
                     type="button"
                     onClick={() => setIsFormula((v) => !v)}
@@ -245,6 +328,28 @@ export function ProblemMetaStep({
                     }}
                 >
                     公式
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setIsGoodQuestion((v) => !v)}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        borderColor: isGoodQuestion ? 'rgba(234,179,8,0.4)' : 'rgba(55,53,47,0.15)',
+                        backgroundColor: isGoodQuestion ? 'rgba(254,249,195,0.6)' : 'transparent',
+                        color: isGoodQuestion ? '#92400e' : 'rgba(55,53,47,0.4)',
+                        transition: 'all 0.15s',
+                    }}
+                >
+                    <Star size={12} fill={isGoodQuestion ? 'currentColor' : 'none'} />
+                    良問
                 </button>
             </div>
 
@@ -292,4 +397,28 @@ export function ProblemMetaStep({
             </div>
         </div>
     )
+}
+
+const dupWarningStyle: React.CSSProperties = {
+    padding: '10px 12px',
+    borderRadius: '6px',
+    border: '1px solid rgba(234,179,8,0.4)',
+    backgroundColor: 'rgba(254,249,195,0.7)',
+    color: '#92400e',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+}
+
+const dupViewBtnStyle: React.CSSProperties = {
+    alignSelf: 'flex-start',
+    background: 'none',
+    border: '1px solid rgba(234,179,8,0.5)',
+    borderRadius: '5px',
+    color: '#92400e',
+    fontSize: '12px',
+    fontWeight: 600,
+    padding: '3px 10px',
+    cursor: 'pointer',
+    marginTop: '2px',
 }
