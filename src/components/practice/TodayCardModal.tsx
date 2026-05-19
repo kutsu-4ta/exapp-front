@@ -1,27 +1,26 @@
 import {useState} from 'react'
 import type {FailureType, Problem, ProblemInput, Proficiency} from '../../types/workspace'
-import {daysAgo, FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from '../../types/workspace'
+import {daysAgo, PROFICIENCY_VALUES} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
-import {PROF_STYLE} from '@/styles/subjectUI.ts'
+import {PROF_STYLE, subjectPalette} from '@/styles/subjectUI.ts'
+import {FailureTypeSelector} from '@/components/common/FailureTypeSlecter.tsx'
+import {useSettingsStore} from '../../lib/store/settings'
 
 interface Props {
   problem: Problem
   cardIndex: number
   totalCards: number
   onConfirm: (input: ProblemInput) => Promise<void>
+  onClose?: () => void
 }
 
-export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Props) {
+export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm, onClose }: Props) {
   const [proficiency, setProficiency] = useState<Proficiency>(problem.proficiency as Proficiency)
-  const [failureTypes, setFailureTypes] = useState<FailureType[]>(
-    problem.failureTypes as FailureType[]
-  )
+  const [failureTypes, setFailureTypes] = useState<FailureType[]>(problem.failureTypes as FailureType[])
   const [note, setNote] = useState(problem.note ?? '')
   const [loading, setLoading] = useState(false)
-
-  const toggleFt = (ft: FailureType) => {
-    setFailureTypes((prev) => (prev.includes(ft) ? prev.filter((x) => x !== ft) : [...prev, ft]))
-  }
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
+  const palette = subjectPalette(problem.subject, subjectColors[problem.subject])
 
   const handleConfirm = async () => {
     setLoading(true)
@@ -47,27 +46,33 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Pr
   const prof = PROF_STYLE[proficiency] ?? PROF_STYLE['×']
 
   return (
-    <div style={overlay}>
-      <div style={sheet}>
+    <div style={overlay} onClick={onClose}>
+      <div style={sheet} onClick={(e) => e.stopPropagation()}>
         <div style={handle} />
 
-        {/* Progress + card header */}
+        {/* Header */}
+        <div style={header}>
+          <button onClick={onClose} style={closeBtn}>×</button>
+          <span style={progressBadge}>{cardIndex} / {totalCards}</span>
+        </div>
+
+        {/* Card info */}
         <div style={cardHeader}>
-          <span style={progressBadge}>
-            {cardIndex}/{totalCards}
-          </span>
           <div style={metaRow}>
-            {problem.subCategory && <span style={subCatTag}>{problem.subCategory}</span>}
-            {problem.material && <span style={materialTag}>{problem.material}</span>}
+            <span style={{ ...subjectChip, backgroundColor: palette.bg, color: palette.color }}>
+              {problem.subject}
+            </span>
+            {problem.material && <span style={refText}>{problem.material}</span>}
+            {problem.questionRef && <span style={refText}>{problem.questionRef}</span>}
             <span style={daysTag}>{daysAgo(problem.solvedAt)}日前</span>
           </div>
-          <p style={questionRef}>{problem.questionRef}</p>
+          {problem.subCategory && <p style={questionRefStyle}>{problem.subCategory}</p>}
         </div>
 
         <div style={body}>
           {/* Proficiency */}
-          <div style={fieldGroup}>
-            <p style={fieldLabel}>習熟度</p>
+          <div style={section}>
+            <p style={sectionLbl}>習熟度</p>
             <div style={segControl}>
               {PROFICIENCY_VALUES.map((p) => (
                 <button
@@ -87,32 +92,14 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm }: Pr
           </div>
 
           {/* Failure types */}
-          <div style={fieldGroup}>
-            <p style={fieldLabel}>属性</p>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {FAILURE_TYPE_VALUES.map((ft) => {
-                const selected = failureTypes.includes(ft)
-                return (
-                  <button
-                    key={ft}
-                    onClick={() => toggleFt(ft)}
-                    style={{
-                      ...pillBtn,
-                      backgroundColor: selected ? 'rgba(55,53,47,0.08)' : 'transparent',
-                      borderColor: selected ? 'rgba(55,53,47,0.2)' : 'rgba(55,53,47,0.1)',
-                      color: selected ? c.text : 'rgba(55,53,47,0.4)',
-                    }}
-                  >
-                    {ft}
-                  </button>
-                )
-              })}
-            </div>
+          <div style={section}>
+            <p style={sectionLbl}>属性</p>
+            <FailureTypeSelector value={failureTypes} onChange={setFailureTypes} />
           </div>
 
           {/* Note */}
-          <div style={fieldGroup}>
-            <p style={fieldLabel}>メモ</p>
+          <div style={section}>
+            <p style={sectionLbl}>ノート</p>
             <textarea
               style={noteArea}
               value={note}
@@ -146,20 +133,20 @@ const overlay: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
   zIndex: 1200,
-  backgroundColor: 'rgba(0,0,0,0.5)',
+  backgroundColor: 'rgba(0,0,0,0.4)',
   display: 'flex',
   alignItems: 'flex-end',
 }
 
 const sheet: React.CSSProperties = {
   width: '100%',
-  maxWidth: '600px',
+  maxWidth: '720px',
   margin: '0 auto',
   backgroundColor: '#fff',
-  borderRadius: '20px 20px 0 0',
-  maxHeight: '85vh',
-  overflowY: 'auto',
-  paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
+  borderRadius: '16px 16px 0 0',
+  height: '90vh',
+  display: 'flex',
+  flexDirection: 'column',
 }
 
 const handle: React.CSSProperties = {
@@ -167,43 +154,69 @@ const handle: React.CSSProperties = {
   height: '4px',
   borderRadius: '2px',
   backgroundColor: 'rgba(55,53,47,0.15)',
-  margin: '12px auto 0',
+  margin: '10px auto 0',
+  flexShrink: 0,
 }
 
-const cardHeader: React.CSSProperties = {
-  padding: '16px 20px 12px',
-  borderBottom: `1px solid rgba(55,53,47,0.08)`,
+const header: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '12px 16px',
+  borderBottom: `1px solid ${c.border}`,
+  flexShrink: 0,
+}
+
+const closeBtn: React.CSSProperties = {
+  border: 'none',
+  background: 'none',
+  fontSize: '20px',
+  color: 'rgba(55,53,47,0.4)',
+  cursor: 'pointer',
+  lineHeight: 1,
+  padding: '0 2px',
 }
 
 const progressBadge: React.CSSProperties = {
-  display: 'inline-block',
-  fontSize: '11px',
+  fontSize: '12px',
   fontWeight: 700,
   color: c.blue,
   backgroundColor: 'rgba(35,131,226,0.1)',
   borderRadius: '4px',
-  padding: '2px 8px',
-  marginBottom: '8px',
+  padding: '3px 10px',
+}
+
+const cardHeader: React.CSSProperties = {
+  padding: '14px 16px 16px',
+  borderBottom: `1px solid ${c.border}`,
+  flexShrink: 0,
 }
 
 const metaRow: React.CSSProperties = {
   display: 'flex',
   flexWrap: 'wrap',
   gap: '6px',
+  alignItems: 'center',
   marginBottom: '8px',
 }
 
-const subCatTag: React.CSSProperties = {
-  padding: '2px 8px',
+const subjectChip: React.CSSProperties = {
+  padding: '2px 7px',
   borderRadius: '4px',
   fontSize: font.xs,
-  fontWeight: 600,
-  backgroundColor: 'rgba(55,53,47,0.06)',
-  color: 'rgba(55,53,47,0.6)',
+  fontWeight: 700,
+  letterSpacing: '0.02em',
 }
 
-const materialTag: React.CSSProperties = {
-  padding: '2px 8px',
+const refText: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textFaint,
+  fontWeight: 400,
+}
+
+const daysTag: React.CSSProperties = {
+  marginLeft: 'auto',
+  padding: '2px 7px',
   borderRadius: '4px',
   fontSize: font.xs,
   fontWeight: 500,
@@ -211,34 +224,32 @@ const materialTag: React.CSSProperties = {
   color: 'rgba(55,53,47,0.4)',
 }
 
-const daysTag: React.CSSProperties = {
-  padding: '2px 8px',
-  borderRadius: '4px',
-  fontSize: font.xs,
-  fontWeight: 500,
-  backgroundColor: 'rgba(55,53,47,0.03)',
-  color: 'rgba(55,53,47,0.35)',
-}
-
-const questionRef: React.CSSProperties = {
+const questionRefStyle: React.CSSProperties = {
   fontSize: '17px',
   fontWeight: 700,
   color: c.text,
   margin: 0,
-  lineHeight: 1.4,
+  lineHeight: 1.45,
   letterSpacing: '-0.01em',
 }
 
 const body: React.CSSProperties = {
-  padding: '20px 20px 8px',
+  padding: '20px 16px',
+  overflowY: 'auto',
+  flex: 1,
   display: 'flex',
   flexDirection: 'column',
   gap: '20px',
+  paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
 }
 
-const fieldGroup: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '8px' }
+const section: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+}
 
-const fieldLabel: React.CSSProperties = {
+const sectionLbl: React.CSSProperties = {
   fontSize: '11px',
   fontWeight: 700,
   color: 'rgba(55,53,47,0.35)',
@@ -265,18 +276,9 @@ const segBtn: React.CSSProperties = {
   transition: 'all 0.15s',
 }
 
-const pillBtn: React.CSSProperties = {
-  padding: '5px 14px',
-  borderRadius: '6px',
-  border: '1px solid',
-  fontSize: '13px',
-  cursor: 'pointer',
-  transition: 'all 0.1s',
-}
-
 const noteArea: React.CSSProperties = {
   width: '100%',
-  border: `1px solid rgba(55,53,47,0.1)`,
+  border: `1px solid ${c.border}`,
   borderRadius: '8px',
   padding: '10px 12px',
   fontSize: '14px',
@@ -297,4 +299,5 @@ const confirmBtn: React.CSSProperties = {
   fontWeight: 700,
   cursor: 'pointer',
   transition: 'opacity 0.15s',
+  marginTop: 'auto',
 }

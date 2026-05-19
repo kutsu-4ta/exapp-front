@@ -344,6 +344,7 @@ export default function PracticeSessionPage() {
           cardIndex={log.length}
           totalCards={todayCards.length}
           onConfirm={handleModalConfirm}
+          onClose={() => setReviewProblem(null)}
         />
       )}
     </div>
