@@ -1,4 +1,5 @@
 import {useMemo, useState} from 'react'
+import {BottomSheet} from '@/components/common/BottomSheet'
 import type {
   Sprint,
   StudyTicket,
@@ -192,42 +193,8 @@ export function TicketFormModal(props: Props) {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        zIndex: 2000,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '600px',
-          backgroundColor: '#fff',
-          borderRadius: '16px 16px 0 0',
-          padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
-          maxHeight: '92vh',
-          overflowY: 'auto',
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Handle */}
-        <div
-          style={{
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: 'rgba(55,53,47,0.1)',
-            margin: '-8px auto 16px',
-          }}
-        />
-
+    <BottomSheet onClose={onClose} zIndex={2000} maxWidth={600} maxHeight="92vh" paddingBottom="calc(20px + env(safe-area-inset-bottom))">
+      <div style={{ padding: '20px 20px 0' }}>
         <h3 style={{ margin: '0 0 16px', fontSize: font.md, fontWeight: 700, color: c.text }}>
           {mode === 'create' ? 'チケット作成' : 'チケット編集'}
         </h3>
@@ -560,6 +527,6 @@ export function TicketFormModal(props: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   )
 }

@@ -10,6 +10,7 @@ import {PreExamStartModal} from '../components/exam/PreExamStartModal'
 import {useTimer} from '../context/TimerContext'
 import {stopStopwatch} from '../lib/api/stopwatch'
 import {c, font} from '../styles/notion'
+import {BottomSheet} from '../components/common/BottomSheet'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
 import {fetchGeminiContext} from '../lib/api/gemini'
 import {StatusCopyModal} from '../components/common/StatusCopyModal'
@@ -306,19 +307,17 @@ export default function ExamPage() {
 
       {/* 中断データ再開モーダル */}
       {showResumeModal && (
-          <div style={overlay}>
-            <div style={sheet}>
-              <p style={sheetTitle}>中断したデータがあります</p>
-              <p style={sheetBody}>
-                前回作成した下書きが見つかりました。どうしますか？
-              </p>
-              <div style={sheetActions}>
-                <button style={primaryBtn} onClick={handleResume}>続きから再開</button>
-                <button style={secondaryBtn} onClick={handleRestart}>破棄して初めから</button>
-                <button style={ghostBtn} onClick={() => setShowResumeModal(false)}>キャンセル</button>
-              </div>
+        <BottomSheet zIndex={1100} maxWidth={600} showHandle={false} paddingBottom="calc(36px + env(safe-area-inset-bottom, 0px))">
+          <div style={{ padding: '24px 20px 0' }}>
+            <p style={sheetTitle}>中断したデータがあります</p>
+            <p style={sheetBody}>前回作成した下書きが見つかりました。どうしますか？</p>
+            <div style={sheetActions}>
+              <button style={primaryBtn} onClick={handleResume}>続きから再開</button>
+              <button style={secondaryBtn} onClick={handleRestart}>破棄して初めから</button>
+              <button style={ghostBtn} onClick={() => setShowResumeModal(false)}>キャンセル</button>
             </div>
           </div>
+        </BottomSheet>
       )}
 
       {/* 試験開始前モーダル */}
@@ -332,25 +331,19 @@ export default function ExamPage() {
 
       {/* stopwatch */}
       {showStopwatchModal && (
-        <div style={overlay}>
-          <div style={sheet}>
+        <BottomSheet zIndex={1100} maxWidth={600} showHandle={false} paddingBottom="calc(36px + env(safe-area-inset-bottom, 0px))">
+          <div style={{ padding: '24px 20px 0' }}>
             <p style={sheetTitle}>ストップウォッチが動作中です</p>
-            <p style={sheetBody}>
-              タイマーが計測中です。停止してから試験を始めますか？
-            </p>
+            <p style={sheetBody}>タイマーが計測中です。停止してから試験を始めますか？</p>
             <div style={sheetActions}>
               <button style={primaryBtn} onClick={handleStopTimerAndProceed} disabled={stoppingTimer}>
                 {stoppingTimer ? '停止中...' : '停止して進む'}
               </button>
-              <button style={secondaryBtn} onClick={handleProceedWithTimer} disabled={stoppingTimer}>
-                そのまま進む
-              </button>
-              <button style={ghostBtn} onClick={() => setShowStopwatchModal(false)} disabled={stoppingTimer}>
-                キャンセル
-              </button>
+              <button style={secondaryBtn} onClick={handleProceedWithTimer} disabled={stoppingTimer}>そのまま進む</button>
+              <button style={ghostBtn} onClick={() => setShowStopwatchModal(false)} disabled={stoppingTimer}>キャンセル</button>
             </div>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {/* quick score */}
@@ -482,26 +475,7 @@ const errorMsg: React.CSSProperties = {
   marginBottom: '12px',
 }
 
-// ── Modal (bottom sheet) ──────────────────────────────────────────────────────
-
-const overlay: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  backgroundColor: 'rgba(0,0,0,0.25)',
-  display: 'flex',
-  alignItems: 'flex-end',
-  justifyContent: 'center',
-  zIndex: 1100,
-}
-
-const sheet: React.CSSProperties = {
-  width: '100%',
-  maxWidth: '600px',
-  backgroundColor: '#fff',
-  borderRadius: '16px 16px 0 0',
-  padding: '24px 20px 36px',
-  boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
-}
+// ── Modal styles ──────────────────────────────────────────────────────────────
 
 const sheetTitle: React.CSSProperties = {
   fontSize: '15px',
