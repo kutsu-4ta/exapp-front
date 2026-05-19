@@ -36,7 +36,7 @@ function buildSprintStatusText(sprint: Sprint, stats: SprintStats | undefined, t
   if (stats) {
     lines.push('【KPI】')
     lines.push(`合計: ${stats.total}件  完了: ${stats.done}  進行中: ${stats.doing}  未着手: ${stats.todo}`)
-    lines.push(`完了率: ${Math.round(stats.completionRate * 100)}%`)
+    lines.push(`完了率: ${Math.round(stats.completionRate)}%`)
     if (stats.avgCompleteDays !== null) lines.push(`平均完了日数: ${stats.avgCompleteDays}日`)
     lines.push('')
   }
