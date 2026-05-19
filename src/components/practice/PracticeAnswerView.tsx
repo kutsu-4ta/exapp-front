@@ -48,8 +48,9 @@ import {
 } from './PracticeAnswerView.styles'
 import {AnswerInputPanel} from '@/components/exam/AnswerInputPanel.tsx'
 import {AddProblemModal} from '../note/AddProblemModal.tsx'
-import {addProblem, updateProblem} from '@/lib/api/problem.ts'
-import type {ProblemInput} from '@/types/workspace.ts'
+import {ProblemQuickModal} from '../note/ProblemQuickModal.tsx'
+import {addProblem, fetchProblem, updateProblem} from '@/lib/api/problem.ts'
+import type {Problem, ProblemInput} from '@/types/workspace.ts'
 import {useSettingsStore} from '@/lib/store/settings.ts'
 import {invalidateCache} from '@/lib/pageCache.ts'
 
@@ -89,6 +90,7 @@ type Props = {
   }) => void
   onAddSubQuestion: () => void
   onRemoveSubQuestion: (localId: string) => void
+  editableProblemId?: number
 }
 
 const ALPHA_MAP: Record<string, string> = {
@@ -126,6 +128,7 @@ export function PracticeAnswerView({
   onSubmit,
   onAddSubQuestion,
   onRemoveSubQuestion,
+  editableProblemId,
 }: Props) {
   const targets = subQuestions.length > 0 ? subQuestions : [question]
   const materialName = useSettingsStore((s) => s.lastUsedMaterial)
@@ -147,6 +150,8 @@ export function PracticeAnswerView({
     })
   )
   const [showModal, setShowModal] = useState(false)
+  const [editProblem, setEditProblem] = useState<Problem | null>(null)
+  const [editProblemLoading, setEditProblemLoading] = useState(false)
   const subCategories = useSettingsStore((s) => s.subCategories)
 
   useEffect(() => {
@@ -229,6 +234,17 @@ export function PracticeAnswerView({
     invalidateCache('note-problems')
     return updated
   }, [])
+
+  const handleOpenEdit = async () => {
+    if (!editableProblemId) return
+    setEditProblemLoading(true)
+    try {
+      const p = await fetchProblem(editableProblemId)
+      setEditProblem(p)
+    } catch { /* ignore */ } finally {
+      setEditProblemLoading(false)
+    }
+  }
 
   // ── 確認フェーズ ─────────────────────────────────────────────────────────
   if (phase === 'confirm') {
@@ -349,9 +365,15 @@ export function PracticeAnswerView({
         </div>
 
         <div style={confirmActions}>
-          <button style={addProblemBtn} onClick={() => setShowModal(true)}>
-            Problemへ追加
-          </button>
+          {editableProblemId ? (
+            <button style={addProblemBtn} onClick={handleOpenEdit} disabled={editProblemLoading}>
+              {editProblemLoading ? '...' : 'Problem編集'}
+            </button>
+          ) : (
+            <button style={addProblemBtn} onClick={() => setShowModal(true)}>
+              Problemへ追加
+            </button>
+          )}
           <button style={nextBtn} onClick={handleNext}>
             次の問題へ →
           </button>
@@ -369,6 +391,19 @@ export function PracticeAnswerView({
               solvedAt: new Date().toISOString().slice(0, 10),
               note: buildMemoNote() || null,
             }}
+          />
+        )}
+
+        {editProblem && (
+          <ProblemQuickModal
+            problem={editProblem}
+            onClose={() => setEditProblem(null)}
+            onDelete={() => setEditProblem(null)}
+            onUpdate={(updated) => {
+              setEditProblem(updated)
+              invalidateCache('note-problems')
+            }}
+            hideQuizzes
           />
         )}
       </div>

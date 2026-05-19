@@ -327,16 +327,23 @@ export default function PracticeSessionPage() {
         </div>
       )}
 
-      <PracticeAnswerView
-        key={currentQuestion.localId}
-        question={currentQuestion}
-        subQuestions={subQuestions}
-        subject={subject}
-        initialAnswers={pendingInitAnswers}
-        onSubmit={handleSubmit}
-        onAddSubQuestion={handleAddSubQuestion}
-        onRemoveSubQuestion={handleRemoveSubQuestion}
-      />
+      {!reviewProblem && (
+        <PracticeAnswerView
+          key={currentQuestion.localId}
+          question={currentQuestion}
+          subQuestions={subQuestions}
+          subject={subject}
+          initialAnswers={pendingInitAnswers}
+          onSubmit={handleSubmit}
+          onAddSubQuestion={handleAddSubQuestion}
+          onRemoveSubQuestion={handleRemoveSubQuestion}
+          editableProblemId={todayMode ? todayCards[currentIndex - 1]?.id : undefined}
+        />
+      )}
+
+      {pendingNextIndex !== null && !reviewProblem && (
+        <div style={reviewLoading}>読み込み中...</div>
+      )}
 
       {reviewProblem && (
         <TodayCardModal
@@ -355,6 +362,13 @@ const page: React.CSSProperties = {
   margin: '0 auto',
   padding: '20px 16px 60px',
   color: c.text,
+}
+
+const reviewLoading: React.CSSProperties = {
+  padding: '32px 0',
+  textAlign: 'center',
+  fontSize: '13px',
+  color: 'rgba(55,53,47,0.4)',
 }
 
 const sessionHeader: React.CSSProperties = {

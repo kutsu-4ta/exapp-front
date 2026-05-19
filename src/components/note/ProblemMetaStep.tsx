@@ -172,6 +172,20 @@ export function ProblemMetaStep({
                 ))}
             </datalist>
 
+            {/* 教材 */}
+            <input
+                list="materials"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                placeholder="教材"
+                style={{ ...notionSubInp, flex: 1, width: 'auto' }}
+            />
+            <datalist id="materials">
+                {materials.map((m) => (
+                    <option key={m} value={m} />
+                ))}
+            </datalist>
+
             {/* 小分類 */}
             <input
                 list="subcats"
@@ -188,20 +202,8 @@ export function ProblemMetaStep({
                     ))}
             </datalist>
 
-            {/* 教材 + 問題番号 */}
+            {/* 問題番号 */}
             <div style={flexRow}>
-                <input
-                    list="materials"
-                    value={material}
-                    onChange={(e) => setMaterial(e.target.value)}
-                    placeholder="教材"
-                    style={{ ...notionSubInp, flex: 1, width: 'auto' }}
-                />
-                <datalist id="materials">
-                    {materials.map((m) => (
-                        <option key={m} value={m} />
-                    ))}
-                </datalist>
                 <input
                     value={questionRef}
                     onChange={(e) => setQuestionRef(e.target.value)}
