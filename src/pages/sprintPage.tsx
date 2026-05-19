@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react'
 import type {
   Sprint,
   SprintInput,
+  SprintStats,
   SprintUpdateInput,
   StudyTicket,
   StudyTicketInput,
@@ -22,6 +23,35 @@ import {c, font} from '../styles/notion'
 import {MarkdownContent} from '../components/common/MarkdownContent'
 import {StatusCopyModal} from '../components/common/StatusCopyModal'
 import {fetchSprintAiContext} from '../lib/api/aiContext'
+
+function buildSprintStatusText(sprint: Sprint, stats: SprintStats | undefined, tickets: StudyTicket[]): string {
+  const isCompleted = sprint.status === 'completed'
+  const lines = ['【スプリントステータス】']
+  lines.push(`スプリント: ${sprint.name}`)
+  if (sprint.goal) lines.push(`目標: ${sprint.goal}`)
+  if (sprint.startDate) lines.push(`期間: ${sprint.startDate} 〜 ${sprint.endDate ?? '?'}`)
+  lines.push(`状態: ${isCompleted ? '完了済み' : '進行中'}`)
+  lines.push('')
+  if (stats) {
+    lines.push('【KPI】')
+    lines.push(`合計: ${stats.total}件  完了: ${stats.done}  進行中: ${stats.doing}  未着手: ${stats.todo}`)
+    lines.push(`完了率: ${Math.round(stats.completionRate * 100)}%`)
+    if (stats.avgCompleteDays !== null) lines.push(`平均完了日数: ${stats.avgCompleteDays}日`)
+    lines.push('')
+  }
+  const groups: Array<[TicketStatus, string]> = [['doing', 'DOING'], ['todo', 'TODO'], ['done', 'DONE']]
+  for (const [status, label] of groups) {
+    const group = tickets.filter((t) => t.status === status)
+    if (group.length === 0) continue
+    lines.push(`[${label}]`)
+    group.forEach((t) => {
+      lines.push(`・${PRIORITY_LABEL[t.priority]} ${t.title}  (${TICKET_TYPE_LABEL[t.ticketType]} / ${STATUS_LABEL[t.status]} / 期限:${t.dueDate})`)
+      if (t.acceptanceCriteria) lines.push(`  → ${t.acceptanceCriteria}`)
+    })
+    lines.push('')
+  }
+  return lines.join('\n')
+}
 
 function useIsWide() {
   const [wide, setWide] = useState(() => window.innerWidth >= 768)
@@ -189,52 +219,9 @@ export default function SprintPage() {
 
   const handlePrepareStats = () => {
     if (!currentSprint) return
-    const lines = ['【スプリントステータス】']
-    lines.push(`スプリント: ${currentSprint.name}`)
-    if (currentSprint.goal) lines.push(`目標: ${currentSprint.goal}`)
-    if (currentSprint.startDate) {
-      lines.push(`期間: ${currentSprint.startDate} 〜 ${currentSprint.endDate ?? '?'}`)
-    }
-    lines.push(`状態: ${isCompleted ? '完了済み' : '進行中'}`)
-    lines.push('')
-    if (currentStats) {
-      lines.push('【KPI】')
-      lines.push(`合計: ${currentStats.total}件  完了: ${currentStats.done}  進行中: ${currentStats.doing}  未着手: ${currentStats.todo}`)
-      lines.push(`完了率: ${Math.round(currentStats.completionRate * 100)}%`)
-      if (currentStats.avgCompleteDays !== null) {
-        lines.push(`平均完了日数: ${currentStats.avgCompleteDays}日`)
-      }
-      lines.push('')
-    }
-    const groups: Array<[TicketStatus, string]> = [['doing', 'DOING'], ['todo', 'TODO'], ['done', 'DONE']]
-    for (const [status, label] of groups) {
-      const tickets = currentTickets.filter((t) => t.status === status)
-      if (tickets.length === 0) continue
-      lines.push(`[${label}]`)
-      tickets.forEach((t) => {
-        const prio = PRIORITY_LABEL[t.priority]
-        const type = TICKET_TYPE_LABEL[t.ticketType]
-        lines.push(`・${prio} ${t.title}  (${type} / ${STATUS_LABEL[t.status]} / 期限:${t.dueDate})`)
-        if (t.acceptanceCriteria) lines.push(`  → ${t.acceptanceCriteria}`)
-      })
-      lines.push('')
-    }
-    setCopyText(lines.join('\n'))
+    setCopyText(buildSprintStatusText(currentSprint, currentStats, currentTickets))
     setCopyModalMode('status')
     setIsCopyModalOpen(true)
-  }
-
-  const handleFinalCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(copyText)
-      setStatsCopied(true)
-      setTimeout(() => {
-        setStatsCopied(false)
-        setIsCopyModalOpen(false)
-      }, 800)
-    } catch (e) {
-      console.error(e)
-    }
   }
 
   const handleAiContextCopy = async () => {
@@ -251,12 +238,14 @@ export default function SprintPage() {
     }
   }
 
-  const handleAiFinalCopy = async () => {
+  const handleFinalCopy = async () => {
     try {
       await navigator.clipboard.writeText(copyText)
-      setAiCopied(true)
+      if (copyModalMode === 'ai') setAiCopied(true)
+      else setStatsCopied(true)
       setTimeout(() => {
         setAiCopied(false)
+        setStatsCopied(false)
         setIsCopyModalOpen(false)
       }, 800)
     } catch (e) {
@@ -768,7 +757,7 @@ export default function SprintPage() {
         <StatusCopyModal
           text={copyText}
           copied={copyModalMode === 'ai' ? aiCopied : statsCopied}
-          onCopy={copyModalMode === 'ai' ? handleAiFinalCopy : handleFinalCopy}
+          onCopy={handleFinalCopy}
           onClose={() => setIsCopyModalOpen(false)}
         />
       )}
