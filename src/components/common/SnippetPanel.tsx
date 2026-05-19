@@ -1,13 +1,14 @@
 import {useEffect, useRef, useState} from 'react'
 import {
-  loadSnippets,
+  createSnippet,
+  deleteSnippet,
+  fetchSnippets,
   MAX_CONTENT,
   MAX_SLOTS,
   MAX_TITLE,
-  newSnippetId,
-  saveSnippets,
   type Snippet,
-} from '../../lib/snippetStore'
+  updateSnippet,
+} from '../../lib/api/snippet'
 
 type Props = {
   open: boolean
@@ -15,68 +16,93 @@ type Props = {
   topbarHeight: number
 }
 
-type FormState = { title: string; content: string; editingId: string | null }
+type FormState = { title: string; content: string; editingId: number | null }
 
 const FORM_INIT: FormState = { title: '', content: '', editingId: null }
 
 export function SnippetPanel({ open, onClose, topbarHeight }: Props) {
-  const [snippets, setSnippets] = useState<Snippet[]>(() => loadSnippets())
+  const [snippets, setSnippets] = useState<Snippet[]>([])
+  const [loadingInit, setLoadingInit] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState<FormState>(FORM_INIT)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<number | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [apiError, setApiError] = useState<string | null>(null)
   const swipeStartY = useRef<number>(0)
+
+  useEffect(() => {
+    fetchSnippets()
+      .then(setSnippets)
+      .catch(() => setApiError('読み込みに失敗しました'))
+      .finally(() => setLoadingInit(false))
+  }, [])
 
   useEffect(() => {
     if (!open) {
       setFormOpen(false)
       setEditMode(false)
       setForm(FORM_INIT)
+      setApiError(null)
     }
   }, [open])
 
-  const persist = (next: Snippet[]) => {
-    setSnippets(next)
-    saveSnippets(next)
-  }
-
   const openAddForm = () => {
     setForm(FORM_INIT)
+    setApiError(null)
     setFormOpen(true)
   }
 
   const openEditForm = (s: Snippet) => {
     setForm({ title: s.title, content: s.content, editingId: s.id })
+    setApiError(null)
     setFormOpen(true)
   }
 
   const closeForm = () => {
     setFormOpen(false)
     setForm(FORM_INIT)
+    setApiError(null)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const title = form.title.trim()
     const content = form.content.trim()
     if (!title || !content) return
 
-    if (form.editingId) {
-      persist(
-        snippets.map((s) =>
-          s.id === form.editingId ? { ...s, title, content } : s
-        )
-      )
-    } else {
-      if (snippets.length >= MAX_SLOTS) return
-      persist([...snippets, { id: newSnippetId(), title, content }])
+    setSaving(true)
+    setApiError(null)
+    try {
+      if (form.editingId !== null) {
+        const updated = await updateSnippet(form.editingId, { title, content })
+        setSnippets((prev) => prev.map((s) => s.id === updated.id ? updated : s))
+      } else {
+        if (snippets.length >= MAX_SLOTS) return
+        const created = await createSnippet({ title, content })
+        setSnippets((prev) => [...prev, created])
+      }
+      closeForm()
+    } catch {
+      setApiError('保存に失敗しました')
+    } finally {
+      setSaving(false)
     }
-    closeForm()
   }
 
-  const handleDelete = (id: string, e: React.MouseEvent | React.TouchEvent) => {
+  const handleDelete = async (id: number, e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
-    persist(snippets.filter((s) => s.id !== id))
-    if (form.editingId === id) closeForm()
+    setDeletingId(id)
+    setApiError(null)
+    try {
+      await deleteSnippet(id)
+      setSnippets((prev) => prev.filter((s) => s.id !== id))
+      if (form.editingId === id) closeForm()
+    } catch {
+      setApiError('削除に失敗しました')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const handleRowTap = async (s: Snippet) => {
@@ -191,22 +217,34 @@ export function SnippetPanel({ open, onClose, topbarHeight }: Props) {
                 <button onClick={closeForm} style={styles.cancelBtn}>キャンセル</button>
                 <button
                   onClick={handleSave}
-                  disabled={!form.title.trim() || !form.content.trim()}
+                  disabled={!form.title.trim() || !form.content.trim() || saving}
                   style={{
                     ...styles.saveBtn,
-                    opacity: !form.title.trim() || !form.content.trim() ? 0.45 : 1,
+                    opacity: !form.title.trim() || !form.content.trim() || saving ? 0.45 : 1,
                   }}
                 >
-                  {form.editingId ? '保存' : '登録'}
+                  {saving ? '...' : form.editingId ? '保存' : '登録'}
                 </button>
               </div>
             </div>
+            {apiError && (
+              <span style={{ fontSize: 11, color: '#eb5757' }}>{apiError}</span>
+            )}
           </div>
+        )}
+
+        {/* General error (delete failure etc.) */}
+        {apiError && !formOpen && (
+          <div style={styles.errorBanner}>{apiError}</div>
         )}
 
         {/* List */}
         <div style={{ overflowY: 'auto', flex: 1 }}>
-          {snippets.length === 0 && !formOpen ? (
+          {loadingInit ? (
+            <div style={styles.emptyState}>
+              <span style={{ fontSize: 13, color: 'rgba(55,53,47,0.3)' }}>読み込み中...</span>
+            </div>
+          ) : snippets.length === 0 && !formOpen ? (
             <div style={styles.emptyState}>
               <span style={{ fontSize: 13, color: 'rgba(55,53,47,0.35)' }}>
                 スニペットがありません
@@ -219,6 +257,7 @@ export function SnippetPanel({ open, onClose, topbarHeight }: Props) {
             snippets.map((s) => {
               const isCopied = copiedId === s.id
               const isEditing = form.editingId === s.id && formOpen
+              const isDeleting = deletingId === s.id
               return (
                 <div
                   key={s.id}
@@ -230,6 +269,7 @@ export function SnippetPanel({ open, onClose, topbarHeight }: Props) {
                       : isEditing
                         ? 'rgba(35,131,226,0.05)'
                         : 'transparent',
+                    opacity: isDeleting ? 0.4 : 1,
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -249,6 +289,7 @@ export function SnippetPanel({ open, onClose, topbarHeight }: Props) {
                     <button
                       onTouchStart={(e) => e.stopPropagation()}
                       onClick={(e) => handleDelete(s.id, e)}
+                      disabled={isDeleting}
                       style={styles.deleteBtn}
                       aria-label="削除"
                     >
@@ -381,6 +422,14 @@ const styles = {
     border: 'none',
     borderRadius: 7,
     cursor: 'pointer',
+  } as React.CSSProperties,
+
+  errorBanner: {
+    padding: '6px 16px',
+    fontSize: 11,
+    color: '#eb5757',
+    borderBottom: '1px solid rgba(235,87,87,0.1)',
+    backgroundColor: 'rgba(235,87,87,0.04)',
   } as React.CSSProperties,
 
   emptyState: {
