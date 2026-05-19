@@ -1,12 +1,12 @@
 import {useEffect, useRef, useState} from 'react'
 import {
-    type DegBugfixConfig,
-    fetchDegBugfix,
-    fetchFlashBugfix,
-    fetchMorningQuiz,
-    type FlashBugfixConfig,
-    type MorningQuizQuestion,
-    type MorningQuizSession,
+  type DegBugfixConfig,
+  fetchDegBugfix,
+  fetchFlashBugfix,
+  fetchMorningQuiz,
+  type FlashBugfixConfig,
+  type MorningQuizQuestion,
+  type MorningQuizSession,
 } from '@/lib/api/morningQuiz'
 import {addProblemQuiz, fetchProblem} from '@/lib/api/problem'
 import {createDailyLog, fetchDailyLog} from '@/lib/api/workspace'
@@ -40,6 +40,7 @@ export function useQuizSession(mode: QuizSessionMode) {
   const [markedIds, setMarkedIds] = useState<Set<number>>(new Set())
   const startTimeRef = useRef<number>(Date.now())
   const modeRef = useRef(mode)
+  const initializedRef = useRef(false)
 
   const total = session?.questions.length ?? 5
   const currentQ = session?.questions[currentIdx] ?? null
@@ -113,6 +114,9 @@ export function useQuizSession(mode: QuizSessionMode) {
   }
 
   useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
     const m = modeRef.current
 
     const run = async () => {
@@ -145,6 +149,7 @@ export function useQuizSession(mode: QuizSessionMode) {
         } else {
           sess = await fetchDegBugfix(m.config)
         }
+
         setSession(sess)
         setPhase('active')
       } catch (e) {
