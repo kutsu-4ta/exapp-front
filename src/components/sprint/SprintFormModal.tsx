@@ -83,28 +83,37 @@ export function SprintFormModal(props: Props) {
         backgroundColor: 'rgba(0,0,0,0.4)',
         zIndex: 2000,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: '16px',
       }}
       onClick={onClose}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: '420px',
+          maxWidth: '480px',
           backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '20px',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.16)',
+          borderRadius: '16px 16px 0 0',
+          padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3
-          style={{ margin: '0 0 16px', fontSize: font.md, fontWeight: 700, color: c.text }}
-        >
-          {mode === 'create' ? 'スプリント作成' : 'スプリント編集'}
-        </h3>
+        {/* Handle */}
+        <div style={{
+          width: 40, height: 4, borderRadius: 2,
+          backgroundColor: 'rgba(55,53,47,0.1)',
+          margin: '-8px auto 16px',
+        }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: font.md, fontWeight: 700, color: c.text }}>
+            {mode === 'create' ? 'スプリント作成' : 'スプリント編集'}
+          </h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'rgba(55,53,47,0.4)', lineHeight: 1, padding: '0 2px' }}>×</button>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -131,25 +140,23 @@ export function SprintFormModal(props: Props) {
 
           {!isBacklog && (
             <>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={formLabel}>開始日</label>
-                  <input
-                    type="date"
-                    style={{ ...formInput, marginTop: 4 }}
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={formLabel}>終了日</label>
-                  <input
-                    type="date"
-                    style={{ ...formInput, marginTop: 4 }}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
+              <div>
+                <label style={formLabel}>開始日</label>
+                <input
+                  type="date"
+                  style={{ ...formInput, marginTop: 4 }}
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={formLabel}>終了日</label>
+                <input
+                  type="date"
+                  style={{ ...formInput, marginTop: 4 }}
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
               </div>
             </>
           )}
@@ -165,39 +172,24 @@ export function SprintFormModal(props: Props) {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginTop: '20px', justifyContent: 'flex-end' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              border: `1px solid rgba(55,53,47,0.16)`,
-              borderRadius: '6px',
-              fontSize: font.base,
-              fontWeight: 600,
-              color: c.textSub,
-              background: 'transparent',
-              cursor: 'pointer',
-            }}
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: saving ? 'rgba(35,131,226,0.5)' : c.blue,
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: font.base,
-              fontWeight: 600,
-              cursor: saving ? 'default' : 'pointer',
-            }}
-          >
-            {saving ? '保存中...' : '保存'}
-          </button>
-        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            marginTop: 20,
+            width: '100%',
+            padding: '12px',
+            backgroundColor: saving ? 'rgba(35,131,226,0.5)' : c.blue,
+            color: '#fff',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: font.base,
+            fontWeight: 700,
+            cursor: saving ? 'default' : 'pointer',
+          }}
+        >
+          {saving ? '保存中...' : '保存'}
+        </button>
       </div>
     </div>
   )

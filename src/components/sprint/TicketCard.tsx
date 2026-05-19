@@ -2,6 +2,8 @@ import {useState} from 'react'
 import type {StudyTicket, TicketStatus} from '../../types/sprint'
 import {PRIORITY_COLOR, PRIORITY_LABEL, TICKET_TYPE_LABEL} from '../../types/sprint'
 import {c, font} from '../../styles/notion'
+import {subjectPalette} from '../../styles/subjectUI'
+import {useSettingsStore} from '../../lib/store/settings'
 
 type Props = {
   ticket: StudyTicket
@@ -31,6 +33,8 @@ function isDueUrgent(dateStr: string): boolean {
 
 export function TicketCard({ ticket, onClick, onStatusChange, compact = false }: Props) {
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
+  const palette = subjectPalette(ticket.subject, subjectColors[ticket.subject])
   const urgentDue = ticket.status !== 'done' && isDueUrgent(ticket.dueDate)
 
   const handleStatusClick = (e: React.MouseEvent) => {
@@ -101,8 +105,8 @@ export function TicketCard({ ticket, onClick, onStatusChange, compact = false }:
             style={{
               fontSize: '10px',
               fontWeight: 600,
-              color: c.textSub,
-              backgroundColor: 'rgba(35,131,226,0.08)',
+              color: palette.color,
+              backgroundColor: palette.bg,
               borderRadius: '3px',
               padding: '1px 5px',
               flexShrink: 0,

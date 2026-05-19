@@ -334,55 +334,53 @@ export function TicketFormModal(props: Props) {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={formLabel}>期限 *</label>
-              <input
-                type="date"
-                style={{ ...formInput, marginTop: 4 }}
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={formLabel}>見積もり (分)</label>
-              <input
-                type="number"
-                style={{ ...formInput, marginTop: 4 }}
-                value={estimateMinutes}
-                onChange={(e) => setEstimateMinutes(e.target.value)}
-                placeholder="例: 60"
-                min={1}
-                max={480}
-              />
-            </div>
+          <div>
+            <label style={formLabel}>期限 *</label>
+            <input
+              type="date"
+              style={{ ...formInput, marginTop: 4 }}
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={formLabel}>優先度</label>
-              <select
-                style={{ ...selectStyle, marginTop: 4 }}
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TicketPriority)}
-              >
-                {PRIORITY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={formLabel}>種別</label>
-              <select
-                style={{ ...selectStyle, marginTop: 4 }}
-                value={ticketType}
-                onChange={(e) => setTicketType(e.target.value as TicketType)}
-              >
-                {TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label style={formLabel}>見積もり (分)</label>
+            <input
+              type="number"
+              style={{ ...formInput, marginTop: 4 }}
+              value={estimateMinutes}
+              onChange={(e) => setEstimateMinutes(e.target.value)}
+              placeholder="例: 60"
+              min={1}
+              max={480}
+            />
+          </div>
+
+          <div>
+            <label style={formLabel}>優先度</label>
+            <select
+              style={{ ...selectStyle, marginTop: 4 }}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as TicketPriority)}
+            >
+              {PRIORITY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={formLabel}>種別</label>
+            <select
+              style={{ ...selectStyle, marginTop: 4 }}
+              value={ticketType}
+              onChange={(e) => setTicketType(e.target.value as TicketType)}
+            >
+              {TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
 
           <div>
