@@ -7,7 +7,6 @@ import {
     editableRow,
     errorStyle,
     flexRow,
-    flexRowSecondary,
     notionDisabledSaveBtn,
     notionMainInp,
     notionSaveBtn,
@@ -156,60 +155,31 @@ export function ProblemMetaStep({
 
     return (
         <div style={editableRow}>
-            <div style={flexRow}>
-                <input
-                    list="subjects"
-                    value={subject}
-                    onChange={(e) => {
-                        setSubject(e.target.value)
-                        setSubCategory('')
-                    }}
-                    placeholder="科目"
-                    style={notionMainInp}
-                />
-                <datalist id="subjects">
-                    {subjects.map((s) => (
-                        <option key={s} value={s} />
-                    ))}
-                </datalist>
+            {/* 科目 */}
+            <input
+                list="subjects"
+                value={subject}
+                onChange={(e) => {
+                    setSubject(e.target.value)
+                    setSubCategory('')
+                }}
+                placeholder="科目"
+                style={{ ...notionMainInp, width: '100%' }}
+            />
+            <datalist id="subjects">
+                {subjects.map((s) => (
+                    <option key={s} value={s} />
+                ))}
+            </datalist>
 
-                <input
-                    list="materials"
-                    value={material}
-                    onChange={(e) => setMaterial(e.target.value)}
-                    placeholder="教材"
-                    style={notionSubInp}
-                />
-                <datalist id="materials">
-                    {materials.map((m) => (
-                        <option key={m} value={m} />
-                    ))}
-                </datalist>
-            </div>
-
-            <div style={flexRowSecondary}>
-                <div style={{ flex: 1, display: 'flex', gap: 8 }}>
-                    <span style={tinyLabel}>SUB</span>
-                    <input
-                        list="subcats"
-                        value={subCategory}
-                        onChange={(e) => setSubCategory(e.target.value)}
-                        placeholder="小分類"
-                        style={notionSubInp}
-                    />
-                    <span style={tinyLabel}>MAT</span>
-                </div>
-
-                <div style={{ flex: 1, display: 'flex', gap: 8 }}>
-                    <input
-                        value={questionRef}
-                        onChange={(e) => setQuestionRef(e.target.value)}
-                        placeholder="問題番号"
-                        style={notionSubInp}
-                    />
-                </div>
-            </div>
-
+            {/* 小分類 */}
+            <input
+                list="subcats"
+                value={subCategory}
+                onChange={(e) => setSubCategory(e.target.value)}
+                placeholder="小分類"
+                style={notionSubInp}
+            />
             <datalist id="subcats">
                 {subCategories
                     .filter((x) => x.subject === subject)
@@ -217,6 +187,28 @@ export function ProblemMetaStep({
                         <option key={x.id} value={x.name} />
                     ))}
             </datalist>
+
+            {/* 教材 + 問題番号 */}
+            <div style={flexRow}>
+                <input
+                    list="materials"
+                    value={material}
+                    onChange={(e) => setMaterial(e.target.value)}
+                    placeholder="教材"
+                    style={{ ...notionSubInp, flex: 1, width: 'auto' }}
+                />
+                <datalist id="materials">
+                    {materials.map((m) => (
+                        <option key={m} value={m} />
+                    ))}
+                </datalist>
+                <input
+                    value={questionRef}
+                    onChange={(e) => setQuestionRef(e.target.value)}
+                    placeholder="問題番号"
+                    style={{ ...notionSubInp, flex: 1, width: 'auto' }}
+                />
+            </div>
 
             <div style={{ marginTop: '12px' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

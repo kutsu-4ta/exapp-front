@@ -126,7 +126,7 @@ export default function DashboardPage() {
     setStatsCopying(true)
     try {
       const ctx = await fetchGeminiContext(chartYear, chartMonth)
-      const text = buildDashboardStatusText(ctx, todaySubjects, todayLog, todayString(), stats)
+      const text = buildDashboardStatusText(ctx, todaySubjects, todayLog, todayString())
       setCopyText(text)
       setIsCopyModalOpen(true)
     } catch (e) {

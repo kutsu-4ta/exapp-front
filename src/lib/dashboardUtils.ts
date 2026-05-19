@@ -1,4 +1,4 @@
-import type {ChartDataPoint, DailyLog, DailyLogSummary, DashboardStats} from '../types/workspace'
+import type {ChartDataPoint, DailyLog, DailyLogSummary} from '../types/workspace'
 import {daysAgo, formatHours} from '../types/workspace'
 import type {fetchGeminiContext} from './api/gemini'
 
@@ -47,8 +47,7 @@ export function buildDashboardStatusText(
   ctx: Awaited<ReturnType<typeof fetchGeminiContext>>,
   todaySubjects: Array<{ subject: string; minutes: number }>,
   todayLog: DailyLog | null,
-  todayStr: string,
-  stats: DashboardStats | null
+  todayStr: string
 ): string {
   const d = ctx.dashboard
   const lines = ['【学習状況サマリー】']

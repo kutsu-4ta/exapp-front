@@ -230,7 +230,7 @@ export function StudyBlockRow({
                 </div>
             </div>
 
-            {/* MID */}
+            {/* 小分類 */}
             <div style={flexRowSecondary}>
                 <input
                     list={`${uid}-subcat`}
@@ -242,7 +242,17 @@ export function StudyBlockRow({
                     placeholder="小分類"
                     style={notionSubInp}
                 />
+                <datalist id={`${uid}-subcat`}>
+                    {subCategories
+                        .filter((sc) => sc.subject === subject)
+                        .map((sc) => (
+                            <option key={sc.id} value={sc.name} />
+                        ))}
+                </datalist>
+            </div>
 
+            {/* 教材 */}
+            <div style={flexRowSecondary}>
                 <input
                     list={`${uid}-mat`}
                     value={material}
@@ -253,15 +263,6 @@ export function StudyBlockRow({
                     placeholder="教材"
                     style={notionSubInp}
                 />
-
-                <datalist id={`${uid}-subcat`}>
-                    {subCategories
-                        .filter((sc) => sc.subject === subject)
-                        .map((sc) => (
-                            <option key={sc.id} value={sc.name} />
-                        ))}
-                </datalist>
-
                 <datalist id={`${uid}-mat`}>
                     {materials.map((m) => (
                         <option key={m} value={m} />
