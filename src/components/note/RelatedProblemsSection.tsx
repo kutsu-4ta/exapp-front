@@ -1,65 +1,9 @@
 import {useEffect, useState} from 'react'
+import {useNavigate} from 'react-router-dom'
+import {Network} from 'lucide-react'
 import type {Problem} from '../../types/workspace'
-import {fetchProblems} from '../../lib/api/problem'
+import {fetchRelated} from '../../lib/problems/related'
 import {c, font} from '../../styles/notion'
-
-// ── 検索ロジック ──────────────────────────────────────────────────────────────
-
-const STOP_WORDS = new Set([
-  'の', 'を', 'に', 'は', 'が', 'で', 'と', 'も', 'から', 'より', 'など',
-  'について', 'する', 'ある', 'いる', 'なる', 'こと', 'ため', 'もの', 'とき',
-  'これ', 'それ', 'あの', 'その',
-])
-
-/** note から #Relation / #Keyword 直後のテキストを行単位で抽出する */
-function extractHashtagLines(note: string | null): string[] {
-  if (!note) return []
-  const lines: string[] = []
-  const re = /#(?:Relation|Keyword)\s*([^\n#]+)/g
-  let m: RegExpExecArray | null
-  while ((m = re.exec(note)) !== null) {
-    const line = m[1].trim()
-    if (line) lines.push(line)
-  }
-  return lines
-}
-
-/** テキストを意味のある単語レベルに分割する */
-function tokenize(text: string): string[] {
-  return text
-    .split(/[\s　、。・「」【】（）()＝=→←↑↓\-／/・]+/)
-    .map((w) => w.trim())
-    .filter((w) => w.length >= 2 && !STOP_WORDS.has(w))
-}
-
-/**
- * 現Problemのノートから検索クエリ一覧を生成する。
- * - #Relation / #Keyword 行全体
- * - それを単語分割したもの
- * - フォールバック: subCategory
- * 重複除去して最大 MAX_QUERIES 件に絞る。
- */
-const MAX_QUERIES = 6
-
-function buildQueries(current: Problem): string[] {
-  const lines = extractHashtagLines(current.note)
-  const words = lines.flatMap(tokenize)
-  const candidates = [...lines, ...words]
-
-  if (candidates.length === 0 && current.subCategory) {
-    return [current.subCategory, ...tokenize(current.subCategory)].slice(0, MAX_QUERIES)
-  }
-
-  return [...new Set(candidates)].filter(Boolean).slice(0, MAX_QUERIES)
-}
-
-/** ヒット条件: note に #Relation または #Keyword が含まれている */
-function hasRelationOrKeyword(note: string | null): boolean {
-  if (!note) return false
-  return /#(?:Relation|Keyword)/.test(note)
-}
-
-// ── コンポーネント ────────────────────────────────────────────────────────────
 
 type Props = {
   current: Problem
@@ -67,34 +11,14 @@ type Props = {
 }
 
 export function RelatedProblemsSection({current, onSelect}: Props) {
+  const navigate = useNavigate()
   const [related, setRelated] = useState<Problem[]>([])
 
   useEffect(() => {
-    const queries = buildQueries(current)
-
-    if (queries.length === 0) {
-      setRelated([])
-      return
-    }
-
-    Promise.all(
-      queries.map((q) => fetchProblems({subjects: [current.subject], q}))
-    )
-      .then((results) => {
-        const seen = new Set<number>()
-        const merged: Problem[] = []
-        for (const list of results) {
-          for (const p of list) {
-            if (!seen.has(p.id) && p.id !== current.id && hasRelationOrKeyword(p.note)) {
-              seen.add(p.id)
-              merged.push(p)
-            }
-          }
-        }
-        setRelated(merged.slice(0, 5))
-      })
+    fetchRelated(current)
+      .then(setRelated)
       .catch(() => {})
-  }, [current.id])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (related.length === 0) return null
 
@@ -103,6 +27,17 @@ export function RelatedProblemsSection({current, onSelect}: Props) {
       <div style={header}>
         <span style={headerLabel}>芋づる</span>
         <span style={headerCount}>{related.length}件</span>
+        <div style={{flex: 1}} />
+        <button
+          style={graphBtn}
+          title="グラフで見る"
+          onClick={() =>
+            navigate(`/problems/${current.id}/graph`, {state: {problem: current}})
+          }
+        >
+          <Network size={13} />
+          <span style={graphBtnLabel}>グラフ</span>
+        </button>
       </div>
       <div style={list}>
         {related.map((p) => (
@@ -122,8 +57,6 @@ export function RelatedProblemsSection({current, onSelect}: Props) {
     </div>
   )
 }
-
-// ── スタイル ──────────────────────────────────────────────────────────────────
 
 const container: React.CSSProperties = {
   marginBottom: 14,
@@ -149,6 +82,23 @@ const headerCount: React.CSSProperties = {
   fontSize: font.xs,
   fontWeight: 600,
   color: c.textFaint,
+}
+
+const graphBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 3,
+  background: 'none',
+  border: `1px solid ${c.border}`,
+  borderRadius: 6,
+  padding: '3px 8px',
+  cursor: 'pointer',
+  color: c.textSub,
+}
+
+const graphBtnLabel: React.CSSProperties = {
+  fontSize: font.xs,
+  fontWeight: 600,
 }
 
 const list: React.CSSProperties = {

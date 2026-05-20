@@ -25,6 +25,7 @@ const LoginPage = lazy(() => import('./pages/loginPage'))
 const PrivacyPage = lazy(() => import('./pages/privacyPage'))
 const TermsPage = lazy(() => import('./pages/termsPage'))
 const SprintPage = lazy(() => import('./pages/sprintPage'))
+const ProblemGraphPage = lazy(() => import('./pages/problemGraphPage'))
 
 function PageFallback() {
   return (
@@ -119,6 +120,8 @@ function App() {
               <Route path="/sprint" element={<SprintPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
+            {/* フルスクリーン — AppLayout なし */}
+            <Route path="/problems/:id/graph" element={<ProblemGraphPage />} />
           </Route>
         </Routes>
       </Suspense>
