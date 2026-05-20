@@ -20,17 +20,19 @@ import {
   notionSubInp,
   tinyLabel
 } from '@/components/workspace/StudyBlockRow.styles'
+import {RelatedProblemsSection} from './RelatedProblemsSection'
 
 type Props = {
   problem: Problem;
   onClose: () => void;
   onDelete: (id: number) => void;
   onUpdate: (problem: Problem) => void;
+  onNavigate?: (problem: Problem) => void;
   hideQuizzes?: boolean;
   zIndex?: number;
 };
 
-export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQuizzes = false, zIndex}: Props) {
+export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, onNavigate, hideQuizzes = false, zIndex}: Props) {
   const navigate = useNavigate();
   const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial);
   const subjectColors = useSettingsStore((s) => s.subjectColors);
@@ -53,6 +55,14 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQui
 
   const timerRef = useRef<number | null>(null);
   const successTimerRef = useRef<number | null>(null);
+
+  // problem が差し替わったとき（芋づる遷移）に内部stateを同期
+  useEffect(() => {
+    setDraft(problem);
+    setNote(problem.note ?? '');
+    setIsEditingMeta(false);
+    setIsEditingNote(false);
+  }, [problem.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // メタ編集モードに入るときだけ draft を同期
   useEffect(() => {
@@ -421,6 +431,14 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQui
             </div>
           )}
         </div>
+
+        {/* ── 芋づる（ノート編集中は非表示） ── */}
+        {!isEditingNote && onNavigate && (
+          <RelatedProblemsSection
+            current={problem}
+            onSelect={(p) => { onClose(); onNavigate(p); }}
+          />
+        )}
 
         {/* ── 保存済みクイズ（ノート編集中は非表示） ── */}
         {!isEditingNote && !hideQuizzes && quizzes.length > 0 && (

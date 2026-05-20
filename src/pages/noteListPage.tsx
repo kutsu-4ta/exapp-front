@@ -332,6 +332,7 @@ export default function NoteListPage() {
           onClose={() => setQuickProblem(null)}
           onDelete={handleDelete}
           onUpdate={handleUpdate}
+          onNavigate={(p) => setQuickProblem(p)}
         />
       )}
 

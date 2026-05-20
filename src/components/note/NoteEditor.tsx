@@ -6,11 +6,67 @@ import {c, font} from '../../styles/notion'
 
 const HASHTAG_LINE_RE = /^#(Definition|Keyword|Pitfall|Example|Relation|MemoryHook|Formula)[ \t]/
 
+function normalizeBoldSpacing(text: string): string {
+  let result = ''
+  let i = 0
+  let inBold = false
+  let boldBuffer = ''
+
+  while (i < text.length) {
+    // ** 発見
+    if (text.slice(i, i + 2) === '**') {
+      if (!inBold) {
+        // 開始
+        inBold = true
+        boldBuffer = '**'
+        i += 2
+        continue
+      } else {
+        // 終了
+        boldBuffer += '**'
+
+        // 前にスペースを補う
+        const prev = result[result.length - 1]
+        if (result.length > 0 && prev !== ' ' && prev !== '\n') {
+          result += ' '
+        }
+
+        result += boldBuffer
+
+        // 後ろにスペースを補う（次が文字なら）
+        const next = text[i + 2]
+        if (next && next !== ' ' && next !== '\n') {
+          result += ' '
+        }
+
+        boldBuffer = ''
+        inBold = false
+        i += 2
+        continue
+      }
+    }
+
+    // 太字の中
+    if (inBold) {
+      boldBuffer += text[i]
+    } else {
+      result += text[i]
+    }
+
+    i++
+  }
+
+  // 閉じ忘れはそのまま戻す
+  if (boldBuffer) {
+    result += boldBuffer
+  }
+
+  return result
+}
+
 export function autoFormat(text: string): string {
   // 太字の前後に半角スペースを補う
-  text = text
-      .replace(/(\S)(\*\*[^*\n]+?\*\*)/g, '$1 $2')
-      .replace(/(\*\*[^*\n]+?\*\*)(\S)/g, '$1 $2')
+  text = normalizeBoldSpacing(text)
 
   const lines = text.split('\n')
   const result: string[] = []
