@@ -9,7 +9,7 @@ export type SubjectMonthlyGoal = {
   goal: string | null
 }
 
-export type TimeSlot = 'morning' | 'lunch' | 'commute' | 'night'
+export type TimeSlot = 'morning' | 'lunch' | 'night'
 
 export type AlertStatusItem = {
   subject: string

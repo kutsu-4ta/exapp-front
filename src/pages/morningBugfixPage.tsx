@@ -13,7 +13,6 @@ function currentTimeSlot(): TimeSlot {
   const h = new Date().getHours()
   if (h < 11) return 'morning'
   if (h < 14) return 'lunch'
-  if (h < 18) return 'commute'
   return 'night'
 }
 
