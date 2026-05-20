@@ -7,6 +7,11 @@ import {c, font} from '../../styles/notion'
 const HASHTAG_LINE_RE = /^#(Definition|Keyword|Pitfall|Example|Relation|MemoryHook|Formula)[ \t]/
 
 export function autoFormat(text: string): string {
+  // 太字の前後に半角スペースを補う
+  text = text
+      .replace(/(\S)(\*\*[^*\n]+?\*\*)/g, '$1 $2')
+      .replace(/(\*\*[^*\n]+?\*\*)(\S)/g, '$1 $2')
+
   const lines = text.split('\n')
   const result: string[] = []
 

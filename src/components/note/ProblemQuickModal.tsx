@@ -174,11 +174,16 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQui
         </div>
       </div>
 
-      <div style={isEditingNote
-        ? {flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}
-        : {...sheetBodyStyle, padding: '0 16px 20px'}
-      }>
-
+      <div
+          style={{
+            ...sheetBodyStyle,
+            padding: '0 16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            overflowY: 'auto',
+          }}
+      >
         {/* ── メタカード（ノート編集中は非表示） ── */}
         {!isEditingNote && (
           <div style={metaCard}>
@@ -194,21 +199,44 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQui
                     {problem.proficiency}
                   </span>
                 </div>
-                {/* 小分類 */}
-                {problem.subCategory && (
-                  <p style={subCategoryText}>{problem.subCategory}</p>
-                )}
-                {/* 属性チップ */}
-                {(problem.failureTypes.length > 0 || problem.isFormula || problem.isGoodQuestion) && (
-                  <div style={tagsRow}>
-                    {problem.failureTypes.map((ft) => (
-                      <span key={ft} style={{...ftChip, color: FAILURE_COLORS[ft] ?? c.textSub, backgroundColor: `${FAILURE_COLORS[ft] ?? '#888'}18`, borderColor: `${FAILURE_COLORS[ft] ?? '#888'}30`}}>
-                        {ft}
-                      </span>
-                    ))}
-                    {problem.isFormula && <span style={formulaChip}>公式</span>}
-                    {problem.isGoodQuestion && <span style={goodChip}>★ 良問</span>}
-                  </div>
+                {/* 小分類 + 属性チップ */}
+                {(problem.subCategory ||
+                    problem.failureTypes.length > 0 ||
+                    problem.isFormula ||
+                    problem.isGoodQuestion) && (
+                    <div style={subMetaRow}>
+                      {problem.subCategory && (
+                          <span style={subCategoryText}>
+                            {problem.subCategory}
+                          </span>
+                      )}
+
+                      {(problem.failureTypes.length > 0 ||
+                          problem.isFormula ||
+                          problem.isGoodQuestion) && (
+                          <div style={tagsRow}>
+                            {problem.failureTypes.map((ft) => (
+                                <span
+                                    key={ft}
+                                    style={{
+                                      ...ftChip,
+                                      color: FAILURE_COLORS[ft] ?? c.textSub,
+                                      backgroundColor: `${FAILURE_COLORS[ft] ?? '#888'}18`,
+                                      borderColor: `${FAILURE_COLORS[ft] ?? '#888'}30`,
+                                    }}
+                                >
+            {ft}
+          </span>
+                            ))}
+                            {problem.isFormula && (
+                                <span style={formulaChip}>公式</span>
+                            )}
+                            {problem.isGoodQuestion && (
+                                <span style={goodChip}>★ 良問</span>
+                            )}
+                          </div>
+                      )}
+                    </div>
                 )}
               </div>
               {/* メタ編集トグルボタン */}
@@ -336,17 +364,37 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQui
         )}
 
         {/* ── ノートカード ── */}
-        <div style={isEditingNote
-          ? {flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}
-          : sectionCard(false)
-        }>
-          <div style={isEditingNote ? {...cardHeader, borderBottom: `1px solid ${c.border}`} : cardHeader}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
-              <span style={cardSectionLabel}>ノート</span>
+        <div
+            style={{
+              ...sectionCard(isEditingNote),
+              ...(isEditingNote && {
+                flex: 1,
+                minHeight: 0,
+              }),
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+        >
+          <div
+              style={{
+                ...noteHeader,
+                ...(isEditingNote
+                    ? { borderBottom: `1px solid ${c.border}` }
+                    : {
+                      position: 'sticky',
+                      top: SHEET_HEADER_H + META_GAP,
+                      zIndex: 3,
+                      backgroundColor: '#fff',
+                      borderBottom: `1px solid ${c.border}`,
+                    }),
+              }}
+          >
+            <div style={{display: 'flex', alignItems: 'center'}}>
               <button onClick={handleCopy} style={iconBtn} title="コピー">
                 <Copy size={15} />
                 {copied && <span style={{fontSize: "11px", color: "#19a576"}}>✓</span>}
               </button>
+              <span style={cardSectionLabel}>&nbsp;&nbsp;ノート</span>
             </div>
             {/* ノート編集トグルボタン */}
             <button
@@ -359,7 +407,7 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQui
           </div>
 
           {isEditingNote ? (
-            <div style={{flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
+              <div style={{flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0}}>
               <NoteEditor
                 value={note}
                 onChange={(v) => { setNote(v); scheduleSave(v); }}
@@ -409,10 +457,8 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, hideQui
 function sectionCard(isEditing: boolean): React.CSSProperties {
   return {
     borderRadius: '12px',
-    border: `1.5px solid ${isEditing ? '#2383e2' : c.border}`,
     backgroundColor: isEditing ? 'rgba(35,131,226,0.015)' : '#fff',
     marginBottom: '14px',
-    overflow: 'hidden',
     transition: 'border-color 0.15s',
   }
 }
@@ -421,7 +467,13 @@ const cardHeader: React.CSSProperties = {
   display: 'flex',
   alignItems: 'flex-start',
   justifyContent: 'space-between',
-  gap: 8,
+  padding: '10px 12px',
+}
+
+const noteHeader: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
   padding: '10px 12px',
 }
 
@@ -440,6 +492,7 @@ const cardSectionLabel: React.CSSProperties = {
   fontSize: '11px',
   fontWeight: 700,
   color: c.textHint,
+  backgroundColor: '#fff',
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
 }
@@ -447,9 +500,9 @@ const cardSectionLabel: React.CSSProperties = {
 const metaCard: React.CSSProperties = {
   position: 'sticky',
   top: 0,
-  zIndex: 2,
+  zIndex: 4,
   backgroundColor: '#fff',
-  marginBottom: 12,
+  paddingBottom: '8px',
 }
 
 const editFormBody: React.CSSProperties = {
@@ -460,6 +513,31 @@ const editFormBody: React.CSSProperties = {
   gap: 10,
 }
 
+const SHEET_HEADER_H = 58
+const META_GAP = 8
+
+const subMetaRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  marginRight: '18px',
+  gap: '6px',
+  marginTop: 4,
+}
+
+const subCategoryText: React.CSSProperties = {
+  fontSize: '15px',
+  fontWeight: 700,
+  color: c.text,
+  lineHeight: 1.4,
+}
+const tagsRow: React.CSSProperties = {
+  display: "flex",
+  gap: "5px",
+  flexWrap: "wrap",
+}
+
 const headerRight: React.CSSProperties = {display: "flex", alignItems: "center", gap: "12px"}
 const iconBtn: React.CSSProperties = {border: "none", background: "none", color: 'rgba(55,53,47,0.4)', cursor: "pointer", display: "flex", alignItems: "center", gap: "3px", padding: "2px 4px"}
 
@@ -467,8 +545,6 @@ const metaChipsRow: React.CSSProperties = {display: "flex", gap: "6px", flexWrap
 const subjectChip: React.CSSProperties = {padding: "2px 7px", borderRadius: "4px", fontSize: font.xs, fontWeight: 700, letterSpacing: "0.02em"}
 const refText: React.CSSProperties = {fontSize: font.sm, color: c.textFaint, fontWeight: 400}
 const profChip: React.CSSProperties = {padding: "2px 7px", borderRadius: "4px", fontSize: font.xs, fontWeight: 700}
-const subCategoryText: React.CSSProperties = {fontSize: '15px', fontWeight: 700, color: c.text, margin: '4px 0 6px', lineHeight: 1.4}
-const tagsRow: React.CSSProperties = {display: "flex", gap: "5px", flexWrap: "wrap", marginTop: 4}
 const ftChip: React.CSSProperties = {padding: "2px 7px", borderRadius: "4px", border: "1px solid", fontSize: font.xs, fontWeight: 600}
 const formulaChip: React.CSSProperties = {padding: "2px 7px", borderRadius: "4px", border: "1px solid rgba(35,131,226,0.25)", fontSize: font.xs, fontWeight: 600, background: "rgba(35,131,226,0.06)", color: c.blue}
 const goodChip: React.CSSProperties = {padding: "2px 7px", borderRadius: "4px", border: "1px solid rgba(234,179,8,0.3)", fontSize: font.xs, fontWeight: 600, background: "rgba(254,249,195,0.6)", color: "#92400e"}
