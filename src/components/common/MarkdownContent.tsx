@@ -6,7 +6,10 @@ import {c} from '@/styles/notion'
 
 // ── ハッシュタグチップ ────────────────────────────────────────────────────────
 
-const HASHTAG_MAP: Record<string, { label: string; color: string; bg: string }> = {
+export const HASHTAG_KEYS = ['Definition', 'Keyword', 'Pitfall', 'Example', 'Relation', 'MemoryHook', 'Formula'] as const
+export type HashtagKey = (typeof HASHTAG_KEYS)[number]
+
+export const HASHTAG_MAP: Record<string, { label: string; color: string; bg: string }> = {
     Definition:  { label: '定義',           color: '#2383e2', bg: 'rgba(35,131,226,0.10)'  },
     Keyword:     { label: '重要語',         color: '#27ae60', bg: 'rgba(39,174,96,0.10)'   },
     Pitfall:     { label: '間違えやすい点', color: '#eb5757', bg: 'rgba(235,87,87,0.10)'   },
