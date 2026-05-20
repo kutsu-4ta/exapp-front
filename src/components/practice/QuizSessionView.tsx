@@ -124,7 +124,7 @@ export function QuizSessionView({
   }
 
   // ── ACTIVE ────────────────────────────────────────────────────────────────
-  if (!currentQ || currentProblemId === null) return null
+  if (!currentQ || currentProblemId === null || !currentQ.quiz) return null
 
   const { quiz, subject, sub_category, problem_context } = currentQ
   const palette = subjectPalette(subject, subjectColors[subject])

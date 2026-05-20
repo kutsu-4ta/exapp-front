@@ -116,7 +116,7 @@ export function FlashCardSessionView({
     )
   }
 
-  if (!currentQ) return null
+  if (!currentQ || !currentQ.quiz) return null
 
   const {quiz, subject, sub_category, problem_context} = currentQ
   const palette = subjectPalette(subject, subjectColors[subject])

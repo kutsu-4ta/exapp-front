@@ -54,7 +54,7 @@ export function useQuizSession(mode: QuizSessionMode) {
   }
 
   const handleNext = () => {
-    if (selected === null || !currentQ) return
+    if (selected === null || !currentQ || !currentQ.quiz) return
     const isCorrect = selected === currentQ.quiz.correct_index
     const problemId = parseInt(currentQ.id, 10)
 
@@ -150,7 +150,13 @@ export function useQuizSession(mode: QuizSessionMode) {
           sess = await fetchDegBugfix(m.config)
         }
 
-        setSession(sess)
+        const filtered = { ...sess, questions: sess.questions.filter((q) => q.quiz !== null) }
+        if (filtered.questions.length === 0) {
+          setErrorMsg('出題できる問題がありません')
+          setPhase('error')
+          return
+        }
+        setSession(filtered)
         setPhase('active')
       } catch (e) {
         setErrorMsg(e instanceof Error ? e.message : 'エラーが発生しました')

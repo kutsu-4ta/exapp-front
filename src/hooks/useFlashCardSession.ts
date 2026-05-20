@@ -36,7 +36,7 @@ export function useFlashCardSession(fetchSession: () => Promise<MorningQuizSessi
   }
 
   const handleSelfEval = (selfCorrect: boolean) => {
-    if (!currentQ) return
+    if (!currentQ || !currentQ.quiz) return
     const problemId = parseInt(currentQ.id, 10)
     if (markedIds.has(problemId)) {
       addProblemQuiz(problemId, {

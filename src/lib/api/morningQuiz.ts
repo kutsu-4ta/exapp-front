@@ -7,7 +7,7 @@ export type MorningQuizQuestion = {
   sub_category_rank?: 'A' | 'B' | 'C' | 'D' | 'E' | null
   problem_context: {
     original_ref: string
-    user_memo: string
+    user_memo: string | null
     material_name: string | null
   }
   quiz: {
@@ -15,7 +15,7 @@ export type MorningQuizQuestion = {
     options: string[]
     correct_index: number
     explanation: string
-  }
+  } | null
 }
 
 export type MorningQuizSession = {
