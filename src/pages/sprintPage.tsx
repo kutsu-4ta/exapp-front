@@ -23,7 +23,6 @@ import {c, font} from '../styles/notion'
 import {useIsTablet} from '../hooks/useIsTablet'
 import {MarkdownContent} from '../components/common/MarkdownContent'
 import {StatusCopyModal} from '../components/common/StatusCopyModal'
-import {fetchSprintAiContext} from '../lib/api/aiContext'
 
 function buildSprintStatusText(sprint: Sprint, stats: SprintStats | undefined, tickets: StudyTicket[]): string {
   const isCompleted = sprint.status === 'completed'
@@ -113,7 +112,7 @@ export default function SprintPage() {
   const [statsCopied, setStatsCopied] = useState(false)
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
-  const [aiContextLoading, setAiContextLoading] = useState(false)
+  const [setAiContextLoading] = useState(false)
   const [aiCopied, setAiCopied] = useState(false)
   const [copyModalMode, setCopyModalMode] = useState<'status' | 'ai'>('status')
 
@@ -224,20 +223,6 @@ export default function SprintPage() {
     setCopyText(buildSprintStatusText(currentSprint, currentStats, currentTickets))
     setCopyModalMode('status')
     setIsCopyModalOpen(true)
-  }
-
-  const handleAiContextCopy = async () => {
-    setAiContextLoading(true)
-    try {
-      const text = await fetchSprintAiContext()
-      setCopyText(text)
-      setCopyModalMode('ai')
-      setIsCopyModalOpen(true)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setAiContextLoading(false)
-    }
   }
 
   const handleFinalCopy = async () => {
