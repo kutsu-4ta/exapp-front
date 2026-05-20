@@ -6,16 +6,12 @@ import {fetchProblem} from '../lib/api/problem'
 import {fetchRelated} from '../lib/problems/related'
 import {useSettingsStore} from '../lib/store/settings'
 import {subjectPalette} from '../styles/subjectUI'
-import {c} from '../styles/notion'
 
 // ── 定数 ─────────────────────────────────────────────────────────────────────
 
-const CENTER_W = 140
-const CENTER_H = 56
-const L1_W = 120
-const L1_H = 48
-const L2_W = 96
-const L2_H = 38
+const CENTER_R = 24
+const L1_R = 15
+const L2_R = 9
 
 const L2_MAX_PER_PARENT = 3
 
@@ -43,11 +39,9 @@ interface NodeData {
  * 縦長画面では水平を画面幅に収めつつ垂直方向を大きく使う。
  */
 function calcRadii(w: number, h: number) {
-  // 横: ノード幅の半分 + 余白 を引いた最大値に収める
-  const l1rx = Math.min(175, Math.max(105, w / 2 - L1_W / 2 - 14))
-  // 縦: 画面の半分から余白を引いた値 → 縦長ほど大きくなる
-  const l1ry = Math.min(260, Math.max(140, h / 2 - L1_H / 2 - 50))
-  const l2 = Math.min(110, Math.max(70, Math.min(w, h) * 0.20))
+  const l1rx = Math.min(190, Math.max(120, w / 2 - L1_R - 22))
+  const l1ry = Math.min(270, Math.max(155, h / 2 - L1_R - 62))
+  const l2 = Math.min(100, Math.max(65, Math.min(w, h) * 0.18))
   return {l1rx, l1ry, l2}
 }
 
@@ -88,6 +82,14 @@ function trunc(text: string, max: number) {
   return text.length > max ? text.slice(0, max) + '…' : text
 }
 
+/** note から #Definition の内容を抽出 */
+function extractDefinition(note: string | null): string | null {
+  if (!note) return null
+  const m = note.match(/#Definition[^\S\n]*([\s\S]*?)(?=\n#|$)/)
+  if (!m) return null
+  return m[1].trim() || null
+}
+
 // ── コンポーネント ────────────────────────────────────────────────────────────
 
 export default function ProblemGraphPage() {
@@ -108,6 +110,7 @@ export default function ProblemGraphPage() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [history, setHistory] = useState<Problem[]>([])
   const [loading, setLoading] = useState(false)
+  const [defOpen, setDefOpen] = useState(false)
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const historyRef = useRef<Problem[]>([])
@@ -142,6 +145,9 @@ export default function ProblemGraphPage() {
       .catch(() => navigate(-1))
       .finally(() => setLoading(false))
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // center が変わったら定義パネルを閉じる
+  useEffect(() => { setDefOpen(false) }, [center?.id])
 
   // 中心が変わったら L1 → L2 の順にフェッチしてフェードイン
   useEffect(() => {
@@ -304,6 +310,7 @@ export default function ProblemGraphPage() {
 
   function handleNodeClick(node: NodeData) {
     if (phase !== 'idle') return
+    setDefOpen(false)
     const {w, h} = dimsRef.current!
     const cx = w / 2
     const cy = h / 2
@@ -340,6 +347,7 @@ export default function ProblemGraphPage() {
   const cx = w / 2
   const cy = h / 2
   const displayCenter = nodes.find((n) => n.layer === 0)?.problem ?? center
+  const definition = extractDefinition(center?.note ?? null)
 
   // 中心ノードを最後に描画して L1/L2 の前面に来るようにする
   const sortedNodes = [
@@ -368,6 +376,17 @@ export default function ProblemGraphPage() {
         <div style={{width: 72}} />
       </div>
 
+      {/* 定義パネル */}
+      <div style={{...defPanelStyle, transform: defOpen ? 'translateY(0)' : 'translateY(100%)'}} onClick={() => setDefOpen(false)}>
+        <div style={defHandleStyle} />
+        <p style={defLabelStyle}>
+          {displayCenter?.subCategory ?? displayCenter?.subject ?? ''}
+        </p>
+        <p style={definition ? defTextStyle : defEmptyStyle}>
+          {definition ?? '定義が登録されていません'}
+        </p>
+      </div>
+
       {/* グラフキャンバス */}
       <div ref={containerRef} style={canvasStyle}>
         {(!dims || (loading && nodes.length === 0)) && (
@@ -376,6 +395,16 @@ export default function ProblemGraphPage() {
 
         {dims && (
           <svg width={w} height={h} style={{display: 'block'}}>
+            <defs>
+              <filter id="node-glow" x="-80%" y="-80%" width="260%" height="260%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
             {/* L1 エッジ: 中心 → L1 */}
             {nodes
               .filter((n) => n.layer === 1)
@@ -384,8 +413,8 @@ export default function ProblemGraphPage() {
                   key={`edge-l1-${n.problem.id}`}
                   x1={cx} y1={cy}
                   x2={n.x} y2={n.y}
-                  stroke={n.isBack ? 'rgba(55,53,47,0.12)' : 'rgba(55,53,47,0.10)'}
-                  strokeWidth={1.5}
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth={0.75}
                   strokeDasharray={n.isBack ? '5,3' : undefined}
                   opacity={n.opacity}
                   style={{transition: `opacity ${FADE_IN_MS}ms ease`}}
@@ -403,8 +432,8 @@ export default function ProblemGraphPage() {
                     key={`edge-l2-${n.problem.id}`}
                     x1={p.x} y1={p.y}
                     x2={n.x} y2={n.y}
-                    stroke="rgba(55,53,47,0.07)"
-                    strokeWidth={1}
+                    stroke="rgba(255,255,255,0.04)"
+                    strokeWidth={0.5}
                     opacity={n.opacity}
                     style={{transition: `opacity ${FADE_IN_MS}ms ease`}}
                   />
@@ -417,53 +446,71 @@ export default function ProblemGraphPage() {
               const isCenter = n.layer === 0
               const isL2 = n.layer === 2
               const isBack = n.isBack ?? false
-              const nw = isCenter ? CENTER_W : isL2 ? L2_W : L1_W
-              const nh = isCenter ? CENTER_H : isL2 ? L2_H : L1_H
-              const fontSize = isCenter ? 13 : isL2 ? 10 : 11
-              const metaFontSize = isCenter ? 11 : 9
-              const maxLen = isCenter ? 11 : isL2 ? 7 : 9
-              const rx = isCenter ? 13 : isL2 ? 8 : 10
+              const r = isCenter ? CENTER_R : isL2 ? L2_R : L1_R
+              const titleY = r + (isL2 ? 12 : 15)
+              const metaY = r + (isL2 ? 21 : 26)
+              const fontSize = isCenter ? 12 : isL2 ? 9 : 10
+              const metaFontSize = isCenter ? 10 : 8
+              const maxLen = isCenter ? 12 : isL2 ? 8 : 10
 
               return (
                 <g
                   key={`p-${n.problem.id}`}
-                  onClick={() => !isCenter && phase === 'idle' && handleNodeClick(n)}
+                  onClick={() => isCenter ? setDefOpen((v) => !v) : phase === 'idle' && handleNodeClick(n)}
                   style={{
                     transform: `translate(${n.x}px, ${n.y}px)`,
                     opacity: n.opacity,
-                    cursor: isCenter ? 'default' : 'pointer',
+                    cursor: 'pointer',
                     transition: [
                       `transform ${SLIDE_MS}ms cubic-bezier(0.4,0,0.2,1)`,
                       `opacity ${isCenter ? FADE_IN_MS : SLIDE_MS}ms ease`,
                     ].join(', '),
                   }}
                 >
-                  <rect
-                    x={-nw / 2} y={-nh / 2}
-                    width={nw} height={nh}
-                    rx={rx}
-                    fill={isCenter ? pal.bg : isBack ? 'rgba(55,53,47,0.06)' : '#fff'}
-                    stroke={isBack ? 'rgba(55,53,47,0.25)' : pal.color}
-                    strokeWidth={isCenter ? 2 : isL2 ? 0.75 : 1}
-                    strokeDasharray={isBack ? '4,2' : undefined}
-                    opacity={isL2 ? 0.85 : 1}
+                  <circle
+                    r={r}
+                    fill={
+                      isCenter ? pal.color
+                      : isBack  ? 'rgba(255,255,255,0.04)'
+                      : isL2   ? 'rgba(255,255,255,0.03)'
+                      :          'rgba(255,255,255,0.06)'
+                    }
+                    stroke={
+                      isCenter ? 'none'
+                      : isBack  ? 'rgba(255,255,255,0.2)'
+                      : isL2   ? 'rgba(255,255,255,0.18)'
+                      :          pal.color
+                    }
+                    strokeWidth={isCenter ? 0 : isL2 ? 0.75 : 1}
+                    strokeDasharray={isBack ? '3,2' : undefined}
+                    strokeOpacity={isL2 ? 1 : 0.55}
+                    filter={isCenter ? 'url(#node-glow)' : undefined}
                   />
                   <text
-                    x={0} y={isL2 ? -6 : -8}
+                    x={0} y={titleY}
                     textAnchor="middle"
                     fontSize={fontSize}
-                    fontWeight={700}
-                    fill={isCenter ? pal.color : (isL2 || isBack) ? 'rgba(55,53,47,0.5)' : c.text}
+                    fontWeight={600}
+                    fill={
+                      isCenter ? 'rgba(255,255,255,0.92)'
+                      : isBack  ? 'rgba(255,255,255,0.38)'
+                      : isL2   ? 'rgba(255,255,255,0.38)'
+                      :          'rgba(255,255,255,0.72)'
+                    }
                     fontFamily="system-ui, sans-serif"
                   >
                     {trunc((isBack ? '← ' : '') + (n.problem.subCategory ?? n.problem.subject), maxLen + (isBack ? 2 : 0))}
                   </text>
                   <text
-                    x={0} y={isL2 ? 8 : 10}
+                    x={0} y={metaY}
                     textAnchor="middle"
                     fontSize={metaFontSize}
-                    fill={isCenter ? pal.color : isBack ? 'rgba(55,53,47,0.3)' : 'rgba(55,53,47,0.38)'}
-                    opacity={isCenter ? 0.8 : 1}
+                    fill={
+                      isCenter ? 'rgba(255,255,255,0.55)'
+                      : isBack  ? 'rgba(255,255,255,0.22)'
+                      : isL2   ? 'rgba(255,255,255,0.22)'
+                      :          'rgba(255,255,255,0.38)'
+                    }
                     fontFamily="system-ui, sans-serif"
                   >
                     {n.problem.questionRef}
@@ -477,8 +524,8 @@ export default function ProblemGraphPage() {
               <text
                 x={cx} y={h - 20}
                 textAnchor="middle"
-                fontSize={12}
-                fill="rgba(55,53,47,0.35)"
+                fontSize={11}
+                fill="rgba(255,255,255,0.25)"
                 fontFamily="system-ui, sans-serif"
               >
                 関連問題を検索中…
@@ -488,8 +535,8 @@ export default function ProblemGraphPage() {
               <text
                 x={cx} y={h - 20}
                 textAnchor="middle"
-                fontSize={12}
-                fill="rgba(55,53,47,0.35)"
+                fontSize={11}
+                fill="rgba(255,255,255,0.25)"
                 fontFamily="system-ui, sans-serif"
               >
                 関連問題が見つかりませんでした
@@ -505,10 +552,11 @@ export default function ProblemGraphPage() {
 // ── スタイル ──────────────────────────────────────────────────────────────────
 
 const pageStyle: React.CSSProperties = {
+  position: 'relative',
   display: 'flex',
   flexDirection: 'column',
   height: '100dvh',
-  backgroundColor: '#f7f6f3',
+  backgroundColor: '#0d1117',
 }
 
 const headerStyle: React.CSSProperties = {
@@ -517,8 +565,8 @@ const headerStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   height: 52,
   padding: '0 12px',
-  backgroundColor: '#fff',
-  borderBottom: `1px solid ${c.border}`,
+  backgroundColor: '#0a0c12',
+  borderBottom: '1px solid rgba(255,255,255,0.07)',
   flexShrink: 0,
 }
 
@@ -530,15 +578,15 @@ const backBtnStyle: React.CSSProperties = {
   border: 'none',
   cursor: 'pointer',
   fontSize: '14px',
-  color: 'rgba(55,53,47,0.6)',
+  color: 'rgba(255,255,255,0.45)',
   padding: '6px 4px',
   minWidth: 72,
 }
 
 const headerTitleStyle: React.CSSProperties = {
   fontSize: '13px',
-  fontWeight: 700,
-  color: 'rgba(55,53,47,0.7)',
+  fontWeight: 600,
+  color: 'rgba(255,255,255,0.55)',
   flex: 1,
   textAlign: 'center',
 }
@@ -556,5 +604,59 @@ const overlayTextStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   fontSize: '13px',
-  color: 'rgba(55,53,47,0.4)',
+  color: 'rgba(255,255,255,0.25)',
+}
+
+const defPanelStyle: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: '48%',
+  backgroundColor: '#10151e',
+  borderTop: '1px solid rgba(255,255,255,0.09)',
+  borderRadius: '20px 20px 0 0',
+  padding: '16px 28px 32px',
+  display: 'flex',
+  flexDirection: 'column',
+  zIndex: 20,
+  transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1)',
+}
+
+const defHandleStyle: React.CSSProperties = {
+  width: 36,
+  height: 4,
+  borderRadius: 2,
+  backgroundColor: 'rgba(255,255,255,0.12)',
+  margin: '0 auto 20px',
+  flexShrink: 0,
+}
+
+const defLabelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  color: 'rgba(255,255,255,0.3)',
+  margin: '0 0 16px',
+  flexShrink: 0,
+}
+
+const defTextStyle: React.CSSProperties = {
+  fontSize: 18,
+  lineHeight: 1.75,
+  fontWeight: 400,
+  color: 'rgba(255,255,255,0.85)',
+  margin: 0,
+  overflowY: 'auto',
+  flex: 1,
+}
+
+const defEmptyStyle: React.CSSProperties = {
+  fontSize: 15,
+  lineHeight: 1.6,
+  fontStyle: 'italic',
+  color: 'rgba(255,255,255,0.2)',
+  margin: 0,
+  flex: 1,
 }
