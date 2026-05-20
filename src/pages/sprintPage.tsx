@@ -112,7 +112,6 @@ export default function SprintPage() {
   const [statsCopied, setStatsCopied] = useState(false)
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
-  const [setAiContextLoading] = useState(false)
   const [aiCopied, setAiCopied] = useState(false)
   const [copyModalMode, setCopyModalMode] = useState<'status' | 'ai'>('status')
 
