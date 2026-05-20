@@ -556,6 +556,7 @@ const pageStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   height: '100dvh',
+  overflow: 'hidden',
   backgroundColor: '#0d1117',
 }
 
