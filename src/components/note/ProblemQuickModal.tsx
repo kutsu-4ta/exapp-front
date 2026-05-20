@@ -29,10 +29,11 @@ type Props = {
   onUpdate: (problem: Problem) => void;
   onNavigate?: (problem: Problem) => void;
   hideQuizzes?: boolean;
+  hideGraph?: boolean;
   zIndex?: number;
 };
 
-export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, onNavigate, hideQuizzes = false, zIndex}: Props) {
+export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, onNavigate, hideQuizzes = false, hideGraph = false, zIndex}: Props) {
   const navigate = useNavigate();
   const setLastUsedMaterial = useSettingsStore((s) => s.setLastUsedMaterial);
   const subjectColors = useSettingsStore((s) => s.subjectColors);
@@ -437,6 +438,7 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, onNavig
           <RelatedProblemsSection
             current={problem}
             onSelect={(p) => { onClose(); onNavigate(p); }}
+            hideGraph={hideGraph}
           />
         )}
 

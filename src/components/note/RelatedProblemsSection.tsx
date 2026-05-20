@@ -8,9 +8,10 @@ import {c, font} from '../../styles/notion'
 type Props = {
   current: Problem
   onSelect: (problem: Problem) => void
+  hideGraph?: boolean
 }
 
-export function RelatedProblemsSection({current, onSelect}: Props) {
+export function RelatedProblemsSection({current, onSelect, hideGraph = false}: Props) {
   const navigate = useNavigate()
   const [related, setRelated] = useState<Problem[]>([])
 
@@ -28,16 +29,18 @@ export function RelatedProblemsSection({current, onSelect}: Props) {
         <span style={headerLabel}>芋づる</span>
         <span style={headerCount}>{related.length}件</span>
         <div style={{flex: 1}} />
-        <button
-          style={graphBtn}
-          title="グラフで見る"
-          onClick={() =>
-            navigate(`/problems/${current.id}/graph`, {state: {problem: current}})
-          }
-        >
-          <Network size={13} />
-          <span style={graphBtnLabel}>グラフ</span>
-        </button>
+        {!hideGraph && (
+          <button
+            style={graphBtn}
+            title="グラフで見る"
+            onClick={() =>
+              navigate(`/problems/${current.id}/graph`, {state: {problem: current}})
+            }
+          >
+            <Network size={13} />
+            <span style={graphBtnLabel}>グラフ</span>
+          </button>
+        )}
       </div>
       <div style={list}>
         {related.map((p) => (

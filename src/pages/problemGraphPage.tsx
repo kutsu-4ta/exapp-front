@@ -1,11 +1,12 @@
 import {useEffect, useRef, useState} from 'react'
 import {useLocation, useNavigate, useParams} from 'react-router-dom'
-import {ChevronLeft} from 'lucide-react'
+import {ChevronLeft, ScrollText} from 'lucide-react'
 import type {Problem} from '../types/workspace'
 import {fetchProblem} from '../lib/api/problem'
 import {fetchRelated} from '../lib/problems/related'
 import {useSettingsStore} from '../lib/store/settings'
 import {subjectPalette} from '../styles/subjectUI'
+import {ProblemQuickModal} from '../components/note/ProblemQuickModal'
 
 // ── 定数 ─────────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,18 @@ function trunc(text: string, max: number) {
   return text.length > max ? text.slice(0, max) + '…' : text
 }
 
+// ── プリフェッチキャッシュ ────────────────────────────────────────────────────
+// Promise ごとキャッシュすることで並行フェッチを防ぎ、解決済みなら即座に返る
+
+const relatedCache = new Map<number, Promise<Problem[]>>()
+
+function getCachedRelated(problem: Problem): Promise<Problem[]> {
+  if (!relatedCache.has(problem.id)) {
+    relatedCache.set(problem.id, fetchRelated(problem))
+  }
+  return relatedCache.get(problem.id)!
+}
+
 /** note から #Definition の内容を抽出 */
 function extractDefinition(note: string | null): string | null {
   if (!note) return null
@@ -111,6 +124,7 @@ export default function ProblemGraphPage() {
   const [history, setHistory] = useState<Problem[]>([])
   const [loading, setLoading] = useState(false)
   const [defOpen, setDefOpen] = useState(false)
+  const [modalProblem, setModalProblem] = useState<Problem | null>(null)
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const historyRef = useRef<Problem[]>([])
@@ -152,6 +166,7 @@ export default function ProblemGraphPage() {
   // 中心が変わったら L1 → L2 の順にフェッチしてフェードイン
   useEffect(() => {
     if (!center || !dimsRef.current) return
+    let cancelled = false  // ② 古いコールバック無視フラグ
     const {w, h} = dimsRef.current
     const cx = w / 2
     const cy = h / 2
@@ -161,11 +176,18 @@ export default function ProblemGraphPage() {
     setNodes([{problem: center, x: cx, y: cy, opacity: 1, layer: 0}])
 
     setLoading(true)
-    fetchRelated(center)
-      .then((l1Related) => {
+    getCachedRelated(center)
+      .then((rawL1Related) => {
+        if (cancelled) return
+
         const backProblem = historyRef.current.length > 0
           ? historyRef.current[historyRef.current.length - 1]
           : null
+        // ① back node と同じ problem が L1 に含まれると key が衝突するため除外
+        const l1Related = backProblem
+          ? rawL1Related.filter((p) => p.id !== backProblem.id)
+          : rawL1Related
+
         const l1StartAngle = backProblem && l1Related.length > 0
           ? -Math.PI / 2 + Math.PI / l1Related.length
           : -Math.PI / 2
@@ -191,6 +213,7 @@ export default function ProblemGraphPage() {
         // double-rAF: L1 フェードイン
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
+            if (cancelled) return
             setNodes((prev) =>
               prev.map((n) => (n.layer === 1 ? {...n, opacity: 1} : n)),
             )
@@ -202,11 +225,11 @@ export default function ProblemGraphPage() {
 
             Promise.all(
               l1Related.map((l1p, i) =>
-                fetchRelated(l1p, L2_MAX_PER_PARENT).then((results) => ({
+                getCachedRelated(l1p).then((results) => ({
                   parentId: l1p.id,
                   parentPos: l1Pos[i],
-                  // 既出の Problem を除外し重複を防ぐ
-                  filtered: results.filter((p) => {
+                  // 既出の Problem を除外し上限を適用
+                  filtered: results.slice(0, L2_MAX_PER_PARENT).filter((p) => {
                     if (existingIds.has(p.id)) return false
                     existingIds.add(p.id)
                     return true
@@ -214,6 +237,7 @@ export default function ProblemGraphPage() {
                 })),
               ),
             ).then((groups) => {
+              if (cancelled) return
               const l2Nodes: NodeData[] = []
               for (const {parentId, parentPos, filtered} of groups) {
                 const positions = layer2Positions(
@@ -242,6 +266,7 @@ export default function ProblemGraphPage() {
               // L2 フェードイン
               requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
+                  if (cancelled) return
                   setNodes((prev) =>
                     prev.map((n) => (n.layer === 2 ? {...n, opacity: 1} : n)),
                   )
@@ -251,7 +276,9 @@ export default function ProblemGraphPage() {
           })
         })
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (!cancelled) setLoading(false) })
+
+    return () => { cancelled = true }
   }, [center?.id, !!dims]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 画面サイズ変化時にノード位置を再計算（または初回計測時にグラフを起動）
@@ -336,6 +363,32 @@ export default function ProblemGraphPage() {
     }, SLIDE_MS)
   }
 
+  function navigateToCenter(problem: Problem) {
+    if (phase !== 'idle') return
+    const {w, h} = dimsRef.current!
+    const cx = w / 2, cy = h / 2
+
+    setPhase('animating')
+
+    const existingNode = nodes.find((n) => n.problem.id === problem.id && n.layer !== 0)
+    if (existingNode) {
+      // グラフ内のノードならスライドアニメーション
+      setNodes((prev) => prev.map((n) => {
+        if (n.problem.id === problem.id) return {...n, x: cx, y: cy}
+        return {...n, opacity: 0}
+      }))
+    } else {
+      // グラフ外の問題はフェードアウトのみ
+      setNodes((prev) => prev.map((n) => ({...n, opacity: 0})))
+    }
+
+    clearTimer()
+    timerRef.current = setTimeout(() => {
+      setHistory((h) => [...h, center!])
+      setCenter(problem)
+    }, SLIDE_MS)
+  }
+
   function handleBack() {
     navigate(-1)
   }
@@ -379,13 +432,48 @@ export default function ProblemGraphPage() {
       {/* 定義パネル */}
       <div style={{...defPanelStyle, transform: defOpen ? 'translateY(0)' : 'translateY(100%)'}} onClick={() => setDefOpen(false)}>
         <div style={defHandleStyle} />
-        <p style={defLabelStyle}>
-          {displayCenter?.subCategory ?? displayCenter?.subject ?? ''}
-        </p>
+        <div style={defHeaderRowStyle}>
+          <p style={defLabelStyle}>
+            {displayCenter?.subCategory ?? displayCenter?.subject ?? ''}
+          </p>
+          <button
+            style={defNotesBtnStyle}
+            onClick={(e) => { e.stopPropagation(); setModalProblem(center) }}
+          >
+            <ScrollText size={12} />
+            <span>ノートを見る</span>
+          </button>
+        </div>
         <p style={definition ? defTextStyle : defEmptyStyle}>
           {definition ?? '定義が登録されていません'}
         </p>
       </div>
+
+      {/* ノートモーダル */}
+      {modalProblem && (
+        <ProblemQuickModal
+          problem={modalProblem}
+          zIndex={40}
+          onClose={() => setModalProblem(null)}
+          onUpdate={(updated) => {
+            relatedCache.delete(updated.id)
+            if (updated.id === center?.id) setCenter(updated)
+            setModalProblem(updated)
+          }}
+          onDelete={(id) => {
+            relatedCache.delete(id)
+            setModalProblem(null)
+            setDefOpen(false)
+            if (id === center?.id) navigate(-1)
+          }}
+          onNavigate={(p) => {
+            setModalProblem(null)
+            setDefOpen(false)
+            navigateToCenter(p)
+          }}
+          hideGraph
+        />
+      )}
 
       {/* グラフキャンバス */}
       <div ref={containerRef} style={canvasStyle}>
@@ -633,14 +721,35 @@ const defHandleStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
+const defHeaderRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 16,
+  flexShrink: 0,
+}
+
 const defLabelStyle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
   letterSpacing: '0.1em',
   textTransform: 'uppercase',
   color: 'rgba(255,255,255,0.3)',
-  margin: '0 0 16px',
-  flexShrink: 0,
+  margin: 0,
+}
+
+const defNotesBtnStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 5,
+  background: 'rgba(255,255,255,0.07)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 8,
+  padding: '5px 10px',
+  cursor: 'pointer',
+  color: 'rgba(255,255,255,0.5)',
+  fontSize: 11,
+  fontWeight: 600,
 }
 
 const defTextStyle: React.CSSProperties = {
