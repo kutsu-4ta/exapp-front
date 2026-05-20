@@ -1,9 +1,9 @@
-import {apiFetch} from '../client'
+import {apiFetch, extractApiError} from '../client'
 import type {Flashcard, SubjectActivityDay, SubjectMonthlyGoal, SubjectSettings,} from '../../types/workspace'
 
 export async function fetchSubjects(): Promise<string[]> {
   const res = await apiFetch('/api/subjects')
-  if (!res.ok) throw new Error('科目の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, '科目の取得に失敗しました')
   return res.json()
 }
 
@@ -12,19 +12,19 @@ export async function renameSubject(name: string, newName: string): Promise<void
     method: 'PUT',
     body: JSON.stringify({ newName }),
   })
-  if (!res.ok) throw new Error('科目名の変更に失敗しました')
+  if (!res.ok) await extractApiError(res, '科目名の変更に失敗しました')
 }
 
 export async function deleteSubject(name: string): Promise<void> {
   const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}`, {
     method: 'DELETE',
   })
-  if (!res.ok) throw new Error('科目の削除に失敗しました')
+  if (!res.ok) await extractApiError(res, '科目の削除に失敗しました')
 }
 
 export async function fetchSubjectSettings(name: string): Promise<SubjectSettings> {
   const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}/settings`)
-  if (!res.ok) throw new Error('科目設定の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, '科目設定の取得に失敗しました')
   return res.json()
 }
 
@@ -36,7 +36,7 @@ export async function saveSubjectSettings(
     method: 'PUT',
     body: JSON.stringify(settings),
   })
-  if (!res.ok) throw new Error('科目設定の保存に失敗しました')
+  if (!res.ok) await extractApiError(res, '科目設定の保存に失敗しました')
   return res.json()
 }
 
@@ -48,7 +48,7 @@ export async function fetchSubjectMonthlyGoal(
   const res = await apiFetch(
     `/api/subjects/${encodeURIComponent(name)}/monthly-goal/${year}/${month}`
   )
-  if (!res.ok) throw new Error('月別方針の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, '月別方針の取得に失敗しました')
   return res.json()
 }
 
@@ -65,7 +65,7 @@ export async function saveSubjectMonthlyGoal(
       body: JSON.stringify({ goal }),
     }
   )
-  if (!res.ok) throw new Error('月別方針の保存に失敗しました')
+  if (!res.ok) await extractApiError(res, '月別方針の保存に失敗しました')
   return res.json()
 }
 
@@ -77,7 +77,7 @@ export async function fetchSubjectActivity(
   const res = await apiFetch(
     `/api/subjects/${encodeURIComponent(name)}/activity?year=${year}&month=${month}`
   )
-  if (!res.ok) throw new Error('アクティビティの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'アクティビティの取得に失敗しました')
   return res.json()
 }
 
@@ -87,6 +87,6 @@ export async function fetchFlashcards(subject?: string, count?: number): Promise
   if (count !== undefined) params.set('count', String(count))
   const qs = params.toString()
   const res = await apiFetch(`/api/flashcards${qs ? `?${qs}` : ''}`)
-  if (!res.ok) throw new Error('フラッシュカードの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'フラッシュカードの取得に失敗しました')
   return res.json()
 }

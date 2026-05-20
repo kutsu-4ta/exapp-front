@@ -1,4 +1,4 @@
-import {apiFetch} from '../client'
+import {apiFetch, extractApiError} from '../client'
 
 export type Snippet = {
   id: number
@@ -17,7 +17,7 @@ export const MAX_CONTENT = 2000
 
 export async function fetchSnippets(): Promise<Snippet[]> {
   const res = await apiFetch('/api/snippets')
-  if (!res.ok) throw new Error('スニペットの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'スニペットの取得に失敗しました')
   return res.json()
 }
 
@@ -26,7 +26,7 @@ export async function createSnippet(input: SnippetInput): Promise<Snippet> {
     method: 'POST',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('スニペットの作成に失敗しました')
+  if (!res.ok) await extractApiError(res, 'スニペットの作成に失敗しました')
   return res.json()
 }
 
@@ -35,7 +35,7 @@ export async function updateSnippet(id: number, input: SnippetInput): Promise<Sn
     method: 'PUT',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('スニペットの更新に失敗しました')
+  if (!res.ok) await extractApiError(res, 'スニペットの更新に失敗しました')
   return res.json()
 }
 
@@ -43,5 +43,5 @@ export async function deleteSnippet(id: number): Promise<void> {
   const res = await apiFetch(`/api/snippets/${id}`, {
     method: 'DELETE',
   })
-  if (!res.ok) throw new Error('スニペットの削除に失敗しました')
+  if (!res.ok) await extractApiError(res, 'スニペットの削除に失敗しました')
 }

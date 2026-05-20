@@ -1,7 +1,7 @@
 /**
  * ── Daily Logs ─────────────────────────────────────────────────────────────
  */
-import {apiFetch} from '../client'
+import {apiFetch, extractApiError} from '../client'
 import type {
   DailyLog,
   DailyLogSummary,
@@ -15,7 +15,7 @@ import type {AdviceMode} from '@/types/aiAgent.ts'
 // GET /api/daily-logs?year=&month=
 export async function fetchMonthlyLogs(year: number, month: number): Promise<DailyLogSummary[]> {
   const res = await apiFetch(`/api/daily-logs?year=${year}&month=${month}`)
-  if (!res.ok) throw new Error('ログ一覧の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ログ一覧の取得に失敗しました')
   return res.json()
 }
 
@@ -30,7 +30,7 @@ export async function fetchRecentDailyLogs(limit = 5, before?: string): Promise<
   const params = new URLSearchParams({ limit: String(limit) })
   if (before) params.set('before', before)
   const res = await apiFetch(`/api/daily-logs/recent?${params}`)
-  if (!res.ok) throw new Error('ログ一覧の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ログ一覧の取得に失敗しました')
   return res.json()
 }
 
@@ -38,7 +38,7 @@ export async function fetchRecentDailyLogs(limit = 5, before?: string): Promise<
 export async function fetchDailyLog(date: string): Promise<DailyLog | null> {
   const res = await apiFetch(`/api/daily-logs/${date}`)
   if (res.status === 404) return null
-  if (!res.ok) throw new Error('ログの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ログの取得に失敗しました')
   return res.json()
 }
 
@@ -48,7 +48,7 @@ export async function createDailyLog(date: string): Promise<DailyLog> {
     method: 'POST',
     body: JSON.stringify({ date }),
   })
-  if (!res.ok) throw new Error('ログの作成に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ログの作成に失敗しました')
   return res.json()
 }
 
@@ -58,27 +58,27 @@ export async function updateReflection(date: string, reflection: string | null):
     method: 'PUT',
     body: JSON.stringify({ reflection }),
   })
-  if (!res.ok) throw new Error('振り返りの保存に失敗しました')
+  if (!res.ok) await extractApiError(res, '振り返りの保存に失敗しました')
   return res.json()
 }
 
 // POST /api/daily-logs/:date/complete
 export async function completeDailyLog(date: string): Promise<DailyLog> {
   const res = await apiFetch(`/api/daily-logs/${date}/complete`, { method: 'POST' })
-  if (!res.ok) throw new Error('完了処理に失敗しました')
+  if (!res.ok) await extractApiError(res, '完了処理に失敗しました')
   return res.json()
 }
 
 // DELETE /api/daily-logs/:date
 export async function deleteDailyLog(date: string): Promise<void> {
   const res = await apiFetch(`/api/daily-logs/${date}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('ログの削除に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ログの削除に失敗しました')
 }
 
 // POST /api/daily-logs/:date/uncomplete
 export async function uncompleteDailyLog(date: string): Promise<DailyLog> {
   const res = await apiFetch(`/api/daily-logs/${date}/uncomplete`, { method: 'POST' })
-  if (!res.ok) throw new Error('完了取消に失敗しました')
+  if (!res.ok) await extractApiError(res, '完了取消に失敗しました')
   return res.json()
 }
 
@@ -92,7 +92,7 @@ export async function addStudySession(input: StudySessionInput): Promise<StudySe
     method: 'POST',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('ブロックの追加に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ブロックの追加に失敗しました')
   return res.json()
 }
 
@@ -105,14 +105,14 @@ export async function updateStudySession(
     method: 'PUT',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('ブロックの更新に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ブロックの更新に失敗しました')
   return res.json()
 }
 
 // DELETE /api/study-sessions/:id
 export async function deleteStudySession(id: number): Promise<void> {
   const res = await apiFetch(`/api/study-sessions/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('ブロックの削除に失敗しました')
+  if (!res.ok) await extractApiError(res, 'ブロックの削除に失敗しました')
 }
 
 /**
@@ -122,7 +122,7 @@ export async function deleteStudySession(id: number): Promise<void> {
 // GET /api/dashboard/stats
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   const res = await apiFetch('/api/dashboard/stats')
-  if (!res.ok) throw new Error('統計の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, '統計の取得に失敗しました')
   return res.json()
 }
 
@@ -133,7 +133,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 // GET /api/monthly-settings/:year/:month
 export async function fetchMonthlySettings(year: number, month: number): Promise<MonthlySettings> {
   const res = await apiFetch(`/api/monthly-settings/${year}/${month}`)
-  if (!res.ok) throw new Error('月間設定の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, '月間設定の取得に失敗しました')
   return res.json()
 }
 
@@ -147,7 +147,7 @@ export async function updateMonthlySettings(
     method: 'PUT',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('月間設定の保存に失敗しました')
+  if (!res.ok) await extractApiError(res, '月間設定の保存に失敗しました')
   return res.json()
 }
 

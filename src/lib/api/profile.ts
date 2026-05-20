@@ -1,4 +1,4 @@
-import { apiFetch } from '../client'
+import {apiFetch, extractApiError} from '../client'
 
 export type UserProfile = {
   nickname: string | null
@@ -22,7 +22,7 @@ export type UserProfileInput = {
 
 export async function fetchUserProfile(): Promise<UserProfile> {
   const res = await apiFetch('/api/profile')
-  if (!res.ok) throw new Error('プロフィールの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'プロフィールの取得に失敗しました')
   return res.json()
 }
 

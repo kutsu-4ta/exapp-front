@@ -1,4 +1,4 @@
-import {apiFetch} from '../client'
+import {apiFetch, extractApiError} from '../client'
 import type {GeminiContext} from '../../types/workspace'
 import type {GeminiModel} from './apiWeights'
 
@@ -18,7 +18,7 @@ export async function fetchGeminiContext(year: number, month: number): Promise<G
 
 export async function fetchGeminiSettings(): Promise<{ geminiModel: GeminiModel | null }> {
   const res = await apiFetch('/api/gemini/settings')
-  if (!res.ok) throw new Error('Gemini設定の取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'Gemini設定の取得に失敗しました')
   return res.json()
 }
 
@@ -29,6 +29,6 @@ export async function updateGeminiSettings(
     method: 'PUT',
     body: JSON.stringify({ geminiModel: model }),
   })
-  if (!res.ok) throw new Error('Gemini設定の更新に失敗しました')
+  if (!res.ok) await extractApiError(res, 'Gemini設定の更新に失敗しました')
   return res.json()
 }

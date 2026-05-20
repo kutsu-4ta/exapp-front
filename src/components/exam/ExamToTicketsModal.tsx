@@ -47,6 +47,7 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [createdCount, setCreatedCount] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([fetchSprints(), fetchSubCategories(session.subject)])
@@ -97,7 +98,7 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
       setDone(true)
       loadTickets(backlogSprint.id).catch(() => {})
     } catch (e) {
-      console.error(e)
+      setError(e instanceof Error ? e.message : '作成に失敗しました')
     } finally {
       setSubmitting(false)
     }
@@ -203,6 +204,7 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
             <div style={{ marginTop: 4 }}>
               {unassignedRanks.length > 0 && <p style={{ margin: '0 0 8px', fontSize: font.sm, color: c.red, fontWeight: 600, textAlign: 'center' }}>⚠ {unassignedRanks.map((g) => g.rank).join('・')}ランクの分野が未設定です</p>}
               {unassignedRanks.length === 0 && selectedGroups.length > 0 && <p style={{ margin: '0 0 8px', fontSize: font.sm, color: c.textHint, textAlign: 'center' }}>バックログ「{backlogSprint.name}」に追加されます</p>}
+              {error && <p style={{ margin: '0 0 8px', fontSize: font.sm, color: c.red, fontWeight: 600, textAlign: 'center' }}>{error}</p>}
               <button style={{ ...btnPrimary, opacity: canSubmit ? 1 : 0.45, cursor: canSubmit ? 'pointer' : 'not-allowed' }} disabled={!canSubmit} onClick={handleCreate}>
                 {submitting ? '追加中…' : `${selectedGroups.length}件のチケットをバックログに追加`}
               </button>

@@ -1,4 +1,4 @@
-import {apiFetch} from '../client'
+import {apiFetch, extractApiError} from '../client'
 
 export type MorningQuizQuestion = {
   id: string
@@ -30,7 +30,7 @@ export type MorningQuizAnswer = {
 
 export async function fetchMorningQuiz(): Promise<MorningQuizSession> {
   const res = await apiFetch('/api/morning-bugfix')
-  if (!res.ok) throw new Error('クイズの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'クイズの取得に失敗しました')
   return res.json()
 }
 
@@ -60,7 +60,7 @@ export async function fetchFlashBugfix(
   q.set('limit', String(config.limit))
 
   const res = await apiFetch(`/api/morning-bugfix?${q}`)
-  if (!res.ok) throw new Error('クイズの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'クイズの取得に失敗しました')
   return res.json()
 }
 
@@ -77,7 +77,7 @@ export async function fetchFlashCard(
   if (config.formulaOnly) q.set('formulaOnly', 'true')
 
   const res = await apiFetch(`/api/flash-card?${q}`)
-  if (!res.ok) throw new Error('カードの取得に失敗しました')
+  if (!res.ok) await extractApiError(res, 'カードの取得に失敗しました')
   return res.json()
 }
 
@@ -124,6 +124,6 @@ export async function completeMorningQuiz(
     method: 'POST',
     body: JSON.stringify({ session_id: sessionId, answers, elapsed_ms: elapsedMs }),
   })
-  if (!res.ok) throw new Error('結果の保存に失敗しました')
+  if (!res.ok) await extractApiError(res, '結果の保存に失敗しました')
   return res.json()
 }

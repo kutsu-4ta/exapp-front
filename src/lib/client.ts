@@ -16,6 +16,21 @@ export class ApiTrafficLimitError extends Error {
   }
 }
 
+/**
+ * !res.ok のとき、レスポンスボディの message/error/detail を読んでスローする。
+ * サーバーがメッセージを返さない場合は fallback を使う。
+ */
+export async function extractApiError(res: Response, fallback: string): Promise<never> {
+  let message = fallback
+  try {
+    const body = await res.json()
+    if (typeof body?.message === 'string') message = body.message
+    else if (typeof body?.error === 'string') message = body.error
+    else if (typeof body?.detail === 'string') message = body.detail
+  } catch {}
+  throw new Error(message)
+}
+
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const token = useAuthStore.getState().token
   const traffic = useApiTrafficStore.getState()

@@ -30,6 +30,7 @@ export function TicketNotes({ ticketId }: Props) {
   const [editBody, setEditBody] = useState('')
   const [editPreview, setEditPreview] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -49,13 +50,14 @@ export function TicketNotes({ ticketId }: Props) {
     const body = newBody.trim()
     if (!body || submitting) return
     setSubmitting(true)
+    setError(null)
     try {
       const note = await createTicketNote(ticketId, { body })
       setNotes((prev) => [...prev, note])
       setNewBody('')
       setNewPreview(false)
-    } catch {
-      // silent
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '追加に失敗しました')
     } finally {
       setSubmitting(false)
     }
@@ -77,11 +79,12 @@ export function TicketNotes({ ticketId }: Props) {
   const handleEditSave = async (note: TicketNote) => {
     const body = editBody.trim()
     if (!body) return
+    setError(null)
     try {
       const updated = await updateTicketNote(ticketId, note.id, { body })
       setNotes((prev) => prev.map((n) => (n.id === note.id ? updated : n)))
-    } catch {
-      // silent
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '更新に失敗しました')
     } finally {
       setEditingId(null)
       setEditPreview(false)
@@ -90,11 +93,12 @@ export function TicketNotes({ ticketId }: Props) {
 
   const handleDelete = async (note: TicketNote) => {
     if (deletingId !== note.id) { setDeletingId(note.id); return }
+    setError(null)
     try {
       await deleteTicketNote(ticketId, note.id)
       setNotes((prev) => prev.filter((n) => n.id !== note.id))
-    } catch {
-      // silent
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '削除に失敗しました')
     } finally {
       setDeletingId(null)
     }
@@ -114,6 +118,10 @@ export function TicketNotes({ ticketId }: Props) {
       >
         NOTE ({notes.length})
       </div>
+
+      {error && (
+        <p style={{ margin: '0 0 8px', fontSize: font.sm, color: '#eb5757', fontWeight: 600 }}>{error}</p>
+      )}
 
       <div
         style={{

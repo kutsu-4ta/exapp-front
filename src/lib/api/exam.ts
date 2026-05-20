@@ -1,16 +1,16 @@
-import {apiFetch} from '../client'
+import {apiFetch, extractApiError} from '../client'
 import type {ExamQuestionInput, ExamSession, ExamSessionSummary, ExamSubjectStats,} from '../../types/exam'
 
 export async function fetchExamSessions(status?: string): Promise<ExamSessionSummary[]> {
   const query = status ? `?status=${status}` : ''
   const res = await apiFetch(`/api/exam-sessions${query}`)
-  if (!res.ok) throw new Error('Failed to fetch exam sessions')
+  if (!res.ok) await extractApiError(res, 'Failed to fetch exam sessions')
   return res.json()
 }
 
 export async function fetchExamSession(id: number): Promise<ExamSession> {
   const res = await apiFetch(`/api/exam-sessions/${id}`)
-  if (!res.ok) throw new Error('Failed to fetch exam session')
+  if (!res.ok) await extractApiError(res, 'Failed to fetch exam session')
   return res.json()
 }
 
@@ -22,7 +22,7 @@ export async function createExamSession(input: {
     method: 'POST',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('Failed to create exam session')
+  if (!res.ok) await extractApiError(res, 'Failed to create exam session')
   return res.json()
 }
 
@@ -34,13 +34,13 @@ export async function updateExamSession(
     method: 'PUT',
     body: JSON.stringify(patch),
   })
-  if (!res.ok) throw new Error('Failed to update exam session')
+  if (!res.ok) await extractApiError(res, 'Failed to update exam session')
   return res.json()
 }
 
 export async function deleteExamSession(id: number): Promise<void> {
   const res = await apiFetch(`/api/exam-sessions/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('Failed to delete exam session')
+  if (!res.ok) await extractApiError(res, 'Failed to delete exam session')
 }
 
 export async function completeExamSession(
@@ -51,7 +51,7 @@ export async function completeExamSession(
     method: 'POST',
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error('Failed to complete exam session')
+  if (!res.ok) await extractApiError(res, 'Failed to complete exam session')
   return res.json()
 }
 
@@ -65,7 +65,7 @@ export async function quickScoreExamSession(input: {
     method: 'POST',
     body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error('スコアの記録に失敗しました')
+  if (!res.ok) await extractApiError(res, 'スコアの記録に失敗しました')
   return res.json()
 }
 
@@ -81,6 +81,6 @@ export async function fetchSubjectStats(
   const res = await apiFetch(
     `/api/exam-subjects/${encodeURIComponent(subject)}/stats${qs ? `?${qs}` : ''}`
   )
-  if (!res.ok) throw new Error('Failed to fetch subject stats')
+  if (!res.ok) await extractApiError(res, 'Failed to fetch subject stats')
   return res.json()
 }
