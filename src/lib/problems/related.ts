@@ -50,7 +50,7 @@ export async function fetchRelated(current: Problem, limit = 5): Promise<Problem
   if (queries.length === 0) return []
 
   const results = await Promise.all(
-    queries.map((q) => fetchProblems({subjects: [current.subject], q}))
+    queries.map((q) => fetchProblems({q}))
   )
 
   const seen = new Set<number>()

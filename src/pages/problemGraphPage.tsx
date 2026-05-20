@@ -534,6 +534,7 @@ export default function ProblemGraphPage() {
               const isCenter = n.layer === 0
               const isL2 = n.layer === 2
               const isBack = n.isBack ?? false
+              const isCrossSubject = !isCenter && !isBack && n.problem.subject !== center?.subject
               const r = isCenter ? CENTER_R : isL2 ? L2_R : L1_R
               const titleY = r + (isL2 ? 12 : 15)
               const metaY = r + (isL2 ? 21 : 26)
@@ -558,20 +559,21 @@ export default function ProblemGraphPage() {
                   <circle
                     r={r}
                     fill={
-                      isCenter ? pal.color
-                      : isBack  ? 'rgba(255,255,255,0.04)'
-                      : isL2   ? 'rgba(255,255,255,0.03)'
-                      :          'rgba(255,255,255,0.06)'
+                      isCenter      ? pal.color
+                      : isBack      ? 'rgba(255,255,255,0.04)'
+                      : isL2        ? 'rgba(255,255,255,0.03)'
+                      :               'rgba(255,255,255,0.06)'
                     }
                     stroke={
-                      isCenter ? 'none'
-                      : isBack  ? 'rgba(255,255,255,0.2)'
-                      : isL2   ? 'rgba(255,255,255,0.18)'
-                      :          pal.color
+                      isCenter      ? 'none'
+                      : isBack      ? 'rgba(255,255,255,0.2)'
+                      : isCrossSubject ? 'rgba(255,255,255,0.2)'
+                      : isL2        ? 'rgba(255,255,255,0.18)'
+                      :               pal.color
                     }
                     strokeWidth={isCenter ? 0 : isL2 ? 0.75 : 1}
                     strokeDasharray={isBack ? '3,2' : undefined}
-                    strokeOpacity={isL2 ? 1 : 0.55}
+                    strokeOpacity={isCrossSubject ? 0.4 : isL2 ? 1 : 0.55}
                     filter={isCenter ? 'url(#node-glow)' : undefined}
                   />
                   <text
@@ -580,10 +582,11 @@ export default function ProblemGraphPage() {
                     fontSize={fontSize}
                     fontWeight={600}
                     fill={
-                      isCenter ? 'rgba(255,255,255,0.92)'
-                      : isBack  ? 'rgba(255,255,255,0.38)'
-                      : isL2   ? 'rgba(255,255,255,0.38)'
-                      :          'rgba(255,255,255,0.72)'
+                      isCenter      ? 'rgba(255,255,255,0.92)'
+                      : isBack      ? 'rgba(255,255,255,0.38)'
+                      : isCrossSubject ? 'rgba(255,255,255,0.32)'
+                      : isL2        ? 'rgba(255,255,255,0.38)'
+                      :               'rgba(255,255,255,0.72)'
                     }
                     fontFamily="system-ui, sans-serif"
                   >
@@ -594,10 +597,11 @@ export default function ProblemGraphPage() {
                     textAnchor="middle"
                     fontSize={metaFontSize}
                     fill={
-                      isCenter ? 'rgba(255,255,255,0.55)'
-                      : isBack  ? 'rgba(255,255,255,0.22)'
-                      : isL2   ? 'rgba(255,255,255,0.22)'
-                      :          'rgba(255,255,255,0.38)'
+                      isCenter      ? 'rgba(255,255,255,0.55)'
+                      : isBack      ? 'rgba(255,255,255,0.22)'
+                      : isCrossSubject ? 'rgba(255,255,255,0.18)'
+                      : isL2        ? 'rgba(255,255,255,0.22)'
+                      :               'rgba(255,255,255,0.38)'
                     }
                     fontFamily="system-ui, sans-serif"
                   >

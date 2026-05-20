@@ -23,6 +23,9 @@ export function RelatedProblemsSection({current, onSelect, hideGraph = false}: P
 
   if (related.length === 0) return null
 
+  const same  = related.filter((p) => p.subject === current.subject)
+  const other = related.filter((p) => p.subject !== current.subject)
+
   return (
     <div style={container}>
       <div style={header}>
@@ -43,21 +46,39 @@ export function RelatedProblemsSection({current, onSelect, hideGraph = false}: P
         )}
       </div>
       <div style={list}>
-        {related.map((p) => (
-          <button key={p.id} style={row} onClick={() => onSelect(p)}>
-            <div style={rowContent}>
-              <div style={rowTitle}>{p.subCategory ?? p.subject}</div>
-              <div style={rowMeta}>
-                {[p.subCategory ? p.subject : null, p.questionRef]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </div>
-            </div>
-            <span style={arrow}>→</span>
-          </button>
-        ))}
+        {same.map((p) => <ProblemRow key={p.id} problem={p} onSelect={onSelect} />)}
+
+        {other.length > 0 && (
+          <>
+            <div style={sectionDivider}>他科目</div>
+            {other.map((p) => <ProblemRow key={p.id} problem={p} onSelect={onSelect} showSubject />)}
+          </>
+        )}
       </div>
     </div>
+  )
+}
+
+function ProblemRow({problem: p, onSelect, showSubject = false}: {
+  problem: Problem
+  onSelect: (p: Problem) => void
+  showSubject?: boolean
+}) {
+  const metaParts = [
+    showSubject ? p.subject : (p.subCategory ? p.subject : null),
+    p.questionRef,
+  ].filter(Boolean).join(' · ')
+
+  return (
+    <button style={row} onClick={() => onSelect(p)}>
+      <div style={rowContent}>
+        <div style={showSubject ? rowTitleMuted : rowTitle}>
+          {p.subCategory ?? p.subject}
+        </div>
+        {metaParts && <div style={rowMeta}>{metaParts}</div>}
+      </div>
+      <span style={arrow}>→</span>
+    </button>
   )
 }
 
@@ -104,6 +125,17 @@ const graphBtnLabel: React.CSSProperties = {
   fontWeight: 600,
 }
 
+const sectionDivider: React.CSSProperties = {
+  padding: '6px 12px 5px',
+  fontSize: font.xs,
+  fontWeight: 600,
+  color: c.textFaint,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  backgroundColor: 'rgba(55,53,47,0.04)',
+  borderBottom: `1px solid ${c.border}`,
+}
+
 const list: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
@@ -134,6 +166,12 @@ const rowTitle: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
+}
+
+const rowTitleMuted: React.CSSProperties = {
+  ...rowTitle,
+  color: c.textSub,
+  fontWeight: 500,
 }
 
 const rowMeta: React.CSSProperties = {
