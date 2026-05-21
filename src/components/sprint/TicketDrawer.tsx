@@ -35,7 +35,8 @@ const STATUS_OPTIONS: { value: TicketStatus; label: string; color: string }[] = 
 
 function formatDate(s: string): string {
   const d = new Date(s.includes('T') ? s : s + 'T00:00:00')
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
 export function TicketDrawer({
@@ -258,11 +259,11 @@ export function TicketDrawer({
 
               {ticket.estimateMinutes && (
                   <div>
-                      <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginTop: 2 }}>見積もり</div>
+                      <div style={{ fontSize: font.xs, color: c.textHint, fontWeight: 600, marginTop: 2 }}>Estimate</div>
                       <span style={{ fontSize: font.sm, color: c.text }}>
                   {ticket.estimateMinutes >= 60
-                      ? `${Math.floor(ticket.estimateMinutes / 60)}時間${ticket.estimateMinutes % 60 > 0 ? `${ticket.estimateMinutes % 60}分` : ''}`
-                      : `${ticket.estimateMinutes}分`}
+                      ? `${Math.floor(ticket.estimateMinutes / 60)}h${ticket.estimateMinutes % 60 > 0 ? ` ${ticket.estimateMinutes % 60}m` : ''}`
+                      : `${ticket.estimateMinutes}m`}
                 </span>
                   </div>
               )}
@@ -341,7 +342,7 @@ export function TicketDrawer({
               disabled={actionLoading === 'delete'}
               style={deleteBtn}
           >
-              このチケットを削除
+              Delete this ticket
           </LongPressButton>
       </div>
 

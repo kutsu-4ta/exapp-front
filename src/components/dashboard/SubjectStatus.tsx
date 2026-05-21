@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {AlertStatusItem} from '../../types/workspace'
-import {daysAgo, formatHours} from '../../types/workspace'
+import {daysSince, formatDuration} from '../../types/workspace'
 import {useNavigate} from 'react-router-dom'
 import {useSettingsStore} from '@/lib/store/settings'
 import {subjectPalette} from '@/styles/subjectUI'
@@ -63,10 +63,10 @@ export function SubjectStatus({
         </div>
         <div className="ml-auto flex items-center gap-1">
           <ToggleBtn active={mode === 'status'} onClick={() => setMode('status')}>
-            最終学習
+            Last Study
           </ToggleBtn>
           <ToggleBtn active={mode === 'time'} onClick={() => setMode('time')}>
-            学習時間
+            Study Time
           </ToggleBtn>
         </div>
       </div>
@@ -74,13 +74,13 @@ export function SubjectStatus({
       {mode === 'time' && (
         <div className="flex justify-end gap-1 mb-2">
           <PeriodBtn active={period === 'all'} onClick={() => setPeriod('all')}>
-            全期間
+            All Time
           </PeriodBtn>
           <PeriodBtn active={period === 'month'} onClick={() => setPeriod('month')}>
-            今月
+            This Month
           </PeriodBtn>
           <PeriodBtn active={period === 'today'} onClick={() => setPeriod('today')}>
-            今日
+            Today
           </PeriodBtn>
         </div>
       )}
@@ -158,14 +158,14 @@ export function SubjectStatus({
                     className="text-[12px] font-semibold tabular-nums"
                     style={{ color: timeColor }}
                   >
-                    {formatHours(minutes)}
+                    {formatDuration(minutes)}
                   </div>
                   {alertEnabled && (
                     <div
                       className="text-[9px] font-medium tabular-nums"
                       style={{ color: 'rgba(55,53,47,0.3)' }}
                     >
-                      目標 {threshold}m/{thresholdDays}d
+                      Goal {threshold}m/{thresholdDays}d
                     </div>
                   )}
                 </div>
@@ -249,13 +249,13 @@ function StatusBadge({ label }: { label: ReturnType<typeof getStatusLabel> }) {
 
 function getStatusLabel(lastDate: string | null) {
   if (!lastDate) {
-    return { text: '未学習', color: '#7c7168', bg: 'rgba(55,53,47,0.07)' }
+    return { text: 'Not studied', color: '#7c7168', bg: 'rgba(55,53,47,0.07)' }
   }
-  const n = daysAgo(lastDate)
-  if (n === 0) return { text: '今日', color: '#19a576', bg: 'rgba(45,106,31,0.10)' }
-  if (n === 1) return { text: '昨日', color: '#f2ab26', bg: 'rgba(242,171,38,0.12)' }
-  if (n <= 6) return { text: `${n}日前`, color: '#f2ab26', bg: 'rgba(242,171,38,0.10)' }
-  return { text: `${n}日前`, color: '#eb5757', bg: 'rgba(235,87,87,0.10)' }
+  const n = daysSince(lastDate)
+  if (n === 0) return { text: 'Today', color: '#19a576', bg: 'rgba(45,106,31,0.10)' }
+  if (n === 1) return { text: 'Yesterday', color: '#f2ab26', bg: 'rgba(242,171,38,0.12)' }
+  if (n <= 6) return { text: `${n}d ago`, color: '#f2ab26', bg: 'rgba(242,171,38,0.10)' }
+  return { text: `${n}d ago`, color: '#eb5757', bg: 'rgba(235,87,87,0.10)' }
 }
 
 
@@ -275,12 +275,12 @@ function PracticeBtn({
         borderColor: 'rgba(55,53,47,0.12)',
         backgroundColor: 'transparent',
       }}
-      title="演習を開始"
+      title="Start practice"
     >
       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
         <polygon points="5,3 19,12 5,21" />
       </svg>
-      演習
+      Practice
     </button>
   )
 }

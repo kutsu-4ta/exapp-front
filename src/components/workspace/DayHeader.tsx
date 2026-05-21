@@ -1,5 +1,5 @@
 import type {DailyLog} from '../../types/workspace'
-import {formatDate, formatMinutes} from '../../types/workspace'
+import {formatDuration, formatFullDate} from '../../types/workspace'
 import {StatusBadge} from "@/components/common/StatusBadge.tsx";
 import {useSettingsStore} from "@/lib/store/settings.ts";
 import {subjectPalette} from "@/styles/subjectUI.ts";
@@ -43,7 +43,7 @@ export function DayHeader({ log }: Props) {
       <div style={titleRow}>
         <div style={titleGroup}>
           <IconCalendar />
-          <h1 style={titleText}>{formatDate(log.date)}</h1>
+          <h1 style={titleText}>{formatFullDate(log.date)}</h1>
         </div>
         <StatusBadge status={log.isCompleted ? 'done' : 'open'} />
       </div>
@@ -51,7 +51,7 @@ export function DayHeader({ log }: Props) {
       <div style={metaRow}>
         <div style={mainStat}>
           <span style={labelStyle}>Total time</span>
-          <span style={valueStyle}>{formatMinutes(totalMinutes)}</span>
+          <span style={valueStyle}>{formatDuration(totalMinutes)}</span>
         </div>
 
         {Object.keys(subjectTotals).length > 0 && (
@@ -61,7 +61,7 @@ export function DayHeader({ log }: Props) {
               return (
                 <div key={subj} style={{ ...subjectTag, backgroundColor: p.bg }}>
                   <span style={{ ...subjectName, color: p.color }}>{subj.split('・')[0]}</span>
-                  <span style={{ ...subjectTime, color: p.color }}>{formatMinutes(mins)}</span>
+                  <span style={{ ...subjectTime, color: p.color }}>{formatDuration(mins)}</span>
                 </div>
               )
             })}

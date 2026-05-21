@@ -102,21 +102,13 @@ export type DailyLogSummary = {
   slotMinutes: { morning: number; lunch: number; night: number }
 }
 
-export function formatMinutes(minutes: number): string {
-  if (minutes < 60) return `${minutes}分`
+export function formatDuration(minutes: number): string {
+  if (minutes === 0) return '0m'
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
-  return m === 0 ? `${h}時間` : `${h}時間${m}分`
-}
-
-export function formatDate(date: string): string {
-  const d = new Date(date + 'T00:00:00')
-  const days = ['日', '月', '火', '水', '木', '金', '土']
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}（${days[d.getDay()]}）`
-}
-
-export function formatHours(minutes: number): string {
-  return (minutes / 60).toFixed(1) + 'h'
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
 }
 
 export function todayString(): string {
@@ -126,10 +118,41 @@ export function todayString(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
-export function daysAgo(dateStr: string): number {
-  const today = new Date(todayString() + 'T00:00:00')
+export function daysSince(dateStr: string): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
   const d = new Date(dateStr + 'T00:00:00')
   return Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+export function formatDaysAgo(dateStr: string): string {
+  return `${daysSince(dateStr)}d ago`
+}
+
+export function formatSessions(count: number): string {
+  return count === 1 ? '1 session' : `${count} sessions`
+}
+
+export function formatMonthYear(year: number, month: number): string {
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${MONTHS[month - 1]} ${year}`
+}
+
+export function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`
+}
+
+export function formatFullDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+}
+
+export function formatDayOfWeek(dateStr: string): string {
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  return DAYS[new Date(dateStr + 'T00:00:00').getDay()]
 }
 
 // ── Problem / Weak-point types ───────────────────────────────────────────────

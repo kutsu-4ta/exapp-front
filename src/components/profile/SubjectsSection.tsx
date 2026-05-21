@@ -68,7 +68,7 @@ export function SubjectsSection() {
 
   return (
     <div style={block}>
-      <p style={subLabel}>科目管理</p>
+      <p style={subLabel}>Manage Subjects</p>
       <p style={note}>科目を削除すると、紐づく全ての問題データが削除されます。</p>
       {error && <p style={errorText}>{error}</p>}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -87,14 +87,14 @@ export function SubjectsSection() {
                   style={editInput}
                   disabled={loading}
                 />
-                <button onClick={handleRenameSave} disabled={loading || !editingValue.trim()} style={saveBtn}>保存</button>
-                <button onClick={cancelEdit} disabled={loading} style={cancelBtn}>キャンセル</button>
+                <button onClick={handleRenameSave} disabled={loading || !editingValue.trim()} style={saveBtn}>Save</button>
+                <button onClick={cancelEdit} disabled={loading} style={cancelBtn}>Cancel</button>
               </div>
             ) : deleteTarget === name ? (
               <div style={deleteRow}>
                 <span style={deleteText}>「{name}」を削除しますか？</span>
-                <button onClick={handleDeleteConfirm} disabled={loading} style={destructiveBtn}>削除</button>
-                <button onClick={() => setDeleteTarget(null)} disabled={loading} style={cancelBtn}>キャンセル</button>
+                <button onClick={handleDeleteConfirm} disabled={loading} style={destructiveBtn}>Delete</button>
+                <button onClick={() => setDeleteTarget(null)} disabled={loading} style={cancelBtn}>Cancel</button>
               </div>
             ) : (
               <div style={itemRow}>
@@ -103,8 +103,8 @@ export function SubjectsSection() {
                   <span style={countBadge}>({countBySubject(name)})</span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => startEdit(name)} style={iconBtn}>編集</button>
-                  <button onClick={() => setDeleteTarget(name)} style={{ ...iconBtn, color: c.red }}>削除</button>
+                  <button onClick={() => startEdit(name)} style={iconBtn}>Edit</button>
+                  <button onClick={() => setDeleteTarget(name)} style={{ ...iconBtn, color: c.red }}>Delete</button>
                 </div>
               </div>
             )}
@@ -113,7 +113,7 @@ export function SubjectsSection() {
         ))}
         {subjects.length === 0 && (
           <p style={{ fontSize: font.base, color: 'rgba(55,53,47,0.35)', padding: '12px 0' }}>
-            科目が登録されていません
+            No subjects registered
           </p>
         )}
       </div>

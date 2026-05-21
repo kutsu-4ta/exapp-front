@@ -1,5 +1,5 @@
 import type {ChartDataPoint, DailyLog, DailyLogSummary} from '../types/workspace'
-import {daysAgo, formatHours} from '../types/workspace'
+import {daysSince, formatDuration} from '../types/workspace'
 import type {fetchGeminiContext} from './api/gemini'
 
 export function buildChartData(
@@ -50,56 +50,56 @@ export function buildDashboardStatusText(
   todayStr: string
 ): string {
   const d = ctx.dashboard
-  const lines = ['【学習状況サマリー】']
-  lines.push(`累計: ${formatHours(d.allTotalMinutes)} (${d.allTotalDays}日)`)
-  lines.push(`今月: ${formatHours(d.thisMonthMinutes)} (${d.thisMonthDays}日)`)
-  lines.push(`連続: ${d.currentStreak}日`)
-  lines.push(`今週: ${formatHours(d.thisWeekTotalMinutes)}`)
+  const lines = ['[Study Summary]']
+  lines.push(`Total: ${formatDuration(d.allTotalMinutes)} (${d.allTotalDays}d)`)
+  lines.push(`This Month: ${formatDuration(d.thisMonthMinutes)} (${d.thisMonthDays}d)`)
+  lines.push(`Streak: ${d.currentStreak}d`)
+  lines.push(`This Week: ${formatDuration(d.thisWeekTotalMinutes)}`)
   lines.push('')
   const p = ctx.profile
   if (p.occupation || p.goal || p.weakAreas || p.strongAreas) {
-    lines.push('【プロフィール】')
-    if (p.occupation) lines.push(`  職業: ${p.occupation}`)
-    if (p.goal) lines.push(`  学習目標: ${p.goal}`)
-    if (p.weakAreas) lines.push(`  苦手分野: ${p.weakAreas}`)
-    if (p.strongAreas) lines.push(`  得意分野: ${p.strongAreas}`)
+    lines.push('[Profile]')
+    if (p.occupation) lines.push(`  Occupation: ${p.occupation}`)
+    if (p.goal) lines.push(`  Goal: ${p.goal}`)
+    if (p.weakAreas) lines.push(`  Weak Areas: ${p.weakAreas}`)
+    if (p.strongAreas) lines.push(`  Strong Areas: ${p.strongAreas}`)
     lines.push('')
   }
-  lines.push(`【本日 ${todayStr.replace(/-/g, '/')}】`)
+  lines.push(`[Today ${todayStr}]`)
   if (todaySubjects.length > 0) {
-    lines.push(`合計: ${todayLog!.totalMinutes}分`)
-    todaySubjects.forEach(({ subject, minutes }) => lines.push(`・${subject}: ${minutes}分`))
+    lines.push(`Total: ${todayLog!.totalMinutes}m`)
+    todaySubjects.forEach(({ subject, minutes }) => lines.push(`- ${subject}: ${minutes}m`))
   } else {
-    lines.push('まだ学習していません')
+    lines.push('No study recorded yet')
   }
   lines.push('')
   if (ctx.recentDailyLogs.length > 0) {
-    lines.push('【直近7日間】')
+    lines.push('[Last 7 Days]')
     ctx.recentDailyLogs.forEach((log) => {
-      const label = `${log.date.replace(/-/g, '/')}: ${log.studyMinutes}分`
+      const label = `${log.date}: ${log.studyMinutes}m`
       lines.push(log.reflection ? `  ${label} — ${log.reflection}` : `  ${label}`)
     })
     lines.push('')
   }
-  lines.push(`【科目別詳細 (${ctx.year}年${ctx.month}月)】`)
+  lines.push(`[Subject Details (${ctx.year}/${String(ctx.month).padStart(2, '0')})]`)
   for (const s of ctx.subjects) {
     lines.push(`■ ${s.subject}`)
-    if (s.finalTarget) lines.push(`  最終目標: ${s.finalTarget}`)
-    if (s.monthlyGoal) lines.push(`  今月の目標: ${s.monthlyGoal}`)
-    lines.push(`  学習時間: ${formatHours(s.studyMinutes)}`)
-    lines.push(`  問題数: ${s.problemCount}問`)
+    if (s.finalTarget) lines.push(`  Final Target: ${s.finalTarget}`)
+    if (s.monthlyGoal) lines.push(`  Monthly Goal: ${s.monthlyGoal}`)
+    lines.push(`  Study Time: ${formatDuration(s.studyMinutes)}`)
+    lines.push(`  Problems: ${s.problemCount}`)
     const lastDate = d.lastTouchedBySubject.find((e) => e.subject === s.subject)?.lastdate ?? null
-    lines.push(lastDate ? `  最終学習: ${lastDate.replace(/-/g, '/')} (${daysAgo(lastDate)}日前)` : `  最終学習: 未学習`)
+    lines.push(lastDate ? `  Last Study: ${lastDate} (${daysSince(lastDate)}d ago)` : `  Last Study: Not studied`)
 
     if (s.recentExamScore) {
       const { examYear, score, completedAt, rankStats } = s.recentExamScore
-      const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''
-      lines.push(`  直近過去問: ${examYear}年度 ${score}点${dateStr}`)
+      const dateStr = completedAt ? ` (${completedAt})` : ''
+      lines.push(`  Recent Exam: ${examYear} ${score}pts${dateStr}`)
       if (rankStats.length > 0) {
         const rankLine = rankStats
-          .map((r) => `${r.rank}:${Math.round(r.correctRate * 100)}%(${r.count}問)`)
+          .map((r) => `${r.rank}:${Math.round(r.correctRate * 100)}%(${r.count})`)
           .join(' ')
-        lines.push(`  ランク別: ${rankLine}`)
+        lines.push(`  By Rank: ${rankLine}`)
       }
     }
   }

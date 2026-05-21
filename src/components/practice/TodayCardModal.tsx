@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {FailureType, Problem, ProblemInput, Proficiency} from '../../types/workspace'
-import {daysAgo, PROFICIENCY_VALUES} from '../../types/workspace'
+import {formatDaysAgo, PROFICIENCY_VALUES} from '../../types/workspace'
 import {c, font} from '../../styles/notion'
 import {PROF_STYLE, subjectPalette} from '@/styles/subjectUI.ts'
 import {FailureTypeSelector} from '@/components/common/FailureTypeSlecter.tsx'
@@ -53,7 +53,7 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm, onCl
           <span style={{ ...subjectChip, backgroundColor: palette.bg, color: palette.color }}>{problem.subject}</span>
           {problem.material && <span style={refText}>{problem.material}</span>}
           {problem.questionRef && <span style={refText}>{problem.questionRef}</span>}
-          <span style={daysTag}>{daysAgo(problem.solvedAt)}日前</span>
+          <span style={daysTag}>{formatDaysAgo(problem.solvedAt)}</span>
         </div>
         {problem.subCategory && <p style={questionRefStyle}>{problem.subCategory}</p>}
       </div>

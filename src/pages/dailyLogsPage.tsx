@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 import {fetchDailyLog, fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
 import type {DailyLog, DailyLogSummary} from '../types/workspace'
+import {formatSessions} from '../types/workspace'
 import {getCached, setCached} from '../lib/pageCache'
 import {StatusBadge} from "@/components/common/StatusBadge.tsx";
 
@@ -234,13 +235,13 @@ export default function DailyLogsPage() {
           onClick={() => setViewMode('list')}
           style={{ ...tabItem, ...(viewMode === 'list' ? activeTab : {}) }}
         >
-          <IconList active={viewMode === 'list'} /> リスト
+          <IconList active={viewMode === 'list'} /> LIST
         </button>
         <button
           onClick={() => setViewMode('chart')}
           style={{ ...tabItem, ...(viewMode === 'chart' ? activeTab : {}) }}
         >
-          <IconTrend active={viewMode === 'chart'} /> 推移
+          <IconTrend active={viewMode === 'chart'} /> ANALYTICS
         </button>
       </div>
 
@@ -256,7 +257,7 @@ export default function DailyLogsPage() {
                 <button style={navBtn} onClick={() => navigateChart(-1)}>
                   ◀
                 </button>
-                <span style={chartRangeLabel}>{baseMonth.replace('-', '年')}月</span>
+                <span style={chartRangeLabel}>{baseMonth}</span>
                 <button
                   style={navBtn}
                   onClick={() => navigateChart(1)}
@@ -304,7 +305,7 @@ export default function DailyLogsPage() {
                     <div style={itemDate}>
                       <span style={dateTxt}>{log.date}</span>
                       <span style={reflectionSnippet}>
-                        {log.sessionCount ? `${log.sessionCount}セッション` : '記録なし'}
+                        {log.sessionCount ? formatSessions(log.sessionCount) : 'No record'}
                       </span>
                     </div>
                     <div style={itemTime}>
@@ -323,7 +324,7 @@ export default function DailyLogsPage() {
                 )
               })
             ) : (
-              <div style={emptyMessage}>記録はありません</div>
+              <div style={emptyMessage}>No records</div>
             )}
 
             <div ref={sentinelRef} style={sentinel}>
@@ -333,7 +334,7 @@ export default function DailyLogsPage() {
                 </div>
               )}
               {!listHasMore && listLogs.length > 0 && (
-                <span style={sentinelText}>すべて表示しました</span>
+                <span style={sentinelText}>All caught up</span>
               )}
             </div>
           </div>
@@ -359,7 +360,7 @@ export default function DailyLogsPage() {
                           cursor={{ fill: 'rgba(55,53,47,0.04)' }}
                           labelFormatter={(label) => `${baseMonth.split('-')[0]}/${label}`}
                           formatter={(value, name) =>
-                            name === 'sessions' ? [`${value}セッション`, 'セッション数'] : [`${value}分`, '学習時間']
+                            name === 'sessions' ? [formatSessions(value as number), 'Sessions'] : [`${value}m`, 'Study Time']
                           }
                         />
                         <ReferenceLine yAxisId="min" y={385} stroke="#eb5757" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 9, fill: '#eb5757', position: 'insideBottomRight' }} />
@@ -369,14 +370,14 @@ export default function DailyLogsPage() {
                     </ResponsiveContainer>
                   </div>
                   <div style={chartLegend}>
-                    <span style={legendDot('#2383e2')} />学習時間
-                    <span style={{ ...legendDot('rgba(35,131,226,0.4)'), marginLeft: 12 }} />セッション数
+                    <span style={legendDot('#2383e2')} />Study Time
+                    <span style={{ ...legendDot('rgba(35,131,226,0.4)'), marginLeft: 12 }} />Sessions
                   </div>
                 </div>
 
                 {/* ヒートマップ: 時間帯スロット × 日 */}
                 <div style={chartCard}>
-                  <p style={heatmapTitle}>時間帯別</p>
+                  <p style={heatmapTitle}>By Time Slot</p>
                   <Heatmap data={filteredChartData} selectedDate={selectedDate} onSelect={handleSelectDate} />
                 </div>
 
@@ -394,7 +395,7 @@ export default function DailyLogsPage() {
                     ) : detailLog ? (
                       <DayDetail log={detailLog} />
                     ) : (
-                      <p style={detailEmpty}>この日の記録はありません</p>
+                      <p style={detailEmpty}>No record for this day</p>
                     )}
                   </div>
                 )}
@@ -407,7 +408,7 @@ export default function DailyLogsPage() {
       {isModalOpen && (
         <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>
           <div style={modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={modalTitle}>日付を選択</h3>
+            <h3 style={modalTitle}>Select Date</h3>
             <input
               type="date"
               value={modalDate}
@@ -434,9 +435,9 @@ export default function DailyLogsPage() {
 type HeatmapRow = { date: string; fullDate: string; morning: number; lunch: number; night: number }
 
 const SLOT_LABELS: { key: 'morning' | 'lunch' | 'night'; label: string }[] = [
-  { key: 'morning', label: '朝' },
-  { key: 'lunch',   label: '昼' },
-  { key: 'night',   label: '夜' },
+  { key: 'morning', label: 'AM' },
+  { key: 'lunch',   label: 'PM' },
+  { key: 'night',   label: 'Eve' },
 ]
 
 function slotColor(minutes: number): string {
@@ -481,8 +482,9 @@ function Heatmap({ data, selectedDate, onSelect }: { data: HeatmapRow[]; selecte
 
 function formatDetailDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
-  const days = ['日', '月', '火', '水', '木', '金', '土']
-  return `${d.getMonth() + 1}月${d.getDate()}日（${days[d.getDay()]}）`
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  return `${MONTHS[d.getMonth()]} ${d.getDate()} (${DAYS[d.getDay()]})`
 }
 
 function DayDetail({ log }: { log: DailyLog }) {
@@ -497,10 +499,10 @@ function DayDetail({ log }: { log: DailyLog }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* 科目別 */}
+      {/* By Subject */}
       {subjects.length > 0 && (
         <div>
-          <p style={detailSectionLabel}>科目別</p>
+          <p style={detailSectionLabel}>By Subject</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {subjects.map(([subj, min]) => (
               <div key={subj} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -508,31 +510,31 @@ function DayDetail({ log }: { log: DailyLog }) {
                 <div style={detailBarTrack}>
                   <div style={{ ...detailBar, width: `${(min / maxMin) * 100}%` }} />
                 </div>
-                <span style={detailMinutes}>{min}分</span>
+                <span style={detailMinutes}>{min}m</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* スロット別 + セッション数 */}
+      {/* Slot + Sessions */}
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         {SLOT_LABELS.map(({ key, label }) => (
           <div key={key} style={detailSlotChip}>
             <span style={detailSlotLabel}>{label}</span>
-            <span style={detailSlotMin}>{slotMap[key]}分</span>
+            <span style={detailSlotMin}>{slotMap[key]}m</span>
           </div>
         ))}
         <div style={detailSlotChip}>
-          <span style={detailSlotLabel}>セッション</span>
+          <span style={detailSlotLabel}>Sessions</span>
           <span style={detailSlotMin}>{log.studySessions.length}</span>
         </div>
       </div>
 
-      {/* 振り返り */}
+      {/* Reflection */}
       {log.reflection && (
         <div>
-          <p style={detailSectionLabel}>振り返り</p>
+          <p style={detailSectionLabel}>Reflection</p>
           <p style={detailReflection}>{log.reflection}</p>
         </div>
       )}

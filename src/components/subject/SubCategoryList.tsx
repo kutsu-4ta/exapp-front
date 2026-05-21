@@ -110,7 +110,7 @@ export function SubCategoryList({
               type="button"
               onClick={() => setShowSettings(true)}
               style={gearBtn}
-              title="小分類の管理"
+              title="Manage Categories"
             >
               <Settings size={14} />
             </button>
@@ -126,7 +126,7 @@ export function SubCategoryList({
         </div>
 
         <div>
-          <DropZone zone="unset" label="未設定" items={byZone.unset} />
+          <DropZone zone="unset" label="Unset" items={byZone.unset} />
           {RANK_VALUES.map(rank => (
             <DropZone key={rank} zone={rank} label={rank} color={RANK_COLORS[rank]} items={byZone[rank]} />
           ))}
@@ -242,7 +242,7 @@ function SubCategorySettingsSheet({
     <BottomSheet onClose={onClose} height="80vh">
       <div style={sheetFlexHeaderStyle}>
         <button onClick={onClose} style={sheetCloseBtnStyle}>×</button>
-        <span style={sheetTitle}>小分類の管理</span>
+        <span style={sheetTitle}>Manage Categories</span>
         <div style={{ width: '28px' }} />
       </div>
 
@@ -261,7 +261,7 @@ function SubCategorySettingsSheet({
             disabled={!addValue.trim() || addLoading}
             style={!addValue.trim() || addLoading ? addBtnDisabled : addBtnActive}
           >
-            {addLoading ? '…' : '追加'}
+            {addLoading ? '…' : 'Add'}
           </button>
         </div>
 
@@ -287,20 +287,20 @@ function SubCategorySettingsSheet({
                     disabled={loading}
                   />
                   <button onClick={handleRenameSave} disabled={loading || !editingValue.trim()} style={saveBtnSheet}>
-                    保存
+                    Save
                   </button>
                   <button onClick={cancelEdit} disabled={loading} style={cancelBtnSheet}>
-                    キャンセル
+                    Cancel
                   </button>
                 </div>
               ) : deleteId === sc.id ? (
                 <div style={deleteRow}>
                   <span style={deleteText}>「{sc.name}」を削除しますか？</span>
                   <button onClick={handleDeleteConfirm} disabled={loading} style={destructiveBtn}>
-                    削除
+                    Delete
                   </button>
                   <button onClick={() => setDeleteId(null)} disabled={loading} style={cancelBtnSheet}>
-                    キャンセル
+                    Cancel
                   </button>
                 </div>
               ) : (
@@ -310,9 +310,9 @@ function SubCategorySettingsSheet({
                     <span style={scCountBadge}>({countBySc(sc.name)})</span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => startEdit(sc)} style={iconBtn}>編集</button>
+                    <button onClick={() => startEdit(sc)} style={iconBtn}>Edit</button>
                     <button onClick={() => { setDeleteId(sc.id); setEditingId(null) }} style={{ ...iconBtn, color: c.red }}>
-                      削除
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -322,7 +322,7 @@ function SubCategorySettingsSheet({
           ))}
           {items.length === 0 && (
             <p style={{ fontSize: font.base, color: 'rgba(55,53,47,0.35)', padding: '12px 0' }}>
-              小分類が登録されていません
+              No categories registered
             </p>
           )}
         </div>

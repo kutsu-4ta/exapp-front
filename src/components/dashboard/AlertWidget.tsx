@@ -1,5 +1,5 @@
 import type {AlertStatusItem} from '../../types/workspace'
-import {daysAgo} from '../../types/workspace'
+import {daysSince, formatDaysAgo} from '../../types/workspace'
 import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 
@@ -18,7 +18,7 @@ export function AlertWidget({ alertItems }: Props) {
 
     const cond1 =
       s.touchAlertEnabled &&
-      (!item.lastDate ? s.includeUntouched : daysAgo(item.lastDate) >= s.thresholdDays)
+      (!item.lastDate ? s.includeUntouched : daysSince(item.lastDate) >= s.thresholdDays)
 
     const cond2 =
       s.minutesAlertEnabled &&
@@ -42,11 +42,11 @@ export function AlertWidget({ alertItems }: Props) {
         <div className="flex items-center gap-2.5 min-w-0">
           <AlertIcon />
           <span className="text-[13px] font-semibold text-n-red truncate">
-            {alerts.length}科目の学習が滞っています
+            {alerts.length} subject{alerts.length === 1 ? '' : 's'} need attention
           </span>
         </div>
         <span className="text-[11px] font-semibold text-n-red/50 uppercase tracking-wide ml-3 shrink-0">
-          {isCollapsed ? '表示' : '隠す'}
+          {isCollapsed ? 'Show' : 'Hide'}
         </span>
       </button>
 
@@ -63,7 +63,7 @@ export function AlertWidget({ alertItems }: Props) {
             ))}
           </div>
           <p className="text-[11px] text-n-red/60 mt-3 italic">
-            「手薄な科目」を優先して、知識の風化を防ぎましょう。
+            Prioritize neglected subjects to prevent knowledge decay.
           </p>
         </div>
       )}
@@ -75,9 +75,9 @@ function AlertCard({ item, onClick }: { item: AlertEntry; onClick: () => void })
   const subLabel =
     item.condition === 1
       ? item.lastDate
-        ? `${daysAgo(item.lastDate)}日前`
-        : '未学習'
-      : `直近${item.settings.minutesThresholdDays}日 ${item.recentMinutes}分`
+        ? formatDaysAgo(item.lastDate)
+        : 'Not studied'
+      : `Last ${item.settings.minutesThresholdDays}d: ${item.recentMinutes}m`
 
   return (
     <button

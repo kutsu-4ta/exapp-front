@@ -14,7 +14,7 @@ import {SubjectHeader} from "@/components/subject/SubjectHeader.tsx";
 import {TodaysFive} from "@/components/subject/TodaysFive.tsx";
 import {SubjectActivity} from "@/components/subject/SubjectActivity.tsx";
 import type {FailureType, Flashcard, SubjectAlertSettings, SubjectSettings} from "@/types/workspace.ts";
-import {DEFAULT_SUBJECT_ALERT_SETTINGS, formatHours} from "@/types/workspace.ts";
+import {DEFAULT_SUBJECT_ALERT_SETTINGS, formatDuration} from "@/types/workspace.ts";
 import {subjectUi} from "@/styles/subjectUI.ts";
 import {fetchSubjectAlertSettings, updateSubjectAlertSettings} from "@/lib/api/subjectAlertSettings.ts";
 import {useSettingsStore} from "@/lib/store/settings.ts";
@@ -167,27 +167,27 @@ export default function SubjectPage() {
         try {
             const ctx = await fetchGeminiContext(viewYear, viewMonth)
             const s = ctx.subjects.find((s) => s.subject === subjectName)
-            const lines = [`【科目ステータス: ${subjectName}】`]
-            lines.push(`期間: ${ctx.year}年${ctx.month}月`)
-            if (s?.finalTarget) lines.push(`最終目標: ${s.finalTarget}`)
-            if (s?.monthlyGoal) lines.push(`今月の目標: ${s.monthlyGoal}`)
+            const lines = [`[Subject Status: ${subjectName}]`]
+            lines.push(`Period: ${ctx.year}/${String(ctx.month).padStart(2, '0')}`)
+            if (s?.finalTarget) lines.push(`Final Target: ${s.finalTarget}`)
+            if (s?.monthlyGoal) lines.push(`Monthly Goal: ${s.monthlyGoal}`)
             lines.push('')
-            lines.push('【学習状況】')
-            lines.push(`学習時間: ${formatHours(s?.studyMinutes ?? 0)}`)
-            lines.push(`問題数: ${s?.problemCount ?? 0}問`)
+            lines.push('[Study Progress]')
+            lines.push(`Study Time: ${formatDuration(s?.studyMinutes ?? 0)}`)
+            lines.push(`Problems: ${s?.problemCount ?? 0}`)
             if ((s?.failureStats ?? []).length > 0) {
                 lines.push('')
-                lines.push('【学習観点】')
+                lines.push('[Weak Areas]')
                 s!.failureStats.forEach((f) =>
-                    lines.push(`  ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`)
+                    lines.push(`  - ${f.type}: ${f.count} (${Math.round(f.ratio * 100)}%)`)
                 )
             }
             if (s?.recentExamScore) {
                 const { examYear, score, completedAt } = s.recentExamScore
-                const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''
+                const dateStr = completedAt ? ` (${completedAt})` : ''
                 lines.push('')
-                lines.push('【直近の過去問】')
-                lines.push(`  ${examYear}年度 ${score}点${dateStr}`)
+                lines.push('[Recent Exam]')
+                lines.push(`  ${examYear} ${score}pts${dateStr}`)
             }
             setCopyText(lines.join('\n'))
             setIsCopyModalOpen(true)
@@ -321,7 +321,7 @@ export default function SubjectPage() {
                                 )}
                             </div>
                             {flashcards.length === 0 ? (
-                                <p style={emptyText}>この月のノート登録はありません</p>
+                                <p style={emptyText}>No notes recorded this month</p>
                             ) : (
                                 <div style={block}>
                                     <div style={profRow}>
@@ -339,13 +339,13 @@ export default function SubjectPage() {
                                                 fontSize: '12px',
                                             }}
                                         >
-                                            計 {flashcards.length}問
+                                            {flashcards.length} problems
                                         </div>
                                     </div>
                                     {weakCards.length > 0 && (
                                         <>
                                             <div style={divider} />
-                                            <p style={miniSectionLabel}>学習観点（△/×）</p>
+                                            <p style={miniSectionLabel}>Weak Areas</p>
                                             {ftTotal > 0 ? (
                                                 <>
                                                     <div style={ftBarTrack}>
@@ -377,7 +377,7 @@ export default function SubjectPage() {
                                                     </div>
                                                 </>
                                             ) : (
-                                                <p style={emptyText}>エラー種別の未分類</p>
+                                                <p style={emptyText}>No failure types classified</p>
                                             )}
                                         </>
                                     )}
@@ -426,7 +426,7 @@ export default function SubjectPage() {
                                 <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
                             </svg>
                         )}
-                        <span>{statsCopied ? 'コピー済み' : statsCopying ? '取得中...' : 'ステータスをコピー'}</span>
+                        <span>{statsCopied ? 'Copied' : statsCopying ? 'Loading...' : 'Copy status'}</span>
                     </button>
                 </div>
 

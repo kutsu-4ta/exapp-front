@@ -1,5 +1,5 @@
 import type {AlertStatusItem, DailyLog, DashboardStats} from '../types/workspace'
-import {formatHours, todayString} from '../types/workspace'
+import {formatDuration, todayString} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
 import {useEffect, useMemo, useState} from 'react'
 import {fetchGeminiContext} from '@/lib/api/gemini.ts'
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                   {todaySubjects.map(({ subject, minutes }) => (
                     <div key={subject} className="flex items-center justify-between">
                       <span className="text-[14px] font-medium text-n-text">{subject}</span>
-                      <span className="text-[14px] font-semibold text-[rgba(55,53,47,0.45)] tabular-nums">{minutes}分</span>
+                      <span className="text-[14px] font-semibold text-[rgba(55,53,47,0.45)] tabular-nums">{formatDuration(minutes)}</span>
                     </div>
                   ))}
                 </div>
@@ -194,10 +194,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center justify-between px-5 py-3 bg-[var(--nt-blue-bg)] border-t border-[var(--nt-blue-border)]">
               <span className="text-[15px] font-bold text-n-text tabular-nums">
-                {todaySubjects.length > 0 ? formatHours(todayLog!.totalMinutes) : '0h'}
+                {todaySubjects.length > 0 ? formatDuration(todayLog!.totalMinutes) : '0m'}
               </span>
               <div className="flex items-center gap-1.5 text-n-blue text-[12px] font-semibold">
-                <span>ワークスペースを開く</span>
+                <span>Open workspace</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12" />
                   <polyline points="12 5 19 12 12 19" />
@@ -215,13 +215,13 @@ export default function DashboardPage() {
               <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-[#37352f] leading-none mb-0.5">昨日の記録が未完了です</p>
-              <p className="text-[11px] text-[rgba(55,53,47,0.45)]">{prevDayLog.date.replace(/-/g, '/')} &nbsp;·&nbsp; {prevDayLog.totalMinutes}分</p>
+              <p className="text-[13px] font-semibold text-[#37352f] leading-none mb-0.5">Yesterday's log is not completed</p>
+              <p className="text-[11px] text-[rgba(55,53,47,0.45)]">{prevDayLog.date} &nbsp;·&nbsp; {formatDuration(prevDayLog.totalMinutes)}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Link to={`/workspace/${prevDayLog.date}`} className="text-[11px] font-semibold text-[rgba(55,53,47,0.5)] border border-[rgba(55,53,47,0.15)] rounded-md px-2.5 py-1.5 no-underline hover:bg-[rgba(55,53,47,0.04)] transition-colors">確認</Link>
+              <Link to={`/workspace/${prevDayLog.date}`} className="text-[11px] font-semibold text-[rgba(55,53,47,0.5)] border border-[rgba(55,53,47,0.15)] rounded-md px-2.5 py-1.5 no-underline hover:bg-[rgba(55,53,47,0.04)] transition-colors">Review</Link>
               <button onClick={handleCompletePrevDay} disabled={prevDayCompleting} className="text-[11px] font-semibold text-white bg-[#f2ab26] border-none rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50">
-                {prevDayCompleting ? '...' : '完了にする'}
+                {prevDayCompleting ? '...' : 'Mark done'}
               </button>
             </div>
           </div>
@@ -234,17 +234,17 @@ export default function DashboardPage() {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              演習の続きがあります
+              Practice sessions in progress
             </div>
             <div className="flex flex-col gap-2">
               {practiceDrafts.map(({ subject, draft }) => (
                 <div key={subject} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-white border border-[var(--nt-blue-border)]">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-[14px] font-bold text-n-text truncate">{subject}</span>
-                    <span className="text-[11px] text-[rgba(55,53,47,0.45)] font-medium">{draft.log.length}問 回答済み・Q{draft.currentIndex} まで</span>
+                    <span className="text-[11px] text-[rgba(55,53,47,0.45)] font-medium">{draft.log.length} answered · up to Q{draft.currentIndex}</span>
                   </div>
                   <button className="shrink-0 px-3.5 py-1.5 rounded-md bg-n-blue text-white text-[12px] font-bold border-none cursor-pointer whitespace-nowrap" onClick={() => navigate(`/practice/${encodeURIComponent(subject)}`)}>
-                    再開する →
+                    Resume →
                   </button>
                 </div>
               ))}
@@ -267,9 +267,9 @@ export default function DashboardPage() {
             ))
           ) : (
             <>
-              <StatCard label="All Total" value={formatHours(stats?.allTotalMinutes ?? 0)} sub={`${stats?.allTotalDays ?? 0}d Active`} />
-              <StatCard label="Monthly" value={formatHours(stats?.thisMonthMinutes ?? 0)} sub={`${stats?.thisMonthDays ?? 0}d Active`} />
-              <StatCard label="Streak" value={`${stats?.currentStreak ?? 0}d`} sub={`週 ${formatHours(stats?.thisWeekTotalMinutes ?? 0)}`} />
+              <StatCard label="All Total" value={formatDuration(stats?.allTotalMinutes ?? 0)} sub={`${stats?.allTotalDays ?? 0}d Active`} />
+              <StatCard label="Monthly" value={formatDuration(stats?.thisMonthMinutes ?? 0)} sub={`${stats?.thisMonthDays ?? 0}d Active`} />
+              <StatCard label="Streak" value={`${stats?.currentStreak ?? 0}d`} sub={`${formatDuration(stats?.thisWeekTotalMinutes ?? 0)} / week`} />
             </>
           )}
         </div>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                 <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
               </svg>
             )}
-            <span>{statsCopied ? 'コピー済み' : statsCopying ? '取得中...' : 'ステータスをコピー'}</span>
+            <span>{statsCopied ? 'Copied' : statsCopying ? 'Loading...' : 'Copy status'}</span>
           </button>
         </div>
       </div>
