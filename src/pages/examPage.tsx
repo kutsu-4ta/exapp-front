@@ -244,14 +244,7 @@ export default function ExamPage() {
       }
       const withErrors = ctx.subjects.filter((s) => s.failureStats.length > 0)
       if (withErrors.length > 0) {
-        lines.push('')
-        lines.push('【学習観点】')
-        for (const s of withErrors) {
-          lines.push(`■ ${s.subject}`)
-          s.failureStats.forEach((f) =>
-            lines.push(`  ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`)
-          )
-        }
+      //   TODO:科目毎のランク別正答率
       }
       if (ctx.recentDailyLogs.length > 0) {
         lines.push('')

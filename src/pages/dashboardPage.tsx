@@ -267,9 +267,9 @@ export default function DashboardPage() {
             ))
           ) : (
             <>
-              <StatCard label="All Total" value={formatDuration(stats?.allTotalMinutes ?? 0)} sub={`${stats?.allTotalDays ?? 0}d Active`} />
-              <StatCard label="Monthly" value={formatDuration(stats?.thisMonthMinutes ?? 0)} sub={`${stats?.thisMonthDays ?? 0}d Active`} />
-              <StatCard label="Streak" value={`${stats?.currentStreak ?? 0}d`} sub={`${formatDuration(stats?.thisWeekTotalMinutes ?? 0)} / week`} />
+              <StatCard label="All Total" value={formatDuration(stats?.allTotalMinutes ?? 0)} sub={`${stats?.allTotalDays ?? 0}日`} />
+              <StatCard label="Monthly" value={formatDuration(stats?.thisMonthMinutes ?? 0)} sub={`${stats?.thisMonthDays ?? 0}日`} />
+              <StatCard label="Streak" value={`${stats?.currentStreak ?? 0}日`} sub={`${formatDuration(stats?.thisWeekTotalMinutes ?? 0)} / 週`} />
             </>
           )}
         </div>

@@ -104,12 +104,12 @@ export type DailyLogSummary = {
 }
 
 export function formatDuration(minutes: number): string {
-  if (minutes === 0) return '0m'
+  if (minutes === 0) return '0分'
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
-  if (h === 0) return `${m}m`
-  if (m === 0) return `${h}h`
-  return `${h}h ${m}m`
+  if (h === 0) return `${m}分`
+  if (m === 0) return `${h}時間`
+  return `${h}時間${m}分`
 }
 
 export function todayString(): string {
@@ -127,7 +127,7 @@ export function daysSince(dateStr: string): number {
 }
 
 export function formatDaysAgo(dateStr: string): string {
-  return `${daysSince(dateStr)}d ago`
+  return `${daysSince(dateStr)}日前`
 }
 
 export function formatSessions(count: number): string {
@@ -135,24 +135,21 @@ export function formatSessions(count: number): string {
 }
 
 export function formatMonthYear(year: number, month: number): string {
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  return `${MONTHS[month - 1]} ${year}`
+  return `${year}年${month}月`
 }
 
 export function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`
+  return `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 export function formatFullDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 export function formatDayOfWeek(dateStr: string): string {
-  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const DAYS = ['日', '月', '火', '水', '木', '金', '土']
   return DAYS[new Date(dateStr + 'T00:00:00').getDay()]
 }
 

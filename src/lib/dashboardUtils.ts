@@ -51,9 +51,9 @@ export function buildDashboardStatusText(
 ): string {
   const d = ctx.dashboard
   const lines = ['[Study Summary]']
-  lines.push(`Total: ${formatDuration(d.allTotalMinutes)} (${d.allTotalDays}d)`)
-  lines.push(`This Month: ${formatDuration(d.thisMonthMinutes)} (${d.thisMonthDays}d)`)
-  lines.push(`Streak: ${d.currentStreak}d`)
+  lines.push(`Total: ${formatDuration(d.allTotalMinutes)} (${d.allTotalDays}日)`)
+  lines.push(`This Month: ${formatDuration(d.thisMonthMinutes)} (${d.thisMonthDays}日)`)
+  lines.push(`Streak: ${d.currentStreak}日`)
   lines.push(`This Week: ${formatDuration(d.thisWeekTotalMinutes)}`)
   lines.push('')
   const p = ctx.profile
@@ -67,8 +67,8 @@ export function buildDashboardStatusText(
   }
   lines.push(`[Today ${todayStr}]`)
   if (todaySubjects.length > 0) {
-    lines.push(`Total: ${todayLog!.totalMinutes}m`)
-    todaySubjects.forEach(({ subject, minutes }) => lines.push(`- ${subject}: ${minutes}m`))
+    lines.push(`Total: ${formatDuration(todayLog!.totalMinutes)}`)
+    todaySubjects.forEach(({ subject, minutes }) => lines.push(`- ${subject}: ${formatDuration(minutes)}`))
   } else {
     lines.push('No study recorded yet')
   }
@@ -76,7 +76,7 @@ export function buildDashboardStatusText(
   if (ctx.recentDailyLogs.length > 0) {
     lines.push('[Last 7 Days]')
     ctx.recentDailyLogs.forEach((log) => {
-      const label = `${log.date}: ${log.studyMinutes}m`
+      const label = `${log.date}: ${formatDuration(log.studyMinutes)}`
       lines.push(log.reflection ? `  ${label} — ${log.reflection}` : `  ${label}`)
     })
     lines.push('')
@@ -89,7 +89,7 @@ export function buildDashboardStatusText(
     lines.push(`  Study Time: ${formatDuration(s.studyMinutes)}`)
     lines.push(`  Problems: ${s.problemCount}`)
     const lastDate = d.lastTouchedBySubject.find((e) => e.subject === s.subject)?.lastdate ?? null
-    lines.push(lastDate ? `  Last Study: ${lastDate} (${daysSince(lastDate)}d ago)` : `  Last Study: Not studied`)
+    lines.push(lastDate ? `  Last Study: ${lastDate} (${daysSince(lastDate)}日前)` : `  Last Study: Not studied`)
 
     if (s.recentExamScore) {
       const { examYear, score, completedAt, rankStats } = s.recentExamScore
