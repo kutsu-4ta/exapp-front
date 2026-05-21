@@ -106,7 +106,7 @@ const TABS = [
   { href: '/', label: 'HOME', Icon: IconHome, matchPrefix: '/', exact: true },
   {
     href: '/workspace/daily-logs',
-    label: 'デイリー',
+    label: 'DAILY',
     Icon: IconLog,
     matchPrefix: '/workspace',
     exact: false,
