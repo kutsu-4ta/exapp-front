@@ -1,10 +1,31 @@
 import {useEffect, useState} from 'react'
 import {LoadingSpinner} from '../common/LoadingSpinner'
 import {fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
-import type {ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
+import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
+import {RANKS} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {StatusCopyModal} from '../common/StatusCopyModal'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
+
+function computeSessionRankStats(
+  questions: ExamQuestion[]
+): Array<{ rank: Rank; correctRate: number; count: number }> {
+  const scored = questions.filter(
+    (q) => !q.hasChildren && q.rank !== null && q.isCorrect !== null
+  )
+  const byRank = new Map<Rank, { correct: number; total: number }>()
+  for (const q of scored) {
+    const r = q.rank as Rank
+    const cur = byRank.get(r) ?? { correct: 0, total: 0 }
+    byRank.set(r, { correct: cur.correct + (q.isCorrect ? 1 : 0), total: cur.total + 1 })
+  }
+  return RANKS
+    .filter((r) => byRank.has(r))
+    .map((r) => {
+      const { correct, total } = byRank.get(r)!
+      return { rank: r, correctRate: total > 0 ? correct / total : 0, count: total }
+    })
+}
 
 interface SubjectDetailViewProps {
   subject: string
@@ -43,7 +64,8 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
           const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '-'
           const doubt = q.isDoubtful ? ' ?' : ''
           const note = q.note ? ` ｜${q.note}` : ''
-          lines.push(`${q.displayId} [${q.rank}] ${result}${doubt}${note}`)
+          const rankStr = q.rank ? `[${q.rank}] ` : ''
+          lines.push(`${q.displayId} ${rankStr}${result}${doubt}${note}`)
         })
       }
       setCopyText(lines.join('\n'))
@@ -222,7 +244,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                     {selectedSession.questions.map((q) => (
                       <div key={q.id} style={modalQuestionRow}>
                         <span style={modalQId}>{q.displayId}</span>
-                        <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>
+                        {q.rank && <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>}
                         <span style={modalQResult(q.isCorrect)}>
                           {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
                         </span>
@@ -233,23 +255,26 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                   </div>
                 )}
 
-                {stats && stats.rankStats.length > 0 && (
-                  <div style={modalRankSection}>
-                    <div style={sectionLabel}>ランク別正答率</div>
-                    <div style={rankGrid}>
-                      {stats.rankStats.map((r) => (
-                        <div key={r.rank} style={rankStatItem}>
-                          <span style={rankLabel}>{r.rank}</span>
-                          <span style={rankPercent}>{Math.round(r.correctRate * 100)}%</span>
-                          <div style={rankBarBase}>
-                            <div style={{ ...rankBarFill, width: `${r.correctRate * 100}%` }} />
+                {(() => {
+                  const sessionRankStats = computeSessionRankStats(selectedSession.questions)
+                  return sessionRankStats.length > 0 ? (
+                    <div style={modalRankSection}>
+                      <div style={sectionLabel}>ランク別正答率</div>
+                      <div style={rankGrid}>
+                        {sessionRankStats.map((r) => (
+                          <div key={r.rank} style={rankStatItem}>
+                            <span style={rankLabel}>{r.rank}</span>
+                            <span style={rankPercent}>{Math.round(r.correctRate * 100)}%</span>
+                            <div style={rankBarBase}>
+                              <div style={{ ...rankBarFill, width: `${r.correctRate * 100}%` }} />
+                            </div>
+                            <span style={rankCount}>{r.count}問</span>
                           </div>
-                          <span style={rankCount}>{r.count}問</span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null
+                })()}
               </>
             )}
           </div>

@@ -12,7 +12,7 @@ export type ExamQuestion = {
   displayId: string
   isSub: boolean
   hasChildren: boolean
-  rank: Rank
+  rank: Rank | null
   myAnswer: string
   isCorrect: boolean | null
   isDoubtful: boolean
@@ -50,7 +50,7 @@ export type ExamQuestionInput = {
   displayId: string
   isSub: boolean
   hasChildren: boolean
-  rank: Rank
+  rank: Rank | null
   myAnswer: string
   isCorrect: boolean | null
   isDoubtful: boolean
@@ -92,7 +92,7 @@ export type QuestionDraft = {
   displayId: string
   isSub: boolean
   hasChildren: boolean
-  rank: Rank
+  rank: Rank | null
   myAnswer: string
   isCorrect: boolean | null
   isDoubtful: boolean

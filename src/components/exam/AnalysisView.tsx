@@ -339,10 +339,6 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
                   {overviewData.length > 0 ? Math.round(subjectsTotalScore * 10) / 10 : '-'}
                 </span>
               </div>
-              <div style={dataItem}>
-                <span style={dataLabel}>受験回数</span>
-                <span style={dataValue}>{sessions.length}回</span>
-              </div>
             </div>
           </div>
         </div>

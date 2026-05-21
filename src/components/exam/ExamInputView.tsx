@@ -67,7 +67,7 @@ function clearDraft(sessionId: number) {
 function makeDraft(
     overrides: Partial<QuestionDraft> = {}
 ): QuestionDraft {
-  return {
+  const base: QuestionDraft = {
     localId: crypto.randomUUID(),
     sortOrder: 0,
     displayId: '',
@@ -81,6 +81,9 @@ function makeDraft(
     note: null,
     ...overrides,
   }
+  // 親大問（hasChildren=true）はランクを持たない
+  if (base.hasChildren) base.rank = null
+  return base
 }
 
 function refreshDisplayIds(
@@ -151,7 +154,7 @@ function initQuestions(
           displayId: q.displayId,
           isSub: q.isSub,
           hasChildren: q.hasChildren,
-          rank: q.rank as Rank,
+          rank: q.hasChildren ? null : (q.rank as Rank | null),
           myAnswer: q.myAnswer,
           isCorrect: q.isCorrect,
           isDoubtful: q.isDoubtful,

@@ -98,11 +98,9 @@ export function QuestionRow({
   }
 
   const cycleRank = () => {
-    const next = RANKS[(RANKS.indexOf(q.rank) + 1) % RANKS.length]
-
-    onUpdate({
-      rank: next,
-    })
+    const idx = q.rank ? RANKS.indexOf(q.rank) : -1
+    const next = RANKS[(idx + 1) % RANKS.length]
+    onUpdate({ rank: next })
   }
 
   return (
@@ -351,10 +349,10 @@ function ScoringControls({
             onClick={onCycleRank}
             style={{
               ...rankBadge,
-              ...rankColors[q.rank],
+              ...(q.rank ? rankColors[q.rank] : {}),
             }}
           >
-            {q.rank}
+            {q.rank ?? '?'}
           </button>
         </div>
 

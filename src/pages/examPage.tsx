@@ -50,6 +50,7 @@ export default function ExamPage() {
   const [statsCopied, setStatsCopied] = useState(false)
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
+  const [copyError, setCopyError] = useState<string | null>(null)
 
   // リロード対応: URL に sessionId があるときセッションをフェッチする
   const activeSessionRef = useRef<ExamSession | null>(null)
@@ -224,11 +225,12 @@ export default function ExamPage() {
     navigate(-1)
   }
 
-  const now = new Date()
   const handlePrepareStats = async () => {
     if (statsCopying) return
     setStatsCopying(true)
+    setCopyError(null)
     try {
+      const now = new Date()
       const [summary, recentLogs] = await Promise.all([
         fetchSubjectsSummary(now.getFullYear(), now.getMonth() + 1),
         fetchRecentDailyLogs(7),
@@ -272,6 +274,7 @@ export default function ExamPage() {
       setIsCopyModalOpen(true)
     } catch (e) {
       console.error(e)
+      setCopyError('データの取得に失敗しました')
     } finally {
       setStatsCopying(false)
     }
@@ -402,6 +405,7 @@ export default function ExamPage() {
       </div>
 
       {error && <p style={errorMsg}>{error}</p>}
+      {copyError && <p style={errorMsg}>{copyError}</p>}
 
       <AnalysisView key={analysisKey} onEdit={handleEditSession} />
 
