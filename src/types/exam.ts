@@ -18,6 +18,7 @@ export type ExamQuestion = {
   isDoubtful: boolean
   point: number
   note: string | null
+  answeredTimeMs?: number
 }
 
 export type ExamSession = {

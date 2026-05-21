@@ -7,6 +7,14 @@ import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {StatusCopyModal} from '../common/StatusCopyModal'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
 
+function formatMs(ms: number | undefined): string {
+  if (ms === undefined) return '--:--'
+  const totalSec = Math.floor(ms / 1000)
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 function computeSessionRankStats(
   questions: ExamQuestion[]
 ): Array<{ rank: Rank; correctRate: number; count: number }> {
@@ -249,6 +257,9 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                           {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
                         </span>
                         {q.isDoubtful && <DoubtIcon />}
+                        {!q.hasChildren && q.answeredTimeMs !== undefined && (
+                          <span style={modalQTime}>{formatMs(q.answeredTimeMs)}</span>
+                        )}
                         {q.note && <span style={modalQNote}>{q.note}</span>}
                       </div>
                     ))}
@@ -501,6 +512,13 @@ const modalQuestionRow: React.CSSProperties = {
   background: '#f9f9f8',
 }
 const modalQId: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: '#37352f', minWidth: '32px' }
+const modalQTime: React.CSSProperties = {
+  fontSize: '10px',
+  fontWeight: 700,
+  color: '#aaa',
+  fontVariantNumeric: 'tabular-nums',
+  flexShrink: 0,
+}
 const modalQNote: React.CSSProperties = {
   fontSize: '11px',
   color: '#888',

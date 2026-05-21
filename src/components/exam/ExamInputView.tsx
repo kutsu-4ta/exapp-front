@@ -160,6 +160,7 @@ function initQuestions(
           isDoubtful: q.isDoubtful,
           point: q.point,
           note: q.note,
+          answeredTimeMs: q.answeredTimeMs,
         }))
     )
   }
