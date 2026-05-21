@@ -38,7 +38,7 @@ function computeSubjectCards(
     const avgTotal = list.reduce((s, x) => s + x.totalScore, 0) / list.length
     const avgPure = list.reduce((s, x) => s + x.pureScore, 0) / list.length
     const status: SubjectCardData['status'] =
-      avgPure >= 60 ? '安定' : avgPure >= 50 ? '注意' : '要強化'
+      avgTotal >= 60 ? '安定' : avgTotal >= 50 ? '注意' : '要強化'
     return { subject, sessionCount: list.length, avgTotalScore: avgTotal, avgPureScore: avgPure, status }
   })
 }
@@ -71,14 +71,14 @@ function ProgressTooltip({ active, payload }: { active?: boolean; payload?: Arra
 }
 
 // ツールチップ（棒グラフ）
-function OverviewTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: SubjectCardData & { pure: number } }> }) {
+function OverviewTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: SubjectCardData & { total: number } }> }) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
   return (
     <div style={tooltipBox}>
       <div style={tooltipHead}>{d.subject}</div>
       <div style={{ color: statusBarColor[d.status], ...tooltipRow }}>
-        Avg.PURE<span style={tooltipVal}>{d.pure.toFixed(1)}</span>
+        Avg.TOTAL<span style={tooltipVal}>{d.total.toFixed(1)}</span>
       </div>
       <div style={{ color: '#aaa', ...tooltipRow }}>
         {d.sessionCount}回受験
@@ -111,8 +111,8 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
   const overviewData = useMemo(() =>
     subjectCards
       .filter((c) => c.sessionCount > 0)
-      .sort((a, b) => b.avgPureScore - a.avgPureScore)
-      .map((c) => ({ ...c, pure: Math.round(c.avgPureScore * 10) / 10 })),
+      .sort((a, b) => b.avgTotalScore - a.avgTotalScore)
+      .map((c) => ({ ...c, total: Math.round(c.avgTotalScore * 10) / 10 })),
     [subjectCards]
   )
 
@@ -167,7 +167,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
       {/* チャートカード */}
       <div style={chartCard}>
         <h3 style={cardTitle}>
-          {isOverview ? '科目別 Avg.PURE スコア' : `${filterSubject} の得点推移`}
+          {isOverview ? '科目別 Avg.TOTAL スコア' : `${filterSubject} の得点推移`}
         </h3>
 
         {isOverview ? (
@@ -206,7 +206,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
                     strokeDasharray="5 5"
                     label={{ value: '60', position: 'right', fontSize: 10, fill: '#2383e2' }}
                   />
-                  <Bar dataKey="pure" name="Avg.PURE" radius={[0, 4, 4, 0]} maxBarSize={20}>
+                  <Bar dataKey="total" name="Avg.TOTAL" radius={[0, 4, 4, 0]} maxBarSize={20}>
                     {overviewData.map((entry) => (
                       <Cell key={entry.subject} fill={statusBarColor[entry.status]} />
                     ))}

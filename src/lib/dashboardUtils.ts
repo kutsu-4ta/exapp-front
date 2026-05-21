@@ -90,10 +90,7 @@ export function buildDashboardStatusText(
     lines.push(`  問題数: ${s.problemCount}問`)
     const lastDate = d.lastTouchedBySubject.find((e) => e.subject === s.subject)?.lastdate ?? null
     lines.push(lastDate ? `  最終学習: ${lastDate.replace(/-/g, '/')} (${daysAgo(lastDate)}日前)` : `  最終学習: 未学習`)
-    if (s.failureStats.length > 0) {
-      lines.push(`  属性:`)
-      s.failureStats.forEach((f) => lines.push(`    ・${f.type}: ${f.count}問 (${Math.round(f.ratio * 100)}%)`))
-    }
+
     if (s.recentExamScore) {
       const { examYear, score, completedAt } = s.recentExamScore
       const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''

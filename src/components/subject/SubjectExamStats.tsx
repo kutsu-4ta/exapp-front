@@ -69,11 +69,11 @@ export function SubjectExamStats({ subjectName }: Props) {
     total: s.totalScore,
   }))
 
-  const latestPure = latest?.pureScore ?? null
-  const pureColor =
-    latestPure == null ? 'rgba(55,53,47,0.5)'
-    : latestPure >= 60 ? '#19a576'
-    : latestPure >= 50 ? '#f2ab26'
+  const latestTotal = latest?.totalScore ?? null
+  const totalColor =
+    latestTotal == null ? 'rgba(55,53,47,0.5)'
+    : latestTotal >= 60 ? '#19a576'
+    : latestTotal >= 50 ? '#f2ab26'
     : '#eb5757'
 
   return (
@@ -87,15 +87,15 @@ export function SubjectExamStats({ subjectName }: Props) {
           <span style={summaryValue}>{stats.sessionCount}<span style={summaryUnit}>回</span></span>
         </div>
         <div style={summaryCard}>
-          <span style={summaryLabel}>Avg.PURE</span>
-          <span style={{ ...summaryValue, color: stats.avgPureScore >= 60 ? '#19a576' : stats.avgPureScore >= 50 ? '#f2ab26' : '#eb5757' }}>
-            {stats.avgPureScore.toFixed(1)}
+          <span style={summaryLabel}>Avg.TOTAL</span>
+          <span style={{ ...summaryValue, color: stats.avgTotalScore >= 60 ? '#19a576' : stats.avgTotalScore >= 50 ? '#f2ab26' : '#eb5757' }}>
+            {stats.avgTotalScore.toFixed(1)}
           </span>
         </div>
-        {latestPure != null && (
+        {latestTotal != null && (
           <div style={summaryCard}>
             <span style={summaryLabel}>直近</span>
-            <span style={{ ...summaryValue, color: pureColor }}>{latestPure}</span>
+            <span style={{ ...summaryValue, color: totalColor }}>{latestTotal}</span>
           </div>
         )}
       </div>
