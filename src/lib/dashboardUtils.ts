@@ -92,9 +92,15 @@ export function buildDashboardStatusText(
     lines.push(lastDate ? `  最終学習: ${lastDate.replace(/-/g, '/')} (${daysAgo(lastDate)}日前)` : `  最終学習: 未学習`)
 
     if (s.recentExamScore) {
-      const { examYear, score, completedAt } = s.recentExamScore
+      const { examYear, score, completedAt, rankStats } = s.recentExamScore
       const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''
       lines.push(`  直近過去問: ${examYear}年度 ${score}点${dateStr}`)
+      if (rankStats.length > 0) {
+        const rankLine = rankStats
+          .map((r) => `${r.rank}:${Math.round(r.correctRate * 100)}%(${r.count}問)`)
+          .join(' ')
+        lines.push(`  ランク別: ${rankLine}`)
+      }
     }
   }
   lines.push('')

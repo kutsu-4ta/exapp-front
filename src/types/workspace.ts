@@ -248,6 +248,7 @@ export type GeminiContextSubject = {
     examYear: number
     score: number
     completedAt: string | null
+    rankStats: { rank: string; correctRate: number; count: number }[]
   } | null
 }
 
