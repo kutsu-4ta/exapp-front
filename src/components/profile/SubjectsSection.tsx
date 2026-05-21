@@ -1,8 +1,11 @@
 import {useEffect, useRef, useState} from 'react'
-import {deleteSubject, fetchFlashcards, renameSubject} from '../../lib/api/subjects'
+import {deleteSubject, renameSubject} from '../../lib/api/subjects'
+import {fetchProblems} from '../../lib/api/problem'
+import {fetchTickets} from '../../lib/api/sprint'
 import {useSettingsStore} from '../../lib/store/settings'
 import {c, font} from '../../styles/notion'
-import type {Flashcard} from '../../types/workspace'
+import type {Problem} from '../../types/workspace'
+import type {StudyTicket} from '../../types/sprint'
 
 export function SubjectsSection() {
   const subjects = useSettingsStore((s) => s.subjects)
@@ -10,7 +13,8 @@ export function SubjectsSection() {
   const subCategories = useSettingsStore((s) => s.subCategories)
   const setSubCategories = useSettingsStore((s) => s.setSubCategories)
 
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([])
+  const [problems, setProblems] = useState<Problem[]>([])
+  const [tickets, setTickets] = useState<StudyTicket[]>([])
   const [editingSubject, setEditingSubject] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -19,14 +23,19 @@ export function SubjectsSection() {
   const editRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchFlashcards().then(setFlashcards).catch(() => {})
+    Promise.all([
+      fetchProblems({ limit: 5000 }),
+      fetchTickets(),
+    ]).then(([p, t]) => { setProblems(p); setTickets(t) }).catch(() => {})
   }, [])
 
   useEffect(() => {
     if (editingSubject !== null) editRef.current?.focus()
   }, [editingSubject])
 
-  const countBySubject = (name: string) => flashcards.filter((f) => f.subject === name).length
+  const countBySubject = (name: string) =>
+    problems.filter((p) => p.subject === name).length +
+    tickets.filter((t) => t.subject === name).length
 
   const startEdit = (name: string) => { setEditingSubject(name); setEditingValue(name); setError(null) }
   const cancelEdit = () => { setEditingSubject(null); setEditingValue('') }
@@ -41,7 +50,8 @@ export function SubjectsSection() {
       await renameSubject(editingSubject, newName)
       setSubjects(subjects.map((s) => (s === editingSubject ? newName : s)))
       setSubCategories(subCategories.map((sc) => sc.subject === editingSubject ? { ...sc, subject: newName } : sc))
-      setFlashcards((prev) => prev.map((f) => f.subject === editingSubject ? { ...f, subject: newName } : f))
+      setProblems((prev) => prev.map((p) => p.subject === editingSubject ? { ...p, subject: newName } : p))
+      setTickets((prev) => prev.map((t) => t.subject === editingSubject ? { ...t, subject: newName } : t))
       setEditingSubject(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '変更に失敗しました')

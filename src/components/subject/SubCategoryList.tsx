@@ -12,7 +12,9 @@ import {
 import {Settings} from 'lucide-react'
 
 import type {Flashcard, SubCategory, SubCategoryRank} from '@/types/workspace.ts'
+import type {StudyTicket} from '@/types/sprint.ts'
 import {addSubCategory, deleteSubCategory, updateSubCategory,} from '@/lib/api/subcategory.ts'
+import {fetchTickets} from '@/lib/api/sprint.ts'
 import {
   BottomSheet,
   sheetBodyStyle,
@@ -162,7 +164,15 @@ function SubCategorySettingsSheet({
   onClose: () => void
 }) {
   const items = subCategories.filter(sc => sc.subject === subjectName)
-  const countBySc = (name: string) => flashcards.filter((f) => f.front.subCategory === name).length
+
+  const [tickets, setTickets] = useState<StudyTicket[]>([])
+  useEffect(() => {
+    fetchTickets().then(setTickets).catch(() => {})
+  }, [])
+
+  const countBySc = (name: string) =>
+    flashcards.filter((f) => f.front.subCategory === name).length +
+    tickets.filter((t) => t.subject === subjectName && t.subCategories.some((sc) => sc.name === name)).length
 
   const [addValue, setAddValue] = useState('')
   const [addLoading, setAddLoading] = useState(false)

@@ -347,7 +347,7 @@ export default function DailyLogsPage() {
         ) : (
           <div style={chartContainer}>
             {chartLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '0px 0' }}>
                 <LoadingSpinner />
               </div>
             ) : (
@@ -689,7 +689,7 @@ const chartContainer: React.CSSProperties = {
   gap: '24px',
 }
 const chartCard: React.CSSProperties = {
-  padding: '24px',
+  padding: '12px',
   borderRadius: '12px',
   border: '1px solid rgba(55, 53, 47, 0.09)',
   backgroundColor: '#fcfcfc',

@@ -13,6 +13,7 @@ import type {SubCategoryRank} from '../../types/workspace'
 import {useSettingsStore} from '../../lib/store/settings'
 import {c, font, formInput, formLabel, formTextarea} from '../../styles/notion'
 import {MarkdownContent} from '@/components/common/MarkdownContent.tsx'
+import {addSubCategory} from '../../lib/api/subcategory'
 
 type CreateProps = {
   mode: 'create'
@@ -70,6 +71,7 @@ export function TicketFormModal(props: Props) {
 
   const subjects = useSettingsStore((s) => s.subjects)
   const allSubCategories = useSettingsStore((s) => s.subCategories)
+  const setSubCategories = useSettingsStore((s) => s.setSubCategories)
 
   const [subject, setSubject] = useState(ticket?.subject ?? subjects[0] ?? '')
   const [title, setTitle] = useState(ticket?.title ?? '')
@@ -91,6 +93,9 @@ export function TicketFormModal(props: Props) {
   const [error, setError] = useState('')
   const [rankFilter, setRankFilter] = useState<SubCategoryRank | 'all' | 'none'>('all')
   const [criteriaPreview, setCriteriaPreview] = useState(false)
+  const [newScName, setNewScName] = useState('')
+  const [newScAdding, setNewScAdding] = useState(false)
+  const [newScError, setNewScError] = useState('')
 
   // subCategories filtered by selected subject
   const filteredSubCategories = useMemo(
@@ -120,10 +125,29 @@ export function TicketFormModal(props: Props) {
   const handleSubjectChange = (newSubject: string) => {
     setSubject(newSubject)
     setRankFilter('all')
+    setNewScName('')
+    setNewScError('')
     const validIds = allSubCategories
       .filter((sc) => sc.subject === newSubject)
       .map((sc) => sc.id)
     setSelectedSubCatIds((prev) => prev.filter((id) => validIds.includes(id)))
+  }
+
+  const handleAddSubCategory = async () => {
+    const name = newScName.trim()
+    if (!name || !subject) return
+    setNewScAdding(true)
+    setNewScError('')
+    try {
+      const created = await addSubCategory({ subject, name })
+      setSubCategories([...allSubCategories, created])
+      setSelectedSubCatIds((prev) => [...prev, created.id])
+      setNewScName('')
+    } catch (e) {
+      setNewScError(e instanceof Error ? e.message : '追加に失敗しました')
+    } finally {
+      setNewScAdding(false)
+    }
   }
 
   const toggleSubCat = (id: number) => {
@@ -375,6 +399,39 @@ export function TicketFormModal(props: Props) {
                 </span>
               )}
             </div>
+
+            {/* Inline subcategory creation */}
+            {subject && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                <input
+                  value={newScName}
+                  onChange={(e) => setNewScName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSubCategory()}
+                  placeholder="新しい小分類を追加..."
+                  style={{ ...formInput, flex: 1, fontSize: font.sm, padding: '6px 8px' }}
+                  disabled={newScAdding}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSubCategory}
+                  disabled={!newScName.trim() || newScAdding}
+                  style={{
+                    padding: '6px 12px',
+                    background: newScName.trim() && !newScAdding ? '#37352f' : 'rgba(55,53,47,0.15)',
+                    color: newScName.trim() && !newScAdding ? '#fff' : 'rgba(55,53,47,0.4)',
+                    border: 'none',
+                    borderRadius: 6,
+                    fontSize: font.sm,
+                    fontWeight: 600,
+                    cursor: newScName.trim() && !newScAdding ? 'pointer' : 'default',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {newScAdding ? '…' : 'Add'}
+                </button>
+              </div>
+            )}
+            {newScError && <p style={{ margin: '0 0 6px', fontSize: font.xs, color: c.red }}>{newScError}</p>}
 
             {filteredSubCategories.length === 0 ? (
               <p style={{ fontSize: font.sm, color: c.textHint, margin: 0 }}>
