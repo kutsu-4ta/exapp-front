@@ -209,6 +209,33 @@ export default function DailyLogsPage() {
     })
   }, [chartData, daysInMonth, baseMonth])
 
+  // Background prefetch: populate cache for all dates with records (most recent first, 3 concurrent)
+  useEffect(() => {
+    if (chartData.length === 0) return
+    const queue = chartData
+      .filter((log) => log.totalMinutes > 0 || log.sessionCount > 0)
+      .map((log) => log.date)
+      .reverse()
+    let cancelled = false
+    const worker = async () => {
+      while (queue.length > 0 && !cancelled) {
+        const date = queue.shift()!
+        if (date in detailCache.current) continue
+        const hit = getCached<DailyLog>(`daily-log-detail-${date}`)
+        if (hit) { detailCache.current[date] = hit; continue }
+        try {
+          const log = await fetchDailyLog(date)
+          if (!cancelled) {
+            detailCache.current[date] = log
+            setCached(`daily-log-detail-${date}`, log)
+          }
+        } catch { /* retry on demand */ }
+      }
+    }
+    Promise.all([worker(), worker(), worker()])
+    return () => { cancelled = true }
+  }, [chartData])
+
   const handleSelectDate = async (fullDate: string) => {
     if (selectedDate === fullDate) {
       setSelectedDate(null)
@@ -216,14 +243,24 @@ export default function DailyLogsPage() {
       return
     }
     setSelectedDate(fullDate)
+    // 1. in-memory ref (fastest)
     if (fullDate in detailCache.current) {
       setDetailLog(detailCache.current[fullDate])
       return
     }
+    // 2. module-level page cache (survives navigation, 5 min TTL)
+    const cached = getCached<DailyLog>(`daily-log-detail-${fullDate}`)
+    if (cached) {
+      detailCache.current[fullDate] = cached
+      setDetailLog(cached)
+      return
+    }
+    // 3. on-demand fetch
     setDetailLoading(true)
     try {
       const log = await fetchDailyLog(fullDate)
       detailCache.current[fullDate] = log
+      setCached(`daily-log-detail-${fullDate}`, log)
       setDetailLog(log)
     } catch {
       setDetailLog(null)
