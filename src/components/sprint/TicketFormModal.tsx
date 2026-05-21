@@ -47,7 +47,7 @@ const TYPE_OPTIONS: { value: TicketType; label: string }[] = [
 
 const SOURCE_OPTIONS: { value: TicketSource; label: string }[] = [
   { value: 'wrong_answer', label: '過去問ミス' },
-  { value: 'mock_exam', label: '模試' },
+  { value: 'load_map', label: 'ロードマップ' },
   { value: 'review', label: '見直し' },
   { value: 'manual', label: '手動' },
 ]

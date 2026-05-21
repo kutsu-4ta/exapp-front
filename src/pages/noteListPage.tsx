@@ -3,7 +3,7 @@ import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
 import {ProblemCard} from '../components/note/ProblemCard'
 import {ProblemQuickModal} from '../components/note/ProblemQuickModal'
-import {addProblem, fetchProblems, updateProblem} from '../lib/api/problem'
+import {addProblem, fetchProblems} from '../lib/api/problem'
 import {getCached, invalidateCache, setCached} from '../lib/pageCache'
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {FilterPill} from '../components/note/FilterPill'
@@ -159,13 +159,6 @@ export default function NoteListPage() {
     return p
   }, [])
 
-  const handleProblemUpdate = useCallback(async (id: number, input: ProblemInput) => {
-    const updated = await updateProblem(id, input)
-    setProblems((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-    invalidateCache('note-problems')
-    return updated
-  }, [])
-
   const handleUpdate = useCallback((updated: Problem) => {
     setProblems((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     setQuickProblem(updated)
@@ -284,8 +277,8 @@ export default function NoteListPage() {
         {showAddForm && (
           <AddProblemModal
             onSubmit={handleAddProblem}
-            onUpdate={handleProblemUpdate}
             onClose={() => setShowAddForm(false)}
+            onUpdate={handleUpdate}
             subCategories={subCategories}
           />
         )}

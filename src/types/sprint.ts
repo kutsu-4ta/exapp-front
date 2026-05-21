@@ -50,7 +50,7 @@ export type SprintStats = {
 export type TicketStatus = 'todo' | 'doing' | 'done'
 export type TicketPriority = 'high' | 'medium' | 'low'
 export type TicketType = 'knowledge' | 'practice' | 'understanding' | 'memorization'
-export type TicketSource = 'wrong_answer' | 'mock_exam' | 'review' | 'manual'
+export type TicketSource = 'wrong_answer' | 'load_map' | 'review' | 'manual'
 
 export type TicketSubCategoryRef = {
   id: number
@@ -134,7 +134,7 @@ export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
 
 export const SOURCE_LABEL: Record<TicketSource, string> = {
   wrong_answer: '過去問ミス',
-  mock_exam: '模試',
+  load_map: 'ロードマップ',
   review: '見直し',
   manual: '手動',
 }

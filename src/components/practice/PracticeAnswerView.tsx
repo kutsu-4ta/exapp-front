@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react'
+import {useEffect, useState} from 'react'
 import type {QuestionDraft, Rank} from '@/types/exam.ts'
 import {ANSWER_OPTIONS, RANKS} from '@/types/exam.ts'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
@@ -49,7 +49,7 @@ import {
 import {AnswerInputPanel} from '@/components/exam/AnswerInputPanel.tsx'
 import {AddProblemModal} from '../note/AddProblemModal.tsx'
 import {ProblemQuickModal} from '../note/ProblemQuickModal.tsx'
-import {addProblem, fetchProblem, updateProblem} from '@/lib/api/problem.ts'
+import {addProblem, fetchProblem} from '@/lib/api/problem.ts'
 import type {Problem, ProblemInput} from '@/types/workspace.ts'
 import {useSettingsStore} from '@/lib/store/settings.ts'
 import {invalidateCache} from '@/lib/pageCache.ts'
@@ -229,12 +229,6 @@ export function PracticeAnswerView({
     return created
   }
 
-  const handleProblemUpdate = useCallback(async (id: number, input: ProblemInput) => {
-    const updated = await updateProblem(id, input)
-    invalidateCache('note-problems')
-    return updated
-  }, [])
-
   const handleOpenEdit = async () => {
     if (!editableProblemId) return
     setEditProblemLoading(true)
@@ -382,7 +376,6 @@ export function PracticeAnswerView({
         {showModal && (
           <AddProblemModal
             onSubmit={handleAddProblem}
-            onUpdate={handleProblemUpdate}
             onClose={() => setShowModal(false)}
             subCategories={subCategories}
             initial={{

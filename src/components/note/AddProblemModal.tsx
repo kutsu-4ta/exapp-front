@@ -1,20 +1,20 @@
 import {useState} from 'react'
 import type {Problem, ProblemInput, SubCategory} from '../../types/workspace'
 import {c} from '../../styles/notion'
-import {ProblemNoteStep} from '@/components/note/ProblemNoteStep'
 import {ProblemMetaStep} from '@/components/note/ProblemMetaStep'
+import {ProblemQuickModal} from '@/components/note/ProblemQuickModal'
 import {analyzeImage, deleteProblem} from "@/lib/api/problem.ts";
 import imageCompression from 'browser-image-compression'
 
 type Props = {
   onClose: () => void
   onSubmit: (input: ProblemInput) => Promise<Problem>
-  onUpdate: (id: number, input: ProblemInput) => Promise<Problem>
+  onUpdate?: (problem: Problem) => void
   subCategories?: SubCategory[]
   initial?: Partial<ProblemInput>
 }
 
-type Step = 'meta' | 'note'
+type Step = 'meta' | 'quick'
 
 export function AddProblemModal({
   onClose,
@@ -31,7 +31,7 @@ export function AddProblemModal({
     const created = await onSubmit(input)
 
     setProblem(created)
-    setStep('note')
+    setStep('quick')
 
     return created
   }
@@ -68,7 +68,7 @@ export function AddProblemModal({
 
       created.note = result.note
       setProblem(created)
-      setStep('note')
+      setStep('quick')
 
       return created
     } catch (error) {
@@ -76,17 +76,6 @@ export function AddProblemModal({
       await deleteProblem(created.id)
       throw error
     }
-  }
-
-  async function handleNoteSave(note: string) {
-    if (!problem) return
-
-    const updated = await onUpdate(problem.id, {
-      ...problem,
-      note,
-    })
-
-    setProblem(updated)
   }
 
   if (step === 'meta') {
@@ -106,9 +95,15 @@ export function AddProblemModal({
   if (!problem) return null
 
   return (
-    <ModalShell title="ノート編集" onClose={onClose}>
-      <ProblemNoteStep problem={problem} onAutoSave={handleNoteSave} onClose={onClose} />
-    </ModalShell>
+    <ProblemQuickModal
+      problem={problem}
+      onClose={onClose}
+      onDelete={onClose}
+      onUpdate={(updated) => {
+        setProblem(updated)
+        onUpdate?.(updated)
+      }}
+    />
   )
 }
 
