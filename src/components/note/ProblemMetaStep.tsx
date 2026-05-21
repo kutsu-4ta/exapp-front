@@ -75,7 +75,7 @@ export function ProblemMetaStep({
     const dupDebounceRef = useRef<number | null>(null)
     const isFirstRenderRef = useRef(true)
 
-    async function searchDuplicate(mat: string, ref: string) {
+    async function searchDuplicate(mat: string, ref: string, subj: string) {
         if (!mat.trim() || !ref.trim()) {
             setDupProblem(null)
             return
@@ -84,6 +84,7 @@ export function ProblemMetaStep({
             const results = await fetchProblems({ q: ref, limit: 50 })
             const found = results.find(
                 (p) =>
+                    p.subject.trim() === subj.trim() &&
                     p.materialName?.trim() === mat.trim() &&
                     p.questionRef.trim() === ref.trim()
             )
@@ -95,7 +96,7 @@ export function ProblemMetaStep({
 
     // マウント時に即時検索
     useEffect(() => {
-        searchDuplicate(material, questionRef)
+        searchDuplicate(material, questionRef, subject)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -107,12 +108,12 @@ export function ProblemMetaStep({
         }
         if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
         dupDebounceRef.current = window.setTimeout(() => {
-            searchDuplicate(material, questionRef)
+            searchDuplicate(material, questionRef, subject)
         }, 600)
         return () => {
             if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
         }
-    }, [material, questionRef])
+    }, [material, questionRef, subject])
 
     function isValid(): boolean {
         return (
