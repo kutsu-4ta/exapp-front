@@ -1,10 +1,13 @@
 import {useState} from 'react'
-import type {SprintStats} from '../../types/sprint'
+import type {Sprint, SprintStats} from '../../types/sprint'
 import {c, font} from '../../styles/notion'
 
 type Props = {
   stats: SprintStats | undefined
   loading?: boolean
+  compact?: boolean
+  sprint?: Sprint | null
+  isCompleted?: boolean
 }
 
 function StatChip({
@@ -45,9 +48,146 @@ function StatChip({
   )
 }
 
-export function SprintKpi({ stats, loading }: Props) {
+export function SprintKpi({ stats, loading, compact, sprint, isCompleted }: Props) {
   const [expanded, setExpanded] = useState(false)
 
+  // ── Compact strip (mobile) — Notion property panel style ───────────────────
+  if (compact) {
+    const rate = stats ? Math.round(stats.completionRate) : 0
+    const isBacklog = sprint?.type === 'backlog'
+    const showDate = !isBacklog && !!sprint?.startDate
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const endDate = sprint?.endDate && !isCompleted ? new Date(sprint.endDate + 'T00:00:00') : null
+    const remainingDays = endDate
+      ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      : null
+    const remainingColor =
+      remainingDays === null ? c.textHint
+      : remainingDays <= 0  ? '#eb5757'
+      : remainingDays <= 3  ? '#f2ab26'
+      : c.textHint
+    const remainingLabel =
+      remainingDays === null ? null
+      : remainingDays < 0   ? '期限切れ'
+      : remainingDays === 0 ? '今日まで'
+      : `残り ${remainingDays} 日`
+
+    const progressColor =
+      isCompleted   ? '#27ae60'
+      : rate >= 70  ? '#27ae60'
+      : rate >= 30  ? '#2383e2'
+      : 'rgba(55,53,47,0.28)'
+
+    return (
+      <div style={{ padding: '14px 16px 16px', borderBottom: `1px solid ${c.border}` }}>
+
+        {/* Sprint goal — page-title weight */}
+        <p style={{
+          margin: '0 0 12px',
+          fontSize: '18px',
+          fontWeight: 700,
+          color: sprint?.goal ? c.text : c.textHint,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.45,
+          maxHeight: '2.9em',
+          overflow: 'hidden',
+        }}>
+          {sprint?.goal ?? (isBacklog ? 'Backlog' : '—')}
+        </p>
+
+        {/* Property rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+
+          {/* 期間 */}
+          {showDate && (
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: '22px' }}>
+              <span style={propLabel}>期間</span>
+              <span style={{ ...propValue, flex: 1 }}>
+                {sprint!.startDate} – {sprint!.endDate ?? '?'}
+              </span>
+              {remainingLabel && !isCompleted && (
+                <span style={{
+                  fontSize: font.sm,
+                  color: remainingColor,
+                  fontWeight: remainingDays !== null && remainingDays <= 3 ? 600 : 400,
+                  flexShrink: 0,
+                  marginLeft: 8,
+                }}>
+                  {remainingLabel}
+                </span>
+              )}
+              {isCompleted && (
+                <span style={{ fontSize: font.sm, color: '#27ae60', fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
+                  完了済み
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* 進捗 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: '22px' }}>
+            <span style={propLabel}>進捗</span>
+            {loading ? (
+              <div style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(55,53,47,0.05)' }} />
+            ) : (
+              <>
+                <div style={{
+                  flex: 1,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(55,53,47,0.06)',
+                  overflow: 'hidden',
+                }}>
+                  {stats && (
+                    <div style={{
+                      height: '100%',
+                      width: `${rate}%`,
+                      borderRadius: 2,
+                      backgroundColor: progressColor,
+                      transition: 'width 0.5s ease',
+                    }} />
+                  )}
+                </div>
+                <span style={{
+                  fontSize: font.base,
+                  fontWeight: 700,
+                  color: stats ? '#27ae60' : c.textHint,
+                  flexShrink: 0,
+                  fontVariantNumeric: 'tabular-nums',
+                  minWidth: '34px',
+                  textAlign: 'right',
+                }}>
+                  {rate}%
+                </span>
+                {stats && (
+                  <span style={{
+                    fontSize: font.sm,
+                    color: c.textHint,
+                    flexShrink: 0,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {stats.done}/{stats.total}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* 完了済み（日付なしのケース） */}
+          {isCompleted && !showDate && (
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: '22px' }}>
+              <span style={propLabel}>状態</span>
+              <span style={{ fontSize: font.base, color: '#27ae60', fontWeight: 600 }}>完了済み</span>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Full mode (iPad/desktop) ────────────────────────────────────────────────
   if (loading || !stats) {
     return (
       <div style={{ padding: '12px 16px' }}>
@@ -192,4 +332,20 @@ export function SprintKpi({ stats, loading }: Props) {
       )}
     </div>
   )
+}
+
+// ── Shared styles ─────────────────────────────────────────────────────────────
+
+const propLabel: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textHint,
+  fontWeight: 500,
+  width: '40px',
+  flexShrink: 0,
+}
+
+const propValue: React.CSSProperties = {
+  fontSize: font.base,
+  color: c.textSub,
+  fontVariantNumeric: 'tabular-nums',
 }

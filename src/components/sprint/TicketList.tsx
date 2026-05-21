@@ -78,18 +78,20 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
           {STATUS_FILTERS.map((f) => {
             const active = filter === f.value
             const count = f.value === 'all' ? tickets.length : countByStatus(f.value as TicketStatus)
+            const accentColor = f.value === 'all' ? c.text : statusColor(f.value as TicketStatus)
             return (
               <button
                 key={f.value}
                 onClick={() => onFilterChange(f.value)}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
                   padding: '5px 10px',
                   borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: active ? 'rgba(55,53,47,0.08)' : 'transparent',
-                  color: active
-                    ? f.value === 'all' ? c.text : statusColor(f.value as TicketStatus)
-                    : c.textHint,
+                  border: active ? `1px solid ${accentColor}22` : 'none',
+                  backgroundColor: active ? `${accentColor}0e` : 'transparent',
+                  color: active ? accentColor : c.textHint,
                   fontSize: font.sm,
                   fontWeight: active ? 700 : 500,
                   cursor: 'pointer',
@@ -98,11 +100,14 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
                 }}
               >
                 {f.label}
-                {count > 0 && (
-                  <span style={{ marginLeft: '4px', fontSize: font.xs, opacity: 0.7 }}>
-                    {count}
-                  </span>
-                )}
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: active ? accentColor : 'rgba(55,53,47,0.3)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {count}
+                </span>
               </button>
             )
           })}

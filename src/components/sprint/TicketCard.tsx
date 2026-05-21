@@ -12,6 +12,39 @@ type Props = {
   compact?: boolean
 }
 
+// ── Status chip styles ────────────────────────────────────────────────────────
+
+const statusChipBase: React.CSSProperties = {
+  borderRadius: 4,
+  padding: '2px 7px',
+  fontSize: '10px',
+  fontWeight: 600,
+  letterSpacing: '0.04em',
+  cursor: 'pointer',
+  transition: 'opacity 0.15s',
+  lineHeight: '16px',
+}
+
+const statusChipTodo: React.CSSProperties = {
+  border: '1px solid rgba(55,53,47,0.15)',
+  color: 'rgba(55,53,47,0.4)',
+  backgroundColor: 'transparent',
+}
+
+const statusChipDoing: React.CSSProperties = {
+  border: '1px solid rgba(35,131,226,0.3)',
+  color: '#2383e2',
+  backgroundColor: 'rgba(35,131,226,0.06)',
+}
+
+const statusChipDone: React.CSSProperties = {
+  border: '1px solid rgba(55,53,47,0.08)',
+  color: 'rgba(55,53,47,0.28)',
+  backgroundColor: 'rgba(55,53,47,0.03)',
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function formatDue(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   const today = new Date()
@@ -147,35 +180,25 @@ export function TicketCard({ ticket, onClick, onStatusChange, compact = false }:
             {formatDue(ticket.dueDate)}
           </span>
 
-          {/* Status button */}
+          {/* Status chip */}
           {onStatusChange && (
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 onClick={handleStatusClick}
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  border: `2px solid ${ticket.status === 'done' ? '#27ae60' : ticket.status === 'doing' ? '#2383e2' : 'rgba(55,53,47,0.2)'}`,
-                  backgroundColor: ticket.status === 'done' ? '#27ae60' : 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  transition: 'all 0.15s',
+                  ...statusChipBase,
+                  ...(ticket.status === 'done'
+                    ? statusChipDone
+                    : ticket.status === 'doing'
+                      ? statusChipDoing
+                      : statusChipTodo),
                 }}
                 title="ステータスを変更"
               >
-                {ticket.status === 'done' && (
-                  <span style={{ fontSize: 11, color: '#fff', lineHeight: 1 }}>✓</span>
-                )}
-                {ticket.status === 'doing' && (
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#2383e2', display: 'block' }} />
-                )}
+                {ticket.status === 'todo' ? 'TODO' : ticket.status === 'doing' ? 'DOING' : 'DONE'}
               </button>
 
-              {/* Status mini menu — fixed positioned to avoid stacking context issues */}
+              {/* Status mini menu */}
               {menuPos && (
                 <>
                   <div
@@ -186,14 +209,14 @@ export function TicketCard({ ticket, onClick, onStatusChange, compact = false }:
                     style={{
                       position: 'fixed',
                       top: menuPos.y,
-                      left: menuPos.x - 100,
+                      left: menuPos.x - 110,
                       backgroundColor: '#fff',
                       borderRadius: 8,
                       boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
                       border: `1px solid ${c.border}`,
                       overflow: 'hidden',
                       zIndex: 501,
-                      minWidth: 100,
+                      minWidth: 110,
                     }}
                   >
                     {(['todo', 'doing', 'done'] as TicketStatus[]).map((s) => (
@@ -201,19 +224,27 @@ export function TicketCard({ ticket, onClick, onStatusChange, compact = false }:
                         key={s}
                         onClick={(e) => selectStatus(e, s)}
                         style={{
-                          display: 'block',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
                           width: '100%',
-                          padding: '8px 12px',
+                          padding: '9px 12px',
                           border: 'none',
-                          background: ticket.status === s ? 'rgba(35,131,226,0.05)' : 'transparent',
+                          background: ticket.status === s ? 'rgba(55,53,47,0.03)' : 'transparent',
                           cursor: 'pointer',
                           textAlign: 'left',
                           fontSize: font.sm,
                           fontWeight: ticket.status === s ? 700 : 400,
-                          color:
-                            s === 'done' ? '#27ae60' : s === 'doing' ? '#2383e2' : c.textSub,
+                          color: ticket.status === s ? c.text : c.textSub,
                         }}
                       >
+                        <span style={{
+                          width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                          backgroundColor:
+                            s === 'doing' ? '#2383e2'
+                            : s === 'done' ? 'rgba(55,53,47,0.25)'
+                            : 'rgba(55,53,47,0.2)',
+                        }} />
                         {s === 'todo' ? 'TODO' : s === 'doing' ? 'DOING' : 'DONE'}
                       </button>
                     ))}

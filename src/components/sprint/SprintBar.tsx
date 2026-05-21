@@ -32,6 +32,10 @@ export function SprintBar({
     setMenu({ sprint, x: rect.left, y: rect.bottom + 4 })
   }
 
+  const backlog = sprints.find((sp) => sp.type === 'backlog')
+  const nonBacklog = sprints.filter((sp) => sp.type !== 'backlog')
+  const backlogSelected = backlog?.id === currentId
+
   return (
     <>
       <div
@@ -39,15 +43,19 @@ export function SprintBar({
           position: 'sticky',
           top: 38,
           zIndex: 100,
-          backgroundColor: 'rgba(255,255,255,0.92)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(255,255,255,0.94)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           borderBottom: `1px solid ${c.border}`,
+          display: 'flex',
+          alignItems: 'center',
         }}
       >
+        {/* Left: scrollable sprint list */}
         <div
           ref={scrollRef}
           style={{
+            flex: 1,
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -55,38 +63,25 @@ export function SprintBar({
             padding: '8px 12px',
             scrollbarWidth: 'none',
             WebkitOverflowScrolling: 'touch',
+            minWidth: 0,
           }}
         >
-          {sprints.map((sp) => {
+          {nonBacklog.map((sp) => {
             const selected = sp.id === currentId
-            const isBacklog = sp.type === 'backlog'
             const isDone = sp.status === 'completed'
             return (
               <div
                 key={sp.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  flexShrink: 0,
-                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}
               >
                 <button
                   onClick={() => onSelect(sp.id)}
                   style={{
                     padding: '5px 10px',
                     borderRadius: '16px',
-                    border: selected
-                      ? 'none'
-                      : `1px solid ${isDone ? 'rgba(55,53,47,0.1)' : c.border}`,
-                    backgroundColor: selected
-                      ? isBacklog
-                        ? 'rgba(55,53,47,0.12)'
-                        : c.blue
-                      : isDone
-                        ? 'rgba(55,53,47,0.03)'
-                        : 'transparent',
-                    color: selected ? (isBacklog ? c.text : '#fff') : isDone ? c.textHint : c.textSub,
+                    border: selected ? 'none' : `1px solid ${isDone ? 'rgba(55,53,47,0.1)' : c.border}`,
+                    backgroundColor: selected ? c.blue : isDone ? 'rgba(55,53,47,0.03)' : 'transparent',
+                    color: selected ? '#fff' : isDone ? c.textHint : c.textSub,
                     fontSize: font.sm,
                     fontWeight: selected ? 700 : 500,
                     cursor: 'pointer',
@@ -97,39 +92,33 @@ export function SprintBar({
                     opacity: isDone ? 0.7 : 1,
                   }}
                 >
-                  {isBacklog ? `☰ ${sp.name}` : sp.name}
+                  {sp.name}
                   {isDone && ' ✓'}
                 </button>
-
-                {/* "..." menu for non-backlog sprints */}
-                {!isBacklog && (
-                  <button
-                    onClick={(e) => openMenu(e, sp)}
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      color: c.textHint,
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 0,
-                      flexShrink: 0,
-                    }}
-                    aria-label="メニュー"
-                  >
-                    ···
-                  </button>
-                )}
+                <button
+                  onClick={(e) => openMenu(e, sp)}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    color: c.textHint,
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    flexShrink: 0,
+                  }}
+                >
+                  ···
+                </button>
               </div>
             )
           })}
 
-          {/* New sprint button */}
           <button
             onClick={onNew}
             style={{
@@ -148,6 +137,41 @@ export function SprintBar({
             + 新規
           </button>
         </div>
+
+        {/* Divider */}
+        {backlog && (
+          <div style={{ width: 1, height: 24, backgroundColor: c.border, flexShrink: 0 }} />
+        )}
+
+        {/* Right: Backlog (fixed) */}
+        {backlog && (
+          <div style={{ flexShrink: 0, padding: '8px 12px 8px 10px' }}>
+            <button
+              onClick={() => onSelect(backlog.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '5px 10px',
+                borderRadius: '16px',
+                border: backlogSelected ? 'none' : `1px solid ${c.border}`,
+                backgroundColor: backlogSelected ? 'rgba(55,53,47,0.12)' : 'transparent',
+                color: backlogSelected ? c.text : c.textSub,
+                fontSize: font.sm,
+                fontWeight: backlogSelected ? 700 : 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+              Backlog
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Dropdown menu */}
@@ -172,22 +196,9 @@ export function SprintBar({
             onClick={(e) => e.stopPropagation()}
           >
             {[
-              {
-                label: '編集',
-                action: () => { onEdit(menu.sprint); setMenu(null) },
-                show: true,
-              },
-              {
-                label: 'スプリント完了',
-                action: () => { onComplete(menu.sprint); setMenu(null) },
-                show: menu.sprint.status === 'active',
-              },
-              {
-                label: '削除',
-                action: () => { onDelete(menu.sprint); setMenu(null) },
-                show: true,
-                danger: true,
-              },
+              { label: '編集', action: () => { onEdit(menu.sprint); setMenu(null) }, show: true },
+              { label: 'スプリント完了', action: () => { onComplete(menu.sprint); setMenu(null) }, show: menu.sprint.status === 'active' },
+              { label: '削除', action: () => { onDelete(menu.sprint); setMenu(null) }, show: true, danger: true },
             ]
               .filter((item) => item.show)
               .map((item) => (

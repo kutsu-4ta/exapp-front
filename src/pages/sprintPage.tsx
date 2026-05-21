@@ -513,34 +513,13 @@ export default function SprintPage() {
             onComplete={handleSprintComplete}
           />
 
-          <SprintKpi stats={currentStats} loading={statsLoading} />
-
-          {currentSprint && (
-            <div style={{ padding: '4px 16px 8px' }}>
-              <div style={{ fontSize: font.xs, color: c.textHint }}>
-                {currentSprint.type === 'backlog'
-                  ? 'バックログ'
-                  : currentSprint.startDate
-                    ? `${currentSprint.startDate} 〜 ${currentSprint.endDate ?? '?'}`
-                    : ''}
-                {isCompleted && (
-                  <span style={{ marginLeft: 6, color: '#27ae60', fontWeight: 600 }}>完了済み</span>
-                )}
-              </div>
-              {currentSprint.goal && (
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: font.sm,
-                    color: c.textSub,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {currentSprint.goal}
-                </div>
-              )}
-            </div>
-          )}
+          <SprintKpi
+            stats={currentStats}
+            loading={statsLoading}
+            compact
+            sprint={currentSprint}
+            isCompleted={isCompleted}
+          />
 
           {isCompleted && currentSprint?.retrospective && (
             <RetroSection retrospective={currentSprint.retrospective} />
