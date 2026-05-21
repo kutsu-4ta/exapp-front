@@ -46,7 +46,7 @@ export function AlertWidget({ alertItems }: Props) {
           </span>
         </div>
         <span className="text-[11px] font-semibold text-n-red/50 uppercase tracking-wide ml-3 shrink-0">
-          {isCollapsed ? 'Show' : 'Hide'}
+          {isCollapsed ? '表示' : '隠す'}
         </span>
       </button>
 
@@ -63,7 +63,7 @@ export function AlertWidget({ alertItems }: Props) {
             ))}
           </div>
           <p className="text-[11px] text-n-red/60 mt-3 italic">
-            Prioritize neglected subjects to prevent knowledge decay.
+            知識の風化を防ぎましょう。
           </p>
         </div>
       )}

@@ -63,10 +63,10 @@ export function SubjectStatus({
         </div>
         <div className="ml-auto flex items-center gap-1">
           <ToggleBtn active={mode === 'status'} onClick={() => setMode('status')}>
-            Last Study
+            最終学習
           </ToggleBtn>
           <ToggleBtn active={mode === 'time'} onClick={() => setMode('time')}>
-            Study Time
+            学習時間
           </ToggleBtn>
         </div>
       </div>
@@ -74,13 +74,13 @@ export function SubjectStatus({
       {mode === 'time' && (
         <div className="flex justify-end gap-1 mb-2">
           <PeriodBtn active={period === 'all'} onClick={() => setPeriod('all')}>
-            All Time
+            全期間
           </PeriodBtn>
           <PeriodBtn active={period === 'month'} onClick={() => setPeriod('month')}>
-            This Month
+            今月
           </PeriodBtn>
           <PeriodBtn active={period === 'today'} onClick={() => setPeriod('today')}>
-            Today
+            今日
           </PeriodBtn>
         </div>
       )}
@@ -252,10 +252,10 @@ function getStatusLabel(lastDate: string | null) {
     return { text: 'Not studied', color: '#7c7168', bg: 'rgba(55,53,47,0.07)' }
   }
   const n = daysSince(lastDate)
-  if (n === 0) return { text: 'Today', color: '#19a576', bg: 'rgba(45,106,31,0.10)' }
-  if (n === 1) return { text: 'Yesterday', color: '#f2ab26', bg: 'rgba(242,171,38,0.12)' }
-  if (n <= 6) return { text: `${n}d ago`, color: '#f2ab26', bg: 'rgba(242,171,38,0.10)' }
-  return { text: `${n}d ago`, color: '#eb5757', bg: 'rgba(235,87,87,0.10)' }
+  if (n === 0) return { text: '今日', color: '#19a576', bg: 'rgba(45,106,31,0.10)' }
+  if (n === 1) return { text: '昨日', color: '#f2ab26', bg: 'rgba(242,171,38,0.12)' }
+  if (n <= 6) return { text: `${n}日前`, color: '#f2ab26', bg: 'rgba(242,171,38,0.10)' }
+  return { text: `${n}日前`, color: '#eb5757', bg: 'rgba(235,87,87,0.10)' }
 }
 
 
@@ -275,12 +275,12 @@ function PracticeBtn({
         borderColor: 'rgba(55,53,47,0.12)',
         backgroundColor: 'transparent',
       }}
-      title="Start practice"
+      title="演習を開始する"
     >
       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
         <polygon points="5,3 19,12 5,21" />
       </svg>
-      Practice
+      演習
     </button>
   )
 }

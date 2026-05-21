@@ -195,7 +195,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
       {/* チャートカード */}
       <div style={chartCard}>
         <h3 style={cardTitle}>
-          {isOverview ? '科目別 Avg.TOTAL スコア' : `${filterSubject} の得点推移`}
+          {isOverview ? 'Avg.TOTAL SCORE' : `HISTORY OF ${filterSubject}`}
         </h3>
 
         {isOverview ? (
@@ -297,10 +297,10 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
       {/* 切替タブ */}
       <div style={viewToggleRow}>
         <button style={viewToggleBtn(cardView === 'subjects')} onClick={() => setCardView('subjects')}>
-          平均
+          AVG.
         </button>
         <button style={viewToggleBtn(cardView === 'recent')} onClick={() => setCardView('recent')}>
-          直近
+          LAST
         </button>
       </div>
 
