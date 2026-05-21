@@ -1,9 +1,19 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
 import {Link, useNavigate, useSearchParams} from 'react-router-dom'
-import {CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts'
-import {fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
-import type {DailyLogSummary} from '../types/workspace'
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {fetchDailyLog, fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
+import type {DailyLog, DailyLogSummary} from '../types/workspace'
 import {getCached, setCached} from '../lib/pageCache'
 import {StatusBadge} from "@/components/common/StatusBadge.tsx";
 
@@ -69,9 +79,15 @@ export default function DailyLogsPage() {
   const [chartData, setChartData] = useState<DailyLogSummary[]>([])
   const [chartLoading, setChartLoading] = useState(false)
 
+  // --- Day detail state ---
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [detailLog, setDetailLog] = useState<DailyLog | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const detailCache = useRef<Record<string, DailyLog | null>>({})
+
   // --- Modal state ---
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [modalDate, setModalDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   // Initial list fetch
   useEffect(() => {
@@ -146,17 +162,52 @@ export default function DailyLogsPage() {
   }, [viewMode, baseMonth])
 
   const filteredChartData = useMemo(() => {
+    const [year, month] = baseMonth.split('-').map(Number)
     const monthDataMap = new Map(
       chartData
         .filter((log) => log.date.startsWith(baseMonth))
-        .map((log) => [log.date.slice(5).replace('-', '/'), log.totalMinutes])
+        .map((log) => [log.date.slice(5).replace('-', '/'), log])
     )
 
-    return daysInMonth.map((dateLabel) => ({
-      date: dateLabel,
-      minutes: monthDataMap.get(dateLabel) || 0,
-    }))
+    return daysInMonth.map((dateLabel) => {
+      const log = monthDataMap.get(dateLabel)
+      const mm = String(month).padStart(2, '0')
+      const dd = dateLabel.slice(3)
+      const fullDate = `${year}-${mm}-${dd}`
+      return {
+        date: dateLabel,
+        fullDate,
+        minutes: log?.totalMinutes ?? 0,
+        sessions: log?.sessionCount ?? 0,
+        morning: log?.slotMinutes?.morning ?? 0,
+        lunch: log?.slotMinutes?.lunch ?? 0,
+        night: log?.slotMinutes?.night ?? 0,
+      }
+    })
   }, [chartData, daysInMonth, baseMonth])
+
+  const handleSelectDate = async (fullDate: string) => {
+    if (selectedDate === fullDate) {
+      setSelectedDate(null)
+      setDetailLog(null)
+      return
+    }
+    setSelectedDate(fullDate)
+    if (fullDate in detailCache.current) {
+      setDetailLog(detailCache.current[fullDate])
+      return
+    }
+    setDetailLoading(true)
+    try {
+      const log = await fetchDailyLog(fullDate)
+      detailCache.current[fullDate] = log
+      setDetailLog(log)
+    } catch {
+      setDetailLog(null)
+    } finally {
+      setDetailLoading(false)
+    }
+  }
 
   const navigateChart = (delta: number) => {
     const [y, m] = baseMonth.split('-').map(Number)
@@ -164,12 +215,14 @@ export default function DailyLogsPage() {
     const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (next > new Date().toISOString().slice(0, 7)) return
     setBaseMonth(next)
+    setSelectedDate(null)
+    setDetailLog(null)
   }
 
   const handleConfirm = () => {
-    if (!selectedDate) return
+    if (!modalDate) return
     setIsModalOpen(false)
-    navigate(`/workspace/${selectedDate}`)
+    navigate(`/workspace/${modalDate}`)
   }
 
   if (listInitialLoading) return <LoadingSpinner fullPage />
@@ -286,58 +339,67 @@ export default function DailyLogsPage() {
           </div>
         ) : (
           <div style={chartContainer}>
-            <div style={chartCard}>
-              {chartLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-                  <LoadingSpinner />
+            {chartLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <>
+                {/* ComposedChart: 学習時間（折れ線）+ セッション数（棒） */}
+                <div style={chartCard}>
+                  <div style={{ width: '100%', height: 240 }}>
+                    <ResponsiveContainer>
+                      <ComposedChart data={filteredChartData} onClick={(p: any) => { if (p?.activePayload?.[0]?.payload?.fullDate) handleSelectDate(p.activePayload[0].payload.fullDate) }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                        <XAxis dataKey="date" fontSize={9} tickLine={false} axisLine={false} dy={8} interval={4} tick={{ fill: 'rgba(55,53,47,0.45)' }} />
+                        <YAxis yAxisId="min" fontSize={10} tickLine={false} axisLine={false} dx={-4} />
+                        <YAxis yAxisId="sess" orientation="right" fontSize={10} tickLine={false} axisLine={false} dx={4} allowDecimals={false} />
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          cursor={{ fill: 'rgba(55,53,47,0.04)' }}
+                          labelFormatter={(label) => `${baseMonth.split('-')[0]}/${label}`}
+                          formatter={(value, name) =>
+                            name === 'sessions' ? [`${value}セッション`, 'セッション数'] : [`${value}分`, '学習時間']
+                          }
+                        />
+                        <ReferenceLine yAxisId="min" y={385} stroke="#eb5757" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 9, fill: '#eb5757', position: 'insideBottomRight' }} />
+                        <Bar yAxisId="sess" dataKey="sessions" fill="rgba(35,131,226,0.15)" radius={[2,2,0,0]} animationDuration={600} />
+                        <Line yAxisId="min" type="monotone" dataKey="minutes" stroke="#2383e2" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} animationDuration={800} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={chartLegend}>
+                    <span style={legendDot('#2383e2')} />学習時間
+                    <span style={{ ...legendDot('rgba(35,131,226,0.4)'), marginLeft: 12 }} />セッション数
+                  </div>
                 </div>
-              ) : (
-                <div style={{ width: '100%', height: 300 }}>
-                  <ResponsiveContainer>
-                    <LineChart data={filteredChartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
-                      <XAxis
-                        dataKey="date"
-                        fontSize={9}
-                        tickLine={false}
-                        axisLine={false}
-                        dy={10}
-                        interval={4}
-                        tick={{ fill: 'rgba(55, 53, 47, 0.45)' }}
-                      />
-                      <YAxis fontSize={10} tickLine={false} axisLine={false} dx={-5} />
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        cursor={{ stroke: '#2383e2', strokeWidth: 1 }}
-                        labelFormatter={(label) => `${baseMonth.split('-')[0]}/${label}`}
-                        formatter={(value) => [`${value}分`, '学習時間']}
-                      />
-                      <ReferenceLine
-                        y={385}
-                        stroke="#eb5757"
-                        strokeDasharray="5 5"
-                        label={{
-                          value: 'Target',
-                          fontSize: 10,
-                          fill: '#eb5757',
-                          position: 'insideBottomRight',
-                          offset: 10,
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="minutes"
-                        stroke="#2383e2"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 4, strokeWidth: 0 }}
-                        animationDuration={1000}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+
+                {/* ヒートマップ: 時間帯スロット × 日 */}
+                <div style={chartCard}>
+                  <p style={heatmapTitle}>時間帯別</p>
+                  <Heatmap data={filteredChartData} selectedDate={selectedDate} onSelect={handleSelectDate} />
                 </div>
-              )}
-            </div>
+
+                {/* 日別詳細パネル */}
+                {selectedDate && (
+                  <div style={detailPanel}>
+                    <div style={detailHeader}>
+                      <span style={detailDateLabel}>{formatDetailDate(selectedDate)}</span>
+                      <button style={detailCloseBtn} onClick={() => { setSelectedDate(null); setDetailLog(null) }}>×</button>
+                    </div>
+                    {detailLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+                        <LoadingSpinner size="sm" />
+                      </div>
+                    ) : detailLog ? (
+                      <DayDetail log={detailLog} />
+                    ) : (
+                      <p style={detailEmpty}>この日の記録はありません</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
@@ -348,8 +410,8 @@ export default function DailyLogsPage() {
             <h3 style={modalTitle}>日付を選択</h3>
             <input
               type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              value={modalDate}
+              onChange={(e) => setModalDate(e.target.value)}
               style={modalDateInput}
             />
             <div style={modalActions}>
@@ -365,6 +427,121 @@ export default function DailyLogsPage() {
       )}
     </div>
   )
+}
+
+// ── ヒートマップ ─────────────────────────────────────────────────────────────
+
+type HeatmapRow = { date: string; fullDate: string; morning: number; lunch: number; night: number }
+
+const SLOT_LABELS: { key: 'morning' | 'lunch' | 'night'; label: string }[] = [
+  { key: 'morning', label: '朝' },
+  { key: 'lunch',   label: '昼' },
+  { key: 'night',   label: '夜' },
+]
+
+function slotColor(minutes: number): string {
+  if (minutes === 0) return 'rgba(55,53,47,0.06)'
+  if (minutes < 30)  return 'rgba(35,131,226,0.18)'
+  if (minutes < 60)  return 'rgba(35,131,226,0.38)'
+  if (minutes < 120) return 'rgba(35,131,226,0.62)'
+  return 'rgba(35,131,226,0.90)'
+}
+
+function Heatmap({ data, selectedDate, onSelect }: { data: HeatmapRow[]; selectedDate: string | null; onSelect: (d: string) => void }) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: `${28 + data.length * 14}px` }}>
+        {SLOT_LABELS.map(({ key, label }) => (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <div style={heatmapSlotLabel}>{label}</div>
+            {data.map((d) => (
+              <div
+                key={d.date}
+                title={`${d.date} ${label}: ${d[key]}分`}
+                onClick={() => onSelect(d.fullDate)}
+                style={{
+                  flex: 1,
+                  height: '18px',
+                  borderRadius: '2px',
+                  backgroundColor: slotColor(d[key]),
+                  cursor: 'pointer',
+                  outline: selectedDate === d.fullDate ? '2px solid #2383e2' : 'none',
+                  outlineOffset: '1px',
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── 日別詳細パネル ────────────────────────────────────────────────────────────
+
+function formatDetailDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const days = ['日', '月', '火', '水', '木', '金', '土']
+  return `${d.getMonth() + 1}月${d.getDate()}日（${days[d.getDay()]}）`
+}
+
+function DayDetail({ log }: { log: DailyLog }) {
+  const subjectMap: Record<string, number> = {}
+  const slotMap: Record<string, number> = { morning: 0, lunch: 0, night: 0 }
+  for (const s of log.studySessions) {
+    subjectMap[s.subject] = (subjectMap[s.subject] ?? 0) + s.minutes
+    slotMap[s.timeSlot] = (slotMap[s.timeSlot] ?? 0) + s.minutes
+  }
+  const subjects = Object.entries(subjectMap).sort((a, b) => b[1] - a[1])
+  const maxMin = subjects[0]?.[1] ?? 1
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* 科目別 */}
+      {subjects.length > 0 && (
+        <div>
+          <p style={detailSectionLabel}>科目別</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {subjects.map(([subj, min]) => (
+              <div key={subj} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={detailSubjectName}>{subj}</span>
+                <div style={detailBarTrack}>
+                  <div style={{ ...detailBar, width: `${(min / maxMin) * 100}%` }} />
+                </div>
+                <span style={detailMinutes}>{min}分</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* スロット別 + セッション数 */}
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        {SLOT_LABELS.map(({ key, label }) => (
+          <div key={key} style={detailSlotChip}>
+            <span style={detailSlotLabel}>{label}</span>
+            <span style={detailSlotMin}>{slotMap[key]}分</span>
+          </div>
+        ))}
+        <div style={detailSlotChip}>
+          <span style={detailSlotLabel}>セッション</span>
+          <span style={detailSlotMin}>{log.studySessions.length}</span>
+        </div>
+      </div>
+
+      {/* 振り返り */}
+      {log.reflection && (
+        <div>
+          <p style={detailSectionLabel}>振り返り</p>
+          <p style={detailReflection}>{log.reflection}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function legendDot(color: string): React.CSSProperties {
+  return { display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: color, marginRight: 4 }
 }
 
 // Styles
@@ -496,6 +673,61 @@ const tooltipStyle = {
   border: 'none',
   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
   fontSize: '12px',
+}
+const chartLegend: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', fontSize: '11px', color: 'rgba(55,53,47,0.5)', marginTop: '10px', gap: '4px',
+}
+const heatmapTitle: React.CSSProperties = {
+  fontSize: '11px', fontWeight: 700, color: 'rgba(55,53,47,0.4)', letterSpacing: '0.06em', marginBottom: '10px',
+}
+const heatmapSlotLabel: React.CSSProperties = {
+  fontSize: '10px', fontWeight: 700, color: 'rgba(55,53,47,0.4)', display: 'flex', alignItems: 'center',
+}
+const detailPanel: React.CSSProperties = {
+  border: '1px solid rgba(55,53,47,0.09)', borderRadius: '12px', padding: '20px', backgroundColor: '#fcfcfc',
+  animation: 'fadeSlideIn 0.18s ease',
+}
+const detailHeader: React.CSSProperties = {
+  display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px',
+}
+const detailDateLabel: React.CSSProperties = {
+  fontSize: '15px', fontWeight: 700, color: '#37352f',
+}
+const detailCloseBtn: React.CSSProperties = {
+  background: 'none', border: 'none', fontSize: '18px', color: 'rgba(55,53,47,0.4)', cursor: 'pointer', padding: '0 4px',
+}
+const detailEmpty: React.CSSProperties = {
+  fontSize: '13px', color: 'rgba(55,53,47,0.4)', textAlign: 'center', padding: '16px 0',
+}
+const detailSectionLabel: React.CSSProperties = {
+  fontSize: '11px', fontWeight: 700, color: 'rgba(55,53,47,0.35)', letterSpacing: '0.06em', marginBottom: '8px',
+}
+const detailSubjectName: React.CSSProperties = {
+  fontSize: '13px', fontWeight: 600, color: '#37352f', width: '80px', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+}
+const detailBarTrack: React.CSSProperties = {
+  flex: 1, height: '6px', backgroundColor: 'rgba(55,53,47,0.06)', borderRadius: '3px', overflow: 'hidden',
+}
+const detailBar: React.CSSProperties = {
+  height: '100%', backgroundColor: '#2383e2', borderRadius: '3px', transition: 'width 0.3s ease',
+}
+const detailMinutes: React.CSSProperties = {
+  fontSize: '12px', color: 'rgba(55,53,47,0.55)', fontFamily: 'monospace', width: '36px', textAlign: 'right', flexShrink: 0,
+}
+const detailSlotChip: React.CSSProperties = {
+  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+  padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(55,53,47,0.08)', backgroundColor: '#fff',
+}
+const detailSlotLabel: React.CSSProperties = {
+  fontSize: '10px', fontWeight: 700, color: 'rgba(55,53,47,0.35)',
+}
+const detailSlotMin: React.CSSProperties = {
+  fontSize: '14px', fontWeight: 700, color: '#37352f',
+}
+const detailReflection: React.CSSProperties = {
+  fontSize: '13px', color: 'rgba(55,53,47,0.7)', lineHeight: 1.7, whiteSpace: 'pre-wrap',
+  padding: '12px 14px', borderRadius: '8px', backgroundColor: 'rgba(55,53,47,0.03)',
+  border: '1px solid rgba(55,53,47,0.06)',
 }
 const modalOverlay: React.CSSProperties = {
   position: 'fixed',

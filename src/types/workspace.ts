@@ -99,6 +99,7 @@ export type DailyLogSummary = {
   isCompleted: boolean
   totalMinutes: number
   sessionCount: number
+  slotMinutes: { morning: number; lunch: number; night: number }
 }
 
 export function formatMinutes(minutes: number): string {
