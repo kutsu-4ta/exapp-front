@@ -380,10 +380,6 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
                   {latestPerSubject.length > 0 ? recentTotalScore : '-'}
                 </span>
               </div>
-              <div style={dataItem}>
-                <span style={dataLabel}>受験回数</span>
-                <span style={dataValue}>{recentSessions.length}回</span>
-              </div>
             </div>
           </div>
         </div>
