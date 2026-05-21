@@ -103,7 +103,7 @@ function IconExam({ active }: { active: boolean }) {
 }
 
 const TABS = [
-  { href: '/', label: 'ホーム', Icon: IconHome, matchPrefix: '/', exact: true },
+  { href: '/', label: 'HOME', Icon: IconHome, matchPrefix: '/', exact: true },
   {
     href: '/workspace/daily-logs',
     label: 'デイリー',
@@ -111,9 +111,9 @@ const TABS = [
     matchPrefix: '/workspace',
     exact: false,
   },
-  { href: '/sprint', label: 'スプリント', Icon: IconSprint, matchPrefix: '/sprint', exact: false },
-  { href: '/notelist', label: 'ノート', Icon: IconWeak, matchPrefix: '/note', exact: false },
-  { href: '/exam', label: '過去問', Icon: IconExam, matchPrefix: '/exam', exact: false },
+  { href: '/sprint', label: 'SPRINT', Icon: IconSprint, matchPrefix: '/sprint', exact: false },
+  { href: '/notelist', label: 'NOTE', Icon: IconWeak, matchPrefix: '/note', exact: false },
+  { href: '/exam', label: 'EXAM', Icon: IconExam, matchPrefix: '/exam', exact: false },
 ]
 
 export function BottomNav() {

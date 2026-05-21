@@ -1,10 +1,22 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
 import {Link, useNavigate, useSearchParams} from 'react-router-dom'
-import {Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts'
+import {
+  Bar,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Line,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import {fetchDailyLog, fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
 import type {DailyLog, DailyLogSummary} from '../types/workspace'
-import {formatSessions} from '../types/workspace'
+import {formatDuration, formatSessions} from '../types/workspace'
 import {getCached, setCached} from '../lib/pageCache'
 import {StatusBadge} from "@/components/common/StatusBadge.tsx";
 import {useSettingsStore} from '../lib/store/settings'
@@ -159,12 +171,15 @@ export default function DailyLogsPage() {
       .finally(() => setChartLoading(false))
   }, [viewMode, baseMonth])
 
-  const monthSubjects = useMemo(() => {
-    const seen = new Set<string>()
+  const monthTotals = useMemo(() => {
+    const totalMinutes = chartData.reduce((acc, log) => acc + log.totalMinutes, 0)
+    const subjectMap: Record<string, number> = {}
     for (const log of chartData) {
-      for (const s of Object.keys(log.subjectMinutes ?? {})) seen.add(s)
+      for (const [subj, mins] of Object.entries(log.subjectMinutes ?? {})) {
+        subjectMap[subj] = (subjectMap[subj] ?? 0) + mins
+      }
     }
-    return [...seen]
+    return { totalMinutes, subjectMap }
   }, [chartData])
 
   const filteredChartData = useMemo(() => {
@@ -185,6 +200,7 @@ export default function DailyLogsPage() {
         date: dateLabel,
         fullDate,
         sessions: log?.sessionCount ?? 0,
+        totalMinutes: log?.totalMinutes ?? 0,
         morning: log?.slotMinutes?.morning ?? 0,
         lunch: log?.slotMinutes?.lunch ?? 0,
         night: log?.slotMinutes?.night ?? 0,
@@ -352,15 +368,69 @@ export default function DailyLogsPage() {
               </div>
             ) : (
               <>
-                {/* ComposedChart: 科目別積み上げ棒（時間）+ 折れ線（セッション数） */}
+                {/* Monthly overview: pie chart + total time */}
                 <div style={chartCard}>
-                  <div style={{ width: '100%', height: 240 }}>
+                  <p style={heatmapTitle}>MONTHLY OVERVIEW</p>
+                  {monthTotals.totalMinutes === 0 ? (
+                    <p style={{ fontSize: '13px', color: 'rgba(55,53,47,0.4)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No data this month</p>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ width: 120, height: 120, flexShrink: 0 }}>
+                        <ResponsiveContainer>
+                          <PieChart>
+                            <Pie
+                              data={Object.entries(monthTotals.subjectMap).map(([name, value]) => ({ name, value }))}
+                              cx="50%"
+                              cy="50%"
+                              outerRadius="48%"
+                              innerRadius="28%"
+                              dataKey="value"
+                              stroke="none"
+                              animationDuration={600}
+                            >
+                              {Object.keys(monthTotals.subjectMap).map((name, i) => (
+                                <Cell key={name} fill={subjectColors[name] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}m`, '']} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ marginBottom: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(55,53,47,0.4)', letterSpacing: '0.06em', display: 'block', marginBottom: '2px' }}>TOTAL</span>
+                          <span style={{ fontSize: '24px', fontWeight: 700, color: '#37352f', fontFamily: 'monospace' }}>
+                            {formatDuration(monthTotals.totalMinutes)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          {Object.entries(monthTotals.subjectMap)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([name, mins], i) => {
+                              const pct = Math.round((mins / monthTotals.totalMinutes) * 100)
+                              return (
+                                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                                  <span style={{ ...legendDot(subjectColors[name] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]), flexShrink: 0, margin: 0 }} />
+                                  <span style={{ flex: 1, color: '#37352f', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                                  <span style={{ color: 'rgba(55,53,47,0.5)', fontFamily: 'monospace', flexShrink: 0 }}>{pct}%</span>
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Trend: sessions bar + time line */}
+                <div style={chartCard}>
+                  <div style={{ width: '100%', height: 200 }}>
                     <ResponsiveContainer>
                       <ComposedChart data={filteredChartData} onClick={(p: any) => { if (p?.activePayload?.[0]?.payload?.fullDate) handleSelectDate(p.activePayload[0].payload.fullDate) }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
                         <XAxis dataKey="date" fontSize={9} tickLine={false} axisLine={false} dy={8} interval={4} tick={{ fill: 'rgba(55,53,47,0.45)' }} />
-                        <YAxis yAxisId="min" fontSize={10} tickLine={false} axisLine={false} dx={-4} />
-                        <YAxis yAxisId="sess" orientation="right" fontSize={10} tickLine={false} axisLine={false} dx={4} allowDecimals={false} />
+                        <YAxis yAxisId="sess" fontSize={10} tickLine={false} axisLine={false} dx={-4} allowDecimals={false} />
+                        <YAxis yAxisId="min" orientation="right" fontSize={10} tickLine={false} axisLine={false} dx={4} />
                         <Tooltip
                           contentStyle={tooltipStyle}
                           cursor={{ fill: 'rgba(55,53,47,0.04)' }}
@@ -368,44 +438,31 @@ export default function DailyLogsPage() {
                           formatter={(value, name) =>
                             name === 'sessions'
                               ? [formatSessions(value as number), 'Sessions']
-                              : [`${value}m`, String(name)]
+                              : [formatDuration(value as number), 'Time']
                           }
                         />
-                        {monthSubjects.map((subj, i) => (
-                          <Bar
-                            key={subj}
-                            yAxisId="min"
-                            dataKey={subj}
-                            stackId="time"
-                            fill={subjectColors[subj] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]}
-                            radius={i === monthSubjects.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]}
-                            animationDuration={600}
-                          />
-                        ))}
-                        <Line yAxisId="sess" type="monotone" dataKey="sessions" stroke="#19a576" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} animationDuration={800} />
+                        <Bar yAxisId="sess" dataKey="sessions" fill="#19a576" radius={[2, 2, 0, 0]} animationDuration={600} />
+                        <Line yAxisId="min" type="monotone" dataKey="totalMinutes" stroke="#2383e2" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} animationDuration={800} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                   <div style={chartLegend}>
-                    {monthSubjects.map((subj, i) => (
-                      <span key={subj} style={{ display: 'flex', alignItems: 'center', gap: '3px', marginRight: 10 }}>
-                        <span style={legendDot(subjectColors[subj] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length])} />
-                        <span>{subj}</span>
-                      </span>
-                    ))}
                     <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                       <span style={legendDot('#19a576')} />Sessions
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <span style={legendDot('#2383e2')} />Time
                     </span>
                   </div>
                 </div>
 
-                {/* ヒートマップ: 時間帯スロット × 日 */}
+                {/* Heatmap: time slot × day */}
                 <div style={chartCard}>
                   <p style={heatmapTitle}>By Time Slot</p>
                   <Heatmap data={filteredChartData} selectedDate={selectedDate} onSelect={handleSelectDate} />
                 </div>
 
-                {/* 日別詳細パネル */}
+                {/* Day detail panel */}
                 {selectedDate && (
                   <div style={detailPanel}>
                     <div style={detailHeader}>
