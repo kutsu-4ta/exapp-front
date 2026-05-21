@@ -99,6 +99,7 @@ export type DailyLogSummary = {
   isCompleted: boolean
   totalMinutes: number
   sessionCount: number
+  reflection: string | null
   slotMinutes: { morning: number; lunch: number; night: number }
   subjectMinutes: Record<string, number>
 }
@@ -266,9 +267,18 @@ export type SubjectActivityDay = {
   problemCount: number
 }
 
-// ── Gemini context ───────────────────────────────────────────────────────────
+// ── Dashboard response ───────────────────────────────────────────────────────
 
-export type GeminiContextSubject = {
+export type DashboardResponse = {
+  stats: DashboardStats
+  todayLog: DailyLog | null
+  prevDayLog: DailyLog | null
+  alertItems: AlertStatusItem[]
+}
+
+// ── Subjects summary ─────────────────────────────────────────────────────────
+
+export type SubjectSummaryItem = {
   subject: string
   finalTarget: string | null
   monthlyGoal: string | null
@@ -283,24 +293,10 @@ export type GeminiContextSubject = {
   } | null
 }
 
-export type GeminiContextDailyLog = {
-  date: string
-  studyMinutes: number
-  reflection: string | null
-}
-
-export type GeminiContext = {
+export type SubjectsSummary = {
   year: number
   month: number
-  profile: {
-    occupation: string | null
-    goal: string | null
-    weakAreas: string | null
-    strongAreas: string | null
-  }
-  dashboard: DashboardStats
-  recentDailyLogs: GeminiContextDailyLog[]
-  subjects: GeminiContextSubject[]
+  subjects: SubjectSummaryItem[]
 }
 
 // ── Dashboard stats ──────────────────────────────────────────────────────────

@@ -3,12 +3,12 @@
  */
 import {apiFetch, extractApiError} from '../client'
 import type {
-  DailyLog,
-  DailyLogSummary,
-  DashboardStats,
-  MonthlySettings,
-  StudySession,
-  StudySessionInput,
+    DailyLog,
+    DailyLogSummary,
+    DashboardResponse,
+    MonthlySettings,
+    StudySession,
+    StudySessionInput,
 } from '../../types/workspace'
 import type {AdviceMode} from '@/types/aiAgent.ts'
 
@@ -119,12 +119,13 @@ export async function deleteStudySession(id: number): Promise<void> {
  * ── Dashboard ───────────────────────────────────────────────────────────────
  */
 
-// GET /api/dashboard/stats
-export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const res = await apiFetch('/api/dashboard/stats')
-  if (!res.ok) await extractApiError(res, '統計の取得に失敗しました')
+// GET /api/dashboard
+export async function fetchDashboard(): Promise<DashboardResponse> {
+  const res = await apiFetch('/api/dashboard')
+  if (!res.ok) await extractApiError(res, 'ダッシュボードデータの取得に失敗しました')
   return res.json()
 }
+
 
 /**
  * ── Monthly Settings ────────────────────────────────────────────────────────

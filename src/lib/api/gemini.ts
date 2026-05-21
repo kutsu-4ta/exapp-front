@@ -1,5 +1,5 @@
 import {apiFetch, extractApiError} from '../client'
-import type {GeminiContext} from '../../types/workspace'
+import type {SubjectsSummary} from '../../types/workspace'
 import type {GeminiModel} from './apiWeights'
 
 export type { GeminiModel }
@@ -10,11 +10,13 @@ export const GEMINI_MODEL_OPTIONS: { value: GeminiModel; label: string }[] = [
   { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
 ]
 
-export async function fetchGeminiContext(year: number, month: number): Promise<GeminiContext> {
-  const res = await apiFetch(`/api/gemini/context?year=${year}&month=${month}`)
-  if (!res.ok) throw new Error(`fetchGeminiContext: ${res.status}`)
+// GET /api/subjects/summary
+export async function fetchSubjectsSummary(year: number, month: number): Promise<SubjectsSummary> {
+  const res = await apiFetch(`/api/subjects/summary?year=${year}&month=${month}`)
+  if (!res.ok) throw new Error(`fetchSubjectsSummary: ${res.status}`)
   return res.json()
 }
+
 
 export async function fetchGeminiSettings(): Promise<{ geminiModel: GeminiModel | null }> {
   const res = await apiFetch('/api/gemini/settings')

@@ -12,7 +12,8 @@ import {stopStopwatch} from '../lib/api/stopwatch'
 import {c, font} from '../styles/notion'
 import {BottomSheet} from '../components/common/BottomSheet'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
-import {fetchGeminiContext} from '../lib/api/gemini'
+import {fetchSubjectsSummary} from '../lib/api/gemini'
+import {fetchRecentDailyLogs} from '../lib/api/workspace'
 import {StatusCopyModal} from '../components/common/StatusCopyModal'
 
 export default function ExamPage() {
@@ -228,12 +229,15 @@ export default function ExamPage() {
     if (statsCopying) return
     setStatsCopying(true)
     try {
-      const ctx = await fetchGeminiContext(now.getFullYear(), now.getMonth() + 1)
+      const [summary, recentLogs] = await Promise.all([
+        fetchSubjectsSummary(now.getFullYear(), now.getMonth() + 1),
+        fetchRecentDailyLogs(7),
+      ])
       const lines = ['【過去問ステータス】']
-      lines.push(`期間: ${ctx.year}年${ctx.month}月`)
+      lines.push(`期間: ${summary.year}年${summary.month}月`)
       lines.push('')
       lines.push('【科目別 直近スコア】')
-      for (const s of ctx.subjects) {
+      for (const s of summary.subjects) {
         if (s.recentExamScore) {
           const { examYear, score, completedAt } = s.recentExamScore
           const dateStr = completedAt ? ` (${completedAt.replace(/-/g, '/')})` : ''
@@ -242,7 +246,7 @@ export default function ExamPage() {
           lines.push(`■ ${s.subject}: 未実施`)
         }
       }
-      const withRankStats = ctx.subjects.filter(
+      const withRankStats = summary.subjects.filter(
         (s) => s.recentExamScore?.rankStats && s.recentExamScore.rankStats.length > 0
       )
       if (withRankStats.length > 0) {
@@ -256,11 +260,11 @@ export default function ExamPage() {
           })
         }
       }
-      if (ctx.recentDailyLogs.length > 0) {
+      if (recentLogs.length > 0) {
         lines.push('')
         lines.push('【直近7日間】')
-        ctx.recentDailyLogs.forEach((log) => {
-          const label = `${log.date.replace(/-/g, '/')}: ${log.studyMinutes}分`
+        recentLogs.forEach((log) => {
+          const label = `${log.date.replace(/-/g, '/')}: ${log.totalMinutes}分`
           lines.push(log.reflection ? `  ${label} — ${log.reflection}` : `  ${label}`)
         })
       }

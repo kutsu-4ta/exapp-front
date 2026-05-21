@@ -1,6 +1,6 @@
-import type {ChartDataPoint, DailyLog, DailyLogSummary} from '../types/workspace'
+import type {ChartDataPoint, DailyLog, DailyLogSummary, DashboardStats, SubjectsSummary} from '../types/workspace'
 import {daysSince, formatDuration} from '../types/workspace'
-import type {fetchGeminiContext} from './api/gemini'
+import type {UserProfile} from './api/profile'
 
 export function buildChartData(
   year: number,
@@ -44,25 +44,26 @@ export function buildChartData(
 }
 
 export function buildDashboardStatusText(
-  ctx: Awaited<ReturnType<typeof fetchGeminiContext>>,
+  summary: SubjectsSummary,
+  profile: UserProfile,
+  recentLogs: DailyLogSummary[],
+  stats: DashboardStats,
   todaySubjects: Array<{ subject: string; minutes: number }>,
   todayLog: DailyLog | null,
   todayStr: string
 ): string {
-  const d = ctx.dashboard
   const lines = ['[Study Summary]']
-  lines.push(`Total: ${formatDuration(d.allTotalMinutes)} (${d.allTotalDays}日)`)
-  lines.push(`This Month: ${formatDuration(d.thisMonthMinutes)} (${d.thisMonthDays}日)`)
-  lines.push(`Streak: ${d.currentStreak}日`)
-  lines.push(`This Week: ${formatDuration(d.thisWeekTotalMinutes)}`)
+  lines.push(`Total: ${formatDuration(stats.allTotalMinutes)} (${stats.allTotalDays}日)`)
+  lines.push(`This Month: ${formatDuration(stats.thisMonthMinutes)} (${stats.thisMonthDays}日)`)
+  lines.push(`Streak: ${stats.currentStreak}日`)
+  lines.push(`This Week: ${formatDuration(stats.thisWeekTotalMinutes)}`)
   lines.push('')
-  const p = ctx.profile
-  if (p.occupation || p.goal || p.weakAreas || p.strongAreas) {
+  if (profile.occupation || profile.goal || profile.weakAreas || profile.strongAreas) {
     lines.push('[Profile]')
-    if (p.occupation) lines.push(`  Occupation: ${p.occupation}`)
-    if (p.goal) lines.push(`  Goal: ${p.goal}`)
-    if (p.weakAreas) lines.push(`  Weak Areas: ${p.weakAreas}`)
-    if (p.strongAreas) lines.push(`  Strong Areas: ${p.strongAreas}`)
+    if (profile.occupation) lines.push(`  Occupation: ${profile.occupation}`)
+    if (profile.goal) lines.push(`  Goal: ${profile.goal}`)
+    if (profile.weakAreas) lines.push(`  Weak Areas: ${profile.weakAreas}`)
+    if (profile.strongAreas) lines.push(`  Strong Areas: ${profile.strongAreas}`)
     lines.push('')
   }
   lines.push(`[Today ${todayStr}]`)
@@ -73,24 +74,23 @@ export function buildDashboardStatusText(
     lines.push('No study recorded yet')
   }
   lines.push('')
-  if (ctx.recentDailyLogs.length > 0) {
+  if (recentLogs.length > 0) {
     lines.push('[Last 7 Days]')
-    ctx.recentDailyLogs.forEach((log) => {
-      const label = `${log.date}: ${formatDuration(log.studyMinutes)}`
+    recentLogs.forEach((log) => {
+      const label = `${log.date}: ${formatDuration(log.totalMinutes)}`
       lines.push(log.reflection ? `  ${label} — ${log.reflection}` : `  ${label}`)
     })
     lines.push('')
   }
-  lines.push(`[Subject Details (${ctx.year}/${String(ctx.month).padStart(2, '0')})]`)
-  for (const s of ctx.subjects) {
+  lines.push(`[Subject Details (${summary.year}/${String(summary.month).padStart(2, '0')})]`)
+  for (const s of summary.subjects) {
     lines.push(`■ ${s.subject}`)
     if (s.finalTarget) lines.push(`  Final Target: ${s.finalTarget}`)
     if (s.monthlyGoal) lines.push(`  Monthly Goal: ${s.monthlyGoal}`)
     lines.push(`  Study Time: ${formatDuration(s.studyMinutes)}`)
     lines.push(`  Problems: ${s.problemCount}`)
-    const lastDate = d.lastTouchedBySubject.find((e) => e.subject === s.subject)?.lastdate ?? null
+    const lastDate = stats.lastTouchedBySubject.find((e) => e.subject === s.subject)?.lastdate ?? null
     lines.push(lastDate ? `  Last Study: ${lastDate} (${daysSince(lastDate)}日前)` : `  Last Study: Not studied`)
-
     if (s.recentExamScore) {
       const { examYear, score, completedAt, rankStats } = s.recentExamScore
       const dateStr = completedAt ? ` (${completedAt})` : ''

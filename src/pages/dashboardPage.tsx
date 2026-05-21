@@ -2,9 +2,9 @@ import type {AlertStatusItem, DailyLog, DashboardStats} from '../types/workspace
 import {formatDuration, formatDurationForDashboardStats, todayString} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
 import {useEffect, useMemo, useState} from 'react'
-import {fetchGeminiContext} from '@/lib/api/gemini.ts'
-import {completeDailyLog, fetchDailyLog, fetchDashboardStats} from '../lib/api/workspace'
-import {fetchAlertStatus} from '../lib/api/subjectAlertSettings'
+import {fetchSubjectsSummary} from '@/lib/api/gemini.ts'
+import {completeDailyLog, fetchDashboard, fetchRecentDailyLogs} from '../lib/api/workspace'
+import {fetchUserProfile} from '../lib/api/profile'
 import {SubjectStatus} from '../components/dashboard/SubjectStatus'
 import {AlertWidget} from '../components/dashboard/AlertWidget'
 import {StatCard} from '../components/dashboard/StatCard'
@@ -28,11 +28,9 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
   const [alertItems, setAlertItems] = useState<AlertStatusItem[]>([])
-  const [todayLogLoading, setTodayLogLoading] = useState(true)
-  const [statsLoading, setStatsLoading] = useState(true)
-  const isInitialLoading = todayLogLoading
+  const [isLoading, setIsLoading] = useState(true)
+  const isInitialLoading = isLoading
 
-  const isPastCutoff = now.getHours() >= 4
   const [prevDayLog, setPrevDayLog] = useState<DailyLog | null>(null)
   const [prevDayCompleting, setPrevDayCompleting] = useState(false)
 
@@ -47,35 +45,23 @@ export default function DashboardPage() {
   const [copyText, setCopyText] = useState('')
 
   useEffect(() => {
-    const todayKey = `dashboard-today-log-${todayString()}`
-    const calendarYesterday = (() => {
-      const d = new Date()
-      d.setDate(d.getDate() - 1)
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    })()
-
-    const cachedTodayLog = getCached<DailyLog>(todayKey)
-    if (cachedTodayLog) { setTodayLog(cachedTodayLog); setTodayLogLoading(false) }
-    fetchDailyLog(todayString())
-      .then((log) => { setTodayLog(log); setCached(todayKey, log) })
-      .catch(console.error)
-      .finally(() => setTodayLogLoading(false))
-
-    const cachedStats = getCached<DashboardStats>('dashboard-stats')
-    if (cachedStats) { setStats(cachedStats); setStatsLoading(false) }
-    Promise.all([
-      fetchDashboardStats(),
-      fetchAlertStatus(),
-      isPastCutoff ? fetchDailyLog(calendarYesterday) : Promise.resolve(null),
-    ])
-      .then(([s, alert, prevLog]) => {
+    const cached = getCached<{ stats: DashboardStats; todayLog: DailyLog | null; alertItems: AlertStatusItem[] }>('dashboard')
+    if (cached) {
+      setStats(cached.stats)
+      setTodayLog(cached.todayLog)
+      setAlertItems(cached.alertItems)
+      setIsLoading(false)
+    }
+    fetchDashboard()
+      .then(({ stats: s, todayLog: tl, prevDayLog: pl, alertItems: al }) => {
         setStats(s)
-        setCached('dashboard-stats', s)
-        setAlertItems(alert)
-        if (prevLog && !prevLog.isCompleted && prevLog.totalMinutes > 0) setPrevDayLog(prevLog)
+        setTodayLog(tl)
+        setAlertItems(al)
+        if (pl) setPrevDayLog(pl)
+        setCached('dashboard', { stats: s, todayLog: tl, alertItems: al })
       })
       .catch(console.error)
-      .finally(() => setStatsLoading(false))
+      .finally(() => setIsLoading(false))
   }, [])
 
   useEffect(() => {
@@ -125,8 +111,12 @@ export default function DashboardPage() {
     if (statsCopying) return
     setStatsCopying(true)
     try {
-      const ctx = await fetchGeminiContext(chartYear, chartMonth)
-      const text = buildDashboardStatusText(ctx, todaySubjects, todayLog, todayString())
+      const [summary, profile, recentLogs] = await Promise.all([
+        fetchSubjectsSummary(chartYear, chartMonth),
+        fetchUserProfile(),
+        fetchRecentDailyLogs(7),
+      ])
+      const text = buildDashboardStatusText(summary, profile, recentLogs, stats!, todaySubjects, todayLog, todayString())
       setCopyText(text)
       setIsCopyModalOpen(true)
     } catch (e) {
@@ -257,7 +247,7 @@ export default function DashboardPage() {
 
         {/* 統計カード */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          {statsLoading ? (
+          {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="p-4 rounded-xl border border-[rgba(55,53,47,0.06)] space-y-2">
                 <Skeleton className="h-3 w-12" />
@@ -278,7 +268,7 @@ export default function DashboardPage() {
         <ChartSection year={chartYear} month={chartMonth} onNavigate={navigateMonth} />
 
         {/* 科目別ステータス */}
-        {statsLoading ? (
+        {isLoading ? (
           <div className="mb-10 space-y-4">
             <Skeleton className="h-4 w-32" />
             <div className="grid grid-cols-1 gap-2">

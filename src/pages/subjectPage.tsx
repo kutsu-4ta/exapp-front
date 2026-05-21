@@ -28,7 +28,7 @@ import {FAILURE_COLORS, FAILURE_TYPES} from "@/components/common/FailureTypeSlec
 import {Skeleton} from "@/components/common/Skeleton.tsx";
 import {SubjectSettingsModal} from "@/components/subject/SubjectSettingsModal.tsx";
 import {SubCategoryList} from "@/components/subject/SubCategoryList.tsx"
-import {fetchGeminiContext} from "@/lib/api/gemini.ts"
+import {fetchSubjectsSummary} from "@/lib/api/gemini.ts"
 import {StatusCopyModal} from "@/components/common/StatusCopyModal.tsx";
 
 
@@ -165,7 +165,7 @@ export default function SubjectPage() {
         if (statsCopying) return
         setStatsCopying(true)
         try {
-            const ctx = await fetchGeminiContext(viewYear, viewMonth)
+            const ctx = await fetchSubjectsSummary(viewYear, viewMonth)
             const s = ctx.subjects.find((s) => s.subject === subjectName)
             const lines = [`[Subject Status: ${subjectName}]`]
             lines.push(`Period: ${ctx.year}/${String(ctx.month).padStart(2, '0')}`)
