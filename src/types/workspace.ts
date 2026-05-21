@@ -112,6 +112,15 @@ export function formatDuration(minutes: number): string {
   return `${h}時間${m}分`
 }
 
+export function formatDurationForDashboardStats(minutes: number): string {
+  if (minutes === 0) return '0m'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h\n${m}m`
+}
+
 export function todayString(): string {
   const now = new Date()
   // 0:00〜3:59 は前日を「今日」扱い（深夜の学習を当日に帰属させる）

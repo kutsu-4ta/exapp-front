@@ -103,6 +103,7 @@ export function AddProblemModal({
         setProblem(updated)
         onUpdate?.(updated)
       }}
+      zIndex={2100}
     />
   )
 }

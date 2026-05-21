@@ -25,9 +25,9 @@ function formatDiff(diffMinutes: number): string {
   if (abs >= 60) {
     const h = Math.floor(abs / 60)
     const m = abs % 60
-    return m === 0 ? `${sign}${h}h` : `${sign}${h}h${m}m`
+    return m === 0 ? `${sign}${h}時間` : `${sign}${h}時間${m}分`
   }
-  return `${sign}${abs}m`
+  return `${sign}${abs}時間`
 }
 
 export function SubjectStatus({

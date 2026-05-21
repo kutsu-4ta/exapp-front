@@ -1,5 +1,5 @@
 import type {AlertStatusItem, DailyLog, DashboardStats} from '../types/workspace'
-import {formatDuration, todayString} from '../types/workspace'
+import {formatDuration, formatDurationForDashboardStats, todayString} from '../types/workspace'
 import {useSettingsStore} from '../lib/store/settings'
 import {useEffect, useMemo, useState} from 'react'
 import {fetchGeminiContext} from '@/lib/api/gemini.ts'
@@ -267,9 +267,9 @@ export default function DashboardPage() {
             ))
           ) : (
             <>
-              <StatCard label="All Total" value={formatDuration(stats?.allTotalMinutes ?? 0)} sub={`${stats?.allTotalDays ?? 0}日`} />
-              <StatCard label="Monthly" value={formatDuration(stats?.thisMonthMinutes ?? 0)} sub={`${stats?.thisMonthDays ?? 0}日`} />
-              <StatCard label="Streak" value={`${stats?.currentStreak ?? 0}日`} sub={`${formatDuration(stats?.thisWeekTotalMinutes ?? 0)} / 週`} />
+              <StatCard label="All Total" value={formatDurationForDashboardStats(stats?.allTotalMinutes ?? 0)} sub={`${stats?.allTotalDays ?? 0}day`} />
+              <StatCard label="Monthly" value={formatDurationForDashboardStats(stats?.thisMonthMinutes ?? 0)} sub={`${stats?.thisMonthDays ?? 0}day`} />
+              <StatCard label="Streak" value={`${stats?.currentStreak ?? 0}day`} sub={`${formatDurationForDashboardStats(stats?.thisWeekTotalMinutes ?? 0)} / week`} />
             </>
           )}
         </div>
