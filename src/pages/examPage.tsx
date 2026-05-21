@@ -242,9 +242,19 @@ export default function ExamPage() {
           lines.push(`■ ${s.subject}: 未実施`)
         }
       }
-      const withErrors = ctx.subjects.filter((s) => s.failureStats.length > 0)
-      if (withErrors.length > 0) {
-      //   TODO:科目毎のランク別正答率
+      const withRankStats = ctx.subjects.filter(
+        (s) => s.recentExamScore?.rankStats && s.recentExamScore.rankStats.length > 0
+      )
+      if (withRankStats.length > 0) {
+        lines.push('')
+        lines.push('【科目別 ランク別正答率】')
+        for (const s of withRankStats) {
+          lines.push(`■ ${s.subject}`)
+          s.recentExamScore!.rankStats.forEach((r) => {
+            const pct = Math.round(r.correctRate * 100)
+            lines.push(`  ${r.rank}: ${pct}% (${r.count}問)`)
+          })
+        }
       }
       if (ctx.recentDailyLogs.length > 0) {
         lines.push('')
