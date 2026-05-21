@@ -87,7 +87,7 @@ export function SubjectExamStats({ subjectName }: Props) {
           <span style={summaryValue}>{stats.sessionCount}<span style={summaryUnit}>回</span></span>
         </div>
         <div style={summaryCard}>
-          <span style={summaryLabel}>Avg.TOTAL</span>
+          <span style={summaryLabel}>TOTAL</span>
           <span style={{ ...summaryValue, color: stats.avgTotalScore >= 60 ? '#19a576' : stats.avgTotalScore >= 50 ? '#f2ab26' : '#eb5757' }}>
             {stats.avgTotalScore.toFixed(1)}
           </span>

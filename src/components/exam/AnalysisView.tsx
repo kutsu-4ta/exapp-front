@@ -78,7 +78,7 @@ function OverviewTooltip({ active, payload }: { active?: boolean; payload?: Arra
     <div style={tooltipBox}>
       <div style={tooltipHead}>{d.subject}</div>
       <div style={{ color: statusBarColor[d.status], ...tooltipRow }}>
-        Avg.TOTAL<span style={tooltipVal}>{d.total.toFixed(1)}</span>
+        TOTAL<span style={tooltipVal}>{d.total.toFixed(1)}</span>
       </div>
       <div style={{ color: '#aaa', ...tooltipRow }}>
         {d.sessionCount}回受験
@@ -135,6 +135,28 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
   const recentSessions = useMemo(() =>
     [...sessions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [sessions]
+  )
+
+  // 各科目の最新1件（タブ2合計用）
+  const latestPerSubject = useMemo(() => {
+    const seen = new Set<string>()
+    return recentSessions.filter((s) => {
+      if (seen.has(s.subject)) return false
+      seen.add(s.subject)
+      return true
+    })
+  }, [recentSessions])
+
+  // タブ1合計：各科目の avgTotalScore の合計
+  const subjectsTotalScore = useMemo(
+    () => overviewData.reduce((sum, c) => sum + c.avgTotalScore, 0),
+    [overviewData]
+  )
+
+  // タブ2合計：各科目の直近スコアの合計
+  const recentTotalScore = useMemo(
+    () => latestPerSubject.reduce((sum, s) => sum + s.totalScore, 0),
+    [latestPerSubject]
   )
 
   const isOverview = filterSubject === 'すべて'
@@ -314,9 +336,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
               <div style={dataItem}>
                 <span style={dataLabel}>Avg. TOTAL</span>
                 <span style={{ ...dataValue, color: '#2383e2' }}>
-                  {sessions.length > 0
-                    ? (sessions.reduce((s, x) => s + x.totalScore, 0) / sessions.length).toFixed(1)
-                    : '-'}
+                  {overviewData.length > 0 ? Math.round(subjectsTotalScore * 10) / 10 : '-'}
                 </span>
               </div>
               <div style={dataItem}>
@@ -359,11 +379,9 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
             </div>
             <div style={subjCardBody}>
               <div style={dataItem}>
-                <span style={dataLabel}>Avg. TOTAL</span>
+                <span style={dataLabel}>TOTAL</span>
                 <span style={{ ...dataValue, color: '#2383e2' }}>
-                  {recentSessions.length > 0
-                    ? (recentSessions.reduce((s, x) => s + x.totalScore, 0) / recentSessions.length).toFixed(1)
-                    : '-'}
+                  {latestPerSubject.length > 0 ? recentTotalScore : '-'}
                 </span>
               </div>
               <div style={dataItem}>

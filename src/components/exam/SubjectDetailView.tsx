@@ -3,6 +3,7 @@ import {LoadingSpinner} from '../common/LoadingSpinner'
 import {fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
+import {StatusCopyModal} from '../common/StatusCopyModal'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
 
 interface SubjectDetailViewProps {
@@ -19,7 +20,9 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
 
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null)
   const [sessionLoading, setSessionLoading] = useState(false)
+  const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
+  const [copied, setCopied] = useState(false)
   const [ticketsModalOpen, setTicketsModalOpen] = useState(false)
   const [ticketCreatedMsg, setTicketCreatedMsg] = useState<string | null>(null)
 
@@ -49,6 +52,18 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
     } finally {
       setSessionLoading(false)
     }
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setCopied(true)
+      setTimeout(() => {
+        setCopied(false)
+        setCopyModalOpen(false)
+        setSelectedSession(null)
+      }, 800)
+    } catch { /* ignore */ }
   }
 
   useEffect(() => {
@@ -162,12 +177,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                     )}
                     <button
                       style={copyIconBtn}
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(copyText)
-                          setSelectedSession(null)
-                        } catch { /* ignore */ }
-                      }}
+                      onClick={() => setCopyModalOpen(true)}
                       title="コピー"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -244,6 +254,15 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
             )}
           </div>
         </div>
+      )}
+
+      {copyModalOpen && (
+        <StatusCopyModal
+          text={copyText}
+          copied={copied}
+          onCopy={handleCopy}
+          onClose={() => setCopyModalOpen(false)}
+        />
       )}
 
       {ticketsModalOpen && selectedSession && (
