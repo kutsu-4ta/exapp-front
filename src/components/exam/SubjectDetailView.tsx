@@ -3,7 +3,6 @@ import {LoadingSpinner} from '../common/LoadingSpinner'
 import {fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
-import {StatusCopyModal} from '../common/StatusCopyModal'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
 
 interface SubjectDetailViewProps {
@@ -20,9 +19,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
 
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null)
   const [sessionLoading, setSessionLoading] = useState(false)
-  const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
-  const [copied, setCopied] = useState(false)
   const [ticketsModalOpen, setTicketsModalOpen] = useState(false)
   const [ticketCreatedMsg, setTicketCreatedMsg] = useState<string | null>(null)
 
@@ -51,19 +48,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
       // ignore
     } finally {
       setSessionLoading(false)
-    }
-  }
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(copyText)
-      setCopied(true)
-      setTimeout(() => {
-        setCopied(false)
-        setCopyModalOpen(false)
-      }, 800)
-    } catch {
-      // ignore
     }
   }
 
@@ -147,26 +131,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
               ))}
           </div>
 
-          <h3 style={sectionLabel}>ノート・問題</h3>
-          <div style={noteList}>
-            {stats.recentMistakes.length === 0 && <p style={stateText}>メモはありません</p>}
-            {stats.recentMistakes.map((m) => (
-              <div key={m.questionId} style={noteCard}>
-                <div style={noteMeta}>
-                  <span style={noteDate}>
-                    {m.completedAt.slice(5, 10).replace('-', '/')} - {m.examYear} {m.displayId}
-                  </span>
-                  <span style={{ ...rankTag, ...rankColors[m.rank] }}>{m.rank}</span>
-                  {m.isDoubtful && (
-                    <span>
-                      <DoubtIcon />
-                    </span>
-                  )}
-                </div>
-                <div style={noteText}>{m.note}</div>
-              </div>
-            ))}
-          </div>
         </>
       )}
       {/* セッション詳細モーダル */}
@@ -198,7 +162,12 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                     )}
                     <button
                       style={copyIconBtn}
-                      onClick={() => setCopyModalOpen(true)}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(copyText)
+                          setSelectedSession(null)
+                        } catch { /* ignore */ }
+                      }}
                       title="コピー"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -253,19 +222,28 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                     ))}
                   </div>
                 )}
+
+                {stats && stats.rankStats.length > 0 && (
+                  <div style={modalRankSection}>
+                    <div style={sectionLabel}>ランク別正答率</div>
+                    <div style={rankGrid}>
+                      {stats.rankStats.map((r) => (
+                        <div key={r.rank} style={rankStatItem}>
+                          <span style={rankLabel}>{r.rank}</span>
+                          <span style={rankPercent}>{Math.round(r.correctRate * 100)}%</span>
+                          <div style={rankBarBase}>
+                            <div style={{ ...rankBarFill, width: `${r.correctRate * 100}%` }} />
+                          </div>
+                          <span style={rankCount}>{r.count}問</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
-      )}
-
-      {copyModalOpen && (
-        <StatusCopyModal
-          text={copyText}
-          copied={copied}
-          onCopy={handleCopy}
-          onClose={() => setCopyModalOpen(false)}
-        />
       )}
 
       {ticketsModalOpen && selectedSession && (
@@ -351,26 +329,6 @@ const rankBarFill: React.CSSProperties = {
   backgroundColor: '#2383e2',
   transition: 'width 0.4s ease',
 }
-const noteList: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-  paddingBottom: '40px',
-}
-const noteCard: React.CSSProperties = {
-  backgroundColor: '#fff',
-  padding: '14px',
-  borderRadius: '12px',
-  border: '1px solid #f0f0ef',
-}
-const noteMeta: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  marginBottom: '8px',
-}
-const noteDate: React.CSSProperties = { fontSize: '10px', color: '#aaa', fontWeight: 700 }
-const noteText: React.CSSProperties = { fontSize: '13px', lineHeight: 1.5, fontWeight: 500 }
 const rankTag: React.CSSProperties = {
   padding: '2px 6px',
   borderRadius: '4px',
@@ -539,3 +497,8 @@ const modalQResult = (isCorrect: boolean | null): React.CSSProperties => ({
   color: isCorrect === true ? '#19a576' : isCorrect === false ? '#eb5757' : '#aaa',
   minWidth: '16px',
 })
+const modalRankSection: React.CSSProperties = {
+  backgroundColor: '#f9f9f8',
+  borderRadius: '12px',
+  padding: '12px',
+}

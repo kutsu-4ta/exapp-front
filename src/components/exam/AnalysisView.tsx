@@ -97,6 +97,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
   const [loading, setLoading] = useState(true)
   const [filterSubject, setFilterSubject] = useState('すべて')
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null)
+  const [cardView, setCardView] = useState<'subjects' | 'recent'>('subjects')
 
   useEffect(() => {
     fetchExamSessions('completed')
@@ -130,6 +131,11 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
         pure: s.pureScore,
       }))
   }, [sessions, filterSubject])
+
+  const recentSessions = useMemo(() =>
+    [...sessions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [sessions]
+  )
 
   const isOverview = filterSubject === 'すべて'
 
@@ -266,29 +272,108 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
         )}
       </div>
 
-      {/* 科目カードグリッド */}
-      <div style={detailGrid}>
-        {subjectCards.map((card) => (
-          <div key={card.subject} style={subjCard} onClick={() => setSelectedSubject(card.subject)}>
+      {/* 切替タブ */}
+      <div style={viewToggleRow}>
+        <button style={viewToggleBtn(cardView === 'subjects')} onClick={() => setCardView('subjects')}>
+          平均
+        </button>
+        <button style={viewToggleBtn(cardView === 'recent')} onClick={() => setCardView('recent')}>
+          直近
+        </button>
+      </div>
+
+      {/* 科目カードグリッド（平均） */}
+      {cardView === 'subjects' ? (
+        <div style={detailGrid}>
+          {subjectCards.map((card) => (
+            <div key={card.subject} style={subjCard} onClick={() => setSelectedSubject(card.subject)}>
+              <div style={subjCardHeader}>
+                <span style={subjNameSmall}>{card.subject}</span>
+                <span style={{ ...subjStatusTag, ...statusStyle[card.status] }}>{card.status}</span>
+              </div>
+              <div style={subjCardBody}>
+                <div style={dataItem}>
+                  <span style={dataLabel}>Avg. PURE</span>
+                  <span style={dataValue}>
+                    {card.sessionCount > 0 ? card.avgPureScore.toFixed(1) : '-'}
+                  </span>
+                </div>
+                <div style={dataItem}>
+                  <span style={dataLabel}>回数</span>
+                  <span style={dataValue}>{card.sessionCount}回</span>
+                </div>
+              </div>
+            </div>
+          ))}
+          {subjectCards.length % 2 === 0 && <div />}
+          <div style={summaryCard}>
             <div style={subjCardHeader}>
-              <span style={subjNameSmall}>{card.subject}</span>
-              <span style={{ ...subjStatusTag, ...statusStyle[card.status] }}>{card.status}</span>
+              <span style={{ ...subjNameSmall, color: '#2383e2' }}>合計点</span>
             </div>
             <div style={subjCardBody}>
               <div style={dataItem}>
-                <span style={dataLabel}>Avg. PURE</span>
-                <span style={dataValue}>
-                  {card.sessionCount > 0 ? card.avgPureScore.toFixed(1) : '-'}
+                <span style={dataLabel}>Avg. TOTAL</span>
+                <span style={{ ...dataValue, color: '#2383e2' }}>
+                  {sessions.length > 0
+                    ? (sessions.reduce((s, x) => s + x.totalScore, 0) / sessions.length).toFixed(1)
+                    : '-'}
                 </span>
               </div>
               <div style={dataItem}>
-                <span style={dataLabel}>回数</span>
-                <span style={dataValue}>{card.sessionCount}回</span>
+                <span style={dataLabel}>受験回数</span>
+                <span style={dataValue}>{sessions.length}回</span>
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        /* 科目カードグリッド（直近） */
+        <div style={detailGrid}>
+          {recentSessions.length === 0 && <p style={{ ...emptyText, gridColumn: '1/-1' }}>記録がありません</p>}
+          {recentSessions.map((s) => {
+            const sessionStatus: SubjectCardData['status'] =
+              s.totalScore >= 60 ? '安定' : s.totalScore >= 50 ? '注意' : '要強化'
+            return (
+              <div key={s.id} style={subjCard} onClick={() => setSelectedSubject(s.subject)}>
+                <div style={subjCardHeader}>
+                  <span style={subjNameSmall}>{s.subject}</span>
+                  <span style={{ ...subjStatusTag, ...statusStyle[sessionStatus] }}>{sessionStatus}</span>
+                </div>
+                <div style={subjCardBody}>
+                  <div style={dataItem}>
+                    <span style={dataLabel}>{s.createdAt.slice(5, 10).replace('-', '/')}</span>
+                    <span style={dataValue}>{s.examYear}</span>
+                  </div>
+                  <div style={dataItem}>
+                    <span style={dataLabel}>TOTAL</span>
+                    <span style={dataValue}>{s.totalScore}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+          {recentSessions.length % 2 === 0 && <div />}
+          <div style={summaryCard}>
+            <div style={subjCardHeader}>
+              <span style={{ ...subjNameSmall, color: '#2383e2' }}>合計点</span>
+            </div>
+            <div style={subjCardBody}>
+              <div style={dataItem}>
+                <span style={dataLabel}>Avg. TOTAL</span>
+                <span style={{ ...dataValue, color: '#2383e2' }}>
+                  {recentSessions.length > 0
+                    ? (recentSessions.reduce((s, x) => s + x.totalScore, 0) / recentSessions.length).toFixed(1)
+                    : '-'}
+                </span>
+              </div>
+              <div style={dataItem}>
+                <span style={dataLabel}>受験回数</span>
+                <span style={dataValue}>{recentSessions.length}回</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -398,4 +483,21 @@ const emptyText: React.CSSProperties = {
   color: '#aaa',
   textAlign: 'center',
   padding: '20px 0',
+}
+const viewToggleRow: React.CSSProperties = { display: 'flex', gap: '8px' }
+const viewToggleBtn = (active: boolean): React.CSSProperties => ({
+  padding: '6px 14px',
+  borderRadius: '8px',
+  border: active ? '1.5px solid #2383e2' : '1px solid #eee',
+  background: active ? 'rgba(35,131,226,0.08)' : '#fff',
+  color: active ? '#2383e2' : '#888',
+  fontSize: '12px',
+  fontWeight: 700,
+  cursor: 'pointer',
+})
+const summaryCard: React.CSSProperties = {
+  backgroundColor: 'rgba(35,131,226,0.06)',
+  padding: '12px',
+  borderRadius: '12px',
+  border: '1.5px solid rgba(35,131,226,0.2)',
 }
