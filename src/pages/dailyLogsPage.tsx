@@ -357,8 +357,6 @@ export default function DailyLogsPage() {
 
             {listLogs.length > 0 ? (
               listLogs.map((log) => {
-                const hours = Math.floor(log.totalMinutes / 60)
-                const mins = log.totalMinutes % 60
                 return (
                   <Link key={log.date} to={`/workspace/${log.date}`} style={logItem}>
                     <div style={itemDate}>
@@ -368,7 +366,7 @@ export default function DailyLogsPage() {
                       </span>
                     </div>
                     <div style={itemTime}>
-                      {hours}h {mins}m
+                      {formatDuration(log.totalMinutes)}
                     </div>
                     <div style={itemStatus}>
                       <StatusBadge
@@ -600,9 +598,8 @@ function Heatmap({ data, selectedDate, onSelect }: { data: HeatmapRow[]; selecte
 
 function formatDetailDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-  return `${MONTHS[d.getMonth()]} ${d.getDate()} (${DAYS[d.getDay()]})`
+  const DAYS = ['日', '月', '火', '水', '木', '金', '土']
+  return `${d.getMonth() + 1}月${d.getDate()}日（${DAYS[d.getDay()]}）`
 }
 
 function DayDetail({ log }: { log: DailyLog }) {
