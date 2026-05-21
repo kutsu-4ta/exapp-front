@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core'
 import {Settings} from 'lucide-react'
 
-import type {SubCategory, SubCategoryRank} from '@/types/workspace.ts'
+import type {Flashcard, SubCategory, SubCategoryRank} from '@/types/workspace.ts'
 import {addSubCategory, deleteSubCategory, updateSubCategory,} from '@/lib/api/subcategory.ts'
 import {
   BottomSheet,
@@ -37,12 +37,14 @@ type Props = {
   subjectName: string
   subCategories: SubCategory[]
   setSubCategories: (v: SubCategory[]) => void
+  flashcards?: Flashcard[]
 }
 
 export function SubCategoryList({
                                   subjectName,
                                   subCategories,
                                   setSubCategories,
+                                  flashcards = [],
                                 }: Props) {
   const items = subCategories.filter(sc => sc.subject === subjectName)
   const itemsKey = items.map(sc => sc.id).join(',')
@@ -136,6 +138,7 @@ export function SubCategoryList({
           subjectName={subjectName}
           subCategories={subCategories}
           setSubCategories={setSubCategories}
+          flashcards={flashcards}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -149,14 +152,17 @@ function SubCategorySettingsSheet({
   subjectName,
   subCategories,
   setSubCategories,
+  flashcards,
   onClose,
 }: {
   subjectName: string
   subCategories: SubCategory[]
   setSubCategories: (v: SubCategory[]) => void
+  flashcards: Flashcard[]
   onClose: () => void
 }) {
   const items = subCategories.filter(sc => sc.subject === subjectName)
+  const countBySc = (name: string) => flashcards.filter((f) => f.front.subCategory === name).length
 
   const [addValue, setAddValue] = useState('')
   const [addLoading, setAddLoading] = useState(false)
@@ -299,7 +305,10 @@ function SubCategorySettingsSheet({
                 </div>
               ) : (
                 <div style={itemRow}>
-                  <span style={itemName}>{sc.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                    <span style={itemName}>{sc.name}</span>
+                    <span style={scCountBadge}>({countBySc(sc.name)})</span>
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => startEdit(sc)} style={iconBtn}>編集</button>
                     <button onClick={() => { setDeleteId(sc.id); setEditingId(null) }} style={{ ...iconBtn, color: c.red }}>
@@ -550,6 +559,12 @@ const itemName: CSSProperties = {
   fontSize: font.base,
   fontWeight: 600,
   color: c.text,
+}
+
+const scCountBadge: CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(55,53,47,0.4)',
+  fontWeight: 400,
 }
 
 const iconBtn: CSSProperties = {

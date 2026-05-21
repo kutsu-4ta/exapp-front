@@ -237,9 +237,9 @@ export default function DailyLogsPage() {
         {viewMode === 'list' ? (
           <div style={listContainer}>
             <div style={listHeader}>
-              <div style={{ flex: 2 }}>日付</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>時間</div>
-              <div style={{ flex: 1, textAlign: 'center' }}>状態</div>
+              <div style={{ flex: 2 }}>DATE</div>
+              <div style={{ flex: 1, textAlign: 'right' }}>TIME</div>
+              <div style={{ flex: 1, textAlign: 'center' }}>STATUS</div>
             </div>
 
             {listLogs.length > 0 ? (

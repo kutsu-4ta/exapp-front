@@ -405,6 +405,7 @@ export default function SubjectPage() {
                         subjectName={subjectName}
                         subCategories={subCategories}
                         setSubCategories={setSubCategories}
+                        flashcards={flashcards}
                     />
                 </section>
 
