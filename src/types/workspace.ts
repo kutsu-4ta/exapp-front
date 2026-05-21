@@ -100,6 +100,7 @@ export type DailyLogSummary = {
   totalMinutes: number
   sessionCount: number
   slotMinutes: { morning: number; lunch: number; night: number }
+  subjectMinutes: Record<string, number>
 }
 
 export function formatDuration(minutes: number): string {

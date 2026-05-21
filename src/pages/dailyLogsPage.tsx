@@ -1,24 +1,20 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
 import {Link, useNavigate, useSearchParams} from 'react-router-dom'
-import {
-  Bar,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import {Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts'
 import {fetchDailyLog, fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
 import type {DailyLog, DailyLogSummary} from '../types/workspace'
 import {formatSessions} from '../types/workspace'
 import {getCached, setCached} from '../lib/pageCache'
 import {StatusBadge} from "@/components/common/StatusBadge.tsx";
+import {useSettingsStore} from '../lib/store/settings'
 
 type ViewMode = 'list' | 'chart'
+
+const FALLBACK_COLORS = [
+  '#2383e2', '#f2ab26', '#eb5757', '#9b59b6',
+  '#e67e22', '#1abc9c', '#e91e63', '#607d8b',
+]
 
 function IconList({ active }: { active: boolean }) {
   const c = active ? '#37352f' : 'rgba(55,53,47,0.45)'
@@ -60,6 +56,7 @@ function IconTrend({ active }: { active: boolean }) {
 
 export default function DailyLogsPage() {
   const navigate = useNavigate()
+  const subjectColors = useSettingsStore((s) => s.subjectColors)
   const [searchParams, setSearchParams] = useSearchParams()
   const viewMode = (searchParams.get('view') as ViewMode) ?? 'list'
   const setViewMode = (v: ViewMode) =>
@@ -162,6 +159,14 @@ export default function DailyLogsPage() {
       .finally(() => setChartLoading(false))
   }, [viewMode, baseMonth])
 
+  const monthSubjects = useMemo(() => {
+    const seen = new Set<string>()
+    for (const log of chartData) {
+      for (const s of Object.keys(log.subjectMinutes ?? {})) seen.add(s)
+    }
+    return [...seen]
+  }, [chartData])
+
   const filteredChartData = useMemo(() => {
     const [year, month] = baseMonth.split('-').map(Number)
     const monthDataMap = new Map(
@@ -175,14 +180,15 @@ export default function DailyLogsPage() {
       const mm = String(month).padStart(2, '0')
       const dd = dateLabel.slice(3)
       const fullDate = `${year}-${mm}-${dd}`
+      const subj = log?.subjectMinutes ?? {}
       return {
         date: dateLabel,
         fullDate,
-        minutes: log?.totalMinutes ?? 0,
         sessions: log?.sessionCount ?? 0,
         morning: log?.slotMinutes?.morning ?? 0,
         lunch: log?.slotMinutes?.lunch ?? 0,
         night: log?.slotMinutes?.night ?? 0,
+        ...subj,
       }
     })
   }, [chartData, daysInMonth, baseMonth])
@@ -346,7 +352,7 @@ export default function DailyLogsPage() {
               </div>
             ) : (
               <>
-                {/* ComposedChart: 学習時間（折れ線）+ セッション数（棒） */}
+                {/* ComposedChart: 科目別積み上げ棒（時間）+ 折れ線（セッション数） */}
                 <div style={chartCard}>
                   <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer>
@@ -360,18 +366,36 @@ export default function DailyLogsPage() {
                           cursor={{ fill: 'rgba(55,53,47,0.04)' }}
                           labelFormatter={(label) => `${baseMonth.split('-')[0]}/${label}`}
                           formatter={(value, name) =>
-                            name === 'sessions' ? [formatSessions(value as number), 'Sessions'] : [`${value}m`, 'Study Time']
+                            name === 'sessions'
+                              ? [formatSessions(value as number), 'Sessions']
+                              : [`${value}m`, String(name)]
                           }
                         />
-                        <ReferenceLine yAxisId="min" y={385} stroke="#eb5757" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 9, fill: '#eb5757', position: 'insideBottomRight' }} />
-                        <Bar yAxisId="sess" dataKey="sessions" fill="rgba(35,131,226,0.15)" radius={[2,2,0,0]} animationDuration={600} />
-                        <Line yAxisId="min" type="monotone" dataKey="minutes" stroke="#2383e2" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} animationDuration={800} />
+                        {monthSubjects.map((subj, i) => (
+                          <Bar
+                            key={subj}
+                            yAxisId="min"
+                            dataKey={subj}
+                            stackId="time"
+                            fill={subjectColors[subj] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]}
+                            radius={i === monthSubjects.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]}
+                            animationDuration={600}
+                          />
+                        ))}
+                        <Line yAxisId="sess" type="monotone" dataKey="sessions" stroke="#19a576" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} animationDuration={800} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                   <div style={chartLegend}>
-                    <span style={legendDot('#2383e2')} />Study Time
-                    <span style={{ ...legendDot('rgba(35,131,226,0.4)'), marginLeft: 12 }} />Sessions
+                    {monthSubjects.map((subj, i) => (
+                      <span key={subj} style={{ display: 'flex', alignItems: 'center', gap: '3px', marginRight: 10 }}>
+                        <span style={legendDot(subjectColors[subj] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length])} />
+                        <span>{subj}</span>
+                      </span>
+                    ))}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <span style={legendDot('#19a576')} />Sessions
+                    </span>
                   </div>
                 </div>
 
@@ -442,10 +466,10 @@ const SLOT_LABELS: { key: 'morning' | 'lunch' | 'night'; label: string }[] = [
 
 function slotColor(minutes: number): string {
   if (minutes === 0) return 'rgba(55,53,47,0.06)'
-  if (minutes < 30)  return 'rgba(35,131,226,0.18)'
-  if (minutes < 60)  return 'rgba(35,131,226,0.38)'
-  if (minutes < 120) return 'rgba(35,131,226,0.62)'
-  return 'rgba(35,131,226,0.90)'
+  if (minutes < 30)  return 'rgba(25,165,118,0.18)'
+  if (minutes < 60)  return 'rgba(25,165,118,0.38)'
+  if (minutes < 120) return 'rgba(25,165,118,0.62)'
+  return 'rgba(25,165,118,0.90)'
 }
 
 function Heatmap({ data, selectedDate, onSelect }: { data: HeatmapRow[]; selectedDate: string | null; onSelect: (d: string) => void }) {
@@ -466,7 +490,7 @@ function Heatmap({ data, selectedDate, onSelect }: { data: HeatmapRow[]; selecte
                   borderRadius: '2px',
                   backgroundColor: slotColor(d[key]),
                   cursor: 'pointer',
-                  outline: selectedDate === d.fullDate ? '2px solid #2383e2' : 'none',
+                  outline: selectedDate === d.fullDate ? '2px solid #19a576' : 'none',
                   outlineOffset: '1px',
                 }}
               />
