@@ -299,6 +299,22 @@ export type SubjectsSummary = {
   subjects: SubjectSummaryItem[]
 }
 
+// ── Subject settings (bulk) ───────────────────────────────────────────────────
+
+export type SubjectSettingsItem = {
+  subject: string
+  finalTarget: string | null
+  themeColor: string | null
+}
+
+// ── Subject counts (aggregate) ────────────────────────────────────────────────
+
+export type SubjectCountItem = {
+  subject: string
+  problemCount: number
+  ticketCount: number
+}
+
 // ── Dashboard stats ──────────────────────────────────────────────────────────
 
 export type DashboardStats = {

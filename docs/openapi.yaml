@@ -497,6 +497,24 @@ components:
         studyMinutes: { type: integer, description: 'その日の該当科目の学習時間（分）' }
         problemCount: { type: integer, description: 'その日に追加された苦手問題の数（solvedAt 一致）' }
 
+    SubjectSettingsItem:
+      type: object
+      description: '科目ごとの設定（GET /subjects/settings で使用）'
+      required: [ subject, finalTarget, themeColor ]
+      properties:
+        subject: { type: string }
+        finalTarget: { type: string, nullable: true, description: '最終目標' }
+        themeColor: { type: string, nullable: true, description: 'テーマカラー（#RRGGBB）' }
+
+    SubjectCountItem:
+      type: object
+      description: '科目ごとの問題数・チケット数（GET /subjects/counts で使用）'
+      required: [ subject, problemCount, ticketCount ]
+      properties:
+        subject: { type: string }
+        problemCount: { type: integer, description: '弱点問題数（全習熟度）' }
+        ticketCount: { type: integer, description: 'スタディチケット数' }
+
     SubjectSummaryItem:
       type: object
       description: 科目ごとの集計サマリ（GET /subjects/summary で使用）
@@ -1092,6 +1110,38 @@ paths:
               schema:
                 type: array
                 items: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /subjects/settings:
+    get:
+      summary: 全科目の設定を一括取得
+      tags: [ Subjects ]
+      description: '登録済み全科目の finalTarget / themeColor を1リクエストで返す。設定未保存の科目は両フィールドが null。'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SubjectSettingsItem' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /subjects/counts:
+    get:
+      summary: 全科目の問題数・チケット数を一括取得
+      tags: [ Subjects ]
+      description: '登録済み全科目について、弱点問題数とスタディチケット数を返す。科目管理画面の削除前確認などに使用する。'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SubjectCountItem' }
         '401':
           $ref: '#/components/responses/Unauthorized'
 

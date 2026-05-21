@@ -1,5 +1,5 @@
 import {create} from 'zustand'
-import {fetchSubjects, fetchSubjectSettings} from '../api/subjects'
+import {fetchAllSubjectSettings, fetchSubjects} from '../api/subjects'
 import {fetchMaterials} from '../api/materials'
 import {fetchSubCategories} from '../api/subcategory'
 import {fetchSubjectAlertSettings} from '../api/subjectAlertSettings'
@@ -65,17 +65,17 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // silent fail
     }
   },
-  loadSubjectColors: async (subjects: string[]) => {
-    const results = await Promise.allSettled(
-      subjects.map((s) => fetchSubjectSettings(s).then((cfg) => ({ name: s, color: cfg.themeColor })))
-    )
-    const next: Record<string, string> = { ...get().subjectColors }
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value.color) {
-        next[r.value.name] = r.value.color
+  loadSubjectColors: async (_subjects: string[]) => {
+    try {
+      const items = await fetchAllSubjectSettings()
+      const next: Record<string, string> = { ...get().subjectColors }
+      for (const item of items) {
+        if (item.themeColor) next[item.subject] = item.themeColor
       }
+      set({ subjectColors: next })
+    } catch {
+      // silent fail
     }
-    set({ subjectColors: next })
   },
   loadMaterials: async () => {
     if (get().materialsLoaded) return

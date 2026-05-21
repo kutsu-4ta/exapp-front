@@ -1,11 +1,8 @@
 import {useEffect, useRef, useState} from 'react'
-import {deleteSubject, renameSubject} from '../../lib/api/subjects'
-import {fetchProblems} from '../../lib/api/problem'
-import {fetchTickets} from '../../lib/api/sprint'
+import {deleteSubject, fetchSubjectCounts, renameSubject} from '../../lib/api/subjects'
 import {useSettingsStore} from '../../lib/store/settings'
 import {c, font} from '../../styles/notion'
-import type {Problem} from '../../types/workspace'
-import type {StudyTicket} from '../../types/sprint'
+import type {SubjectCountItem} from '../../types/workspace'
 
 export function SubjectsSection() {
   const subjects = useSettingsStore((s) => s.subjects)
@@ -13,8 +10,7 @@ export function SubjectsSection() {
   const subCategories = useSettingsStore((s) => s.subCategories)
   const setSubCategories = useSettingsStore((s) => s.setSubCategories)
 
-  const [problems, setProblems] = useState<Problem[]>([])
-  const [tickets, setTickets] = useState<StudyTicket[]>([])
+  const [counts, setCounts] = useState<SubjectCountItem[]>([])
   const [editingSubject, setEditingSubject] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -23,19 +19,17 @@ export function SubjectsSection() {
   const editRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    Promise.all([
-      fetchProblems({ limit: 5000 }),
-      fetchTickets(),
-    ]).then(([p, t]) => { setProblems(p); setTickets(t) }).catch(() => {})
+    fetchSubjectCounts().then(setCounts).catch(() => {})
   }, [])
 
   useEffect(() => {
     if (editingSubject !== null) editRef.current?.focus()
   }, [editingSubject])
 
-  const countBySubject = (name: string) =>
-    problems.filter((p) => p.subject === name).length +
-    tickets.filter((t) => t.subject === name).length
+  const countBySubject = (name: string) => {
+    const c = counts.find((x) => x.subject === name)
+    return c ? c.problemCount + c.ticketCount : 0
+  }
 
   const startEdit = (name: string) => { setEditingSubject(name); setEditingValue(name); setError(null) }
   const cancelEdit = () => { setEditingSubject(null); setEditingValue('') }
@@ -50,8 +44,7 @@ export function SubjectsSection() {
       await renameSubject(editingSubject, newName)
       setSubjects(subjects.map((s) => (s === editingSubject ? newName : s)))
       setSubCategories(subCategories.map((sc) => sc.subject === editingSubject ? { ...sc, subject: newName } : sc))
-      setProblems((prev) => prev.map((p) => p.subject === editingSubject ? { ...p, subject: newName } : p))
-      setTickets((prev) => prev.map((t) => t.subject === editingSubject ? { ...t, subject: newName } : t))
+      setCounts((prev) => prev.map((c) => c.subject === editingSubject ? { ...c, subject: newName } : c))
       setEditingSubject(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '変更に失敗しました')
@@ -68,6 +61,7 @@ export function SubjectsSection() {
       await deleteSubject(deleteTarget)
       setSubjects(subjects.filter((s) => s !== deleteTarget))
       setSubCategories(subCategories.filter((sc) => sc.subject !== deleteTarget))
+      setCounts((prev) => prev.filter((c) => c.subject !== deleteTarget))
       setDeleteTarget(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '削除に失敗しました')

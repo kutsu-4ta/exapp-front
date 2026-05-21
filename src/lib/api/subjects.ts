@@ -1,5 +1,12 @@
 import {apiFetch, extractApiError} from '../client'
-import type {Flashcard, SubjectActivityDay, SubjectMonthlyGoal, SubjectSettings,} from '../../types/workspace'
+import type {
+  Flashcard,
+  SubjectActivityDay,
+  SubjectCountItem,
+  SubjectMonthlyGoal,
+  SubjectSettings,
+  SubjectSettingsItem,
+} from '../../types/workspace'
 
 export async function fetchSubjects(): Promise<string[]> {
   const res = await apiFetch('/api/subjects')
@@ -78,6 +85,18 @@ export async function fetchSubjectActivity(
     `/api/subjects/${encodeURIComponent(name)}/activity?year=${year}&month=${month}`
   )
   if (!res.ok) await extractApiError(res, 'アクティビティの取得に失敗しました')
+  return res.json()
+}
+
+export async function fetchAllSubjectSettings(): Promise<SubjectSettingsItem[]> {
+  const res = await apiFetch('/api/subjects/settings')
+  if (!res.ok) await extractApiError(res, '科目設定の取得に失敗しました')
+  return res.json()
+}
+
+export async function fetchSubjectCounts(): Promise<SubjectCountItem[]> {
+  const res = await apiFetch('/api/subjects/counts')
+  if (!res.ok) await extractApiError(res, '科目カウントの取得に失敗しました')
   return res.json()
 }
 

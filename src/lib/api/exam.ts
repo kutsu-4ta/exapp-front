@@ -1,9 +1,12 @@
 import {apiFetch, extractApiError} from '../client'
 import type {ExamQuestionInput, ExamSession, ExamSessionSummary, ExamSubjectStats,} from '../../types/exam'
 
-export async function fetchExamSessions(status?: string): Promise<ExamSessionSummary[]> {
-  const query = status ? `?status=${status}` : ''
-  const res = await apiFetch(`/api/exam-sessions${query}`)
+export async function fetchExamSessions(status?: string, subject?: string): Promise<ExamSessionSummary[]> {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  if (subject) params.set('subject', subject)
+  const qs = params.toString()
+  const res = await apiFetch(`/api/exam-sessions${qs ? `?${qs}` : ''}`)
   if (!res.ok) await extractApiError(res, 'Failed to fetch exam sessions')
   return res.json()
 }

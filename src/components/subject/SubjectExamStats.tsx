@@ -31,12 +31,11 @@ export function SubjectExamStats({ subjectName }: Props) {
     setLoading(true)
     Promise.all([
       fetchSubjectStats(subjectName).catch(() => null),
-      fetchExamSessions('completed').catch(() => []),
+      fetchExamSessions('completed', subjectName).catch(() => []),
     ]).then(([s, all]) => {
       setStats(s as ExamSubjectStats | null)
       setSessions(
         (all as ExamSessionSummary[])
-          .filter((x) => x.subject === subjectName)
           .sort((a, b) => (a.completedAt ?? '').localeCompare(b.completedAt ?? ''))
       )
     }).finally(() => setLoading(false))
