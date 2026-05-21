@@ -271,234 +271,113 @@ export default function SprintPage() {
   return (
     <>
       {isWide ? (
-        /* ── iPad layout ─────────────────────────────────── */
+        /* ── iPad/wide layout: mobile-style top bar + full-width kanban ── */
         <div
           style={{
             display: 'flex',
-            // iPad: SideNav があり BottomNav なし → 56px 分余白不要
+            flexDirection: 'column',
             height: isTablet ? 'calc(100dvh - 38px)' : 'calc(100dvh - 38px - 56px)',
             overflow: 'hidden',
+            backgroundColor: c.bg,
           }}
         >
-          {/* Left sidebar — sprint list */}
-          <div
+          {/* Sprint selector bar — same as mobile */}
+          <SprintBar
+            sprints={sprints}
+            currentId={currentSprintId}
+            onSelect={setCurrentSprint}
+            onNew={() => setSprintForm({ open: true, mode: 'create' })}
+            onEdit={(sp) => setSprintForm({ open: true, mode: 'edit', sprint: sp })}
+            onDelete={handleSprintDelete}
+            onComplete={handleSprintComplete}
+          />
+
+          {/* Compact KPI strip — same as mobile */}
+          <SprintKpi
+            stats={currentStats}
+            loading={statsLoading}
+            compact
+            sprint={currentSprint}
+            isCompleted={isCompleted}
+          />
+
+          {isCompleted && currentSprint?.retrospective && (
+            <RetroSection retrospective={currentSprint.retrospective} />
+          )}
+
+          {/* Kanban — fills remaining height */}
+          <div style={{ flex: 1, overflow: isCompleted ? 'auto' : 'hidden' }}>
+            <KanbanBoard
+              tickets={currentTickets}
+              onTicketTap={setSelectedTicket}
+              onStatusChange={moveTicketStatus}
+            />
+          </div>
+
+          {/* Copy button */}
+          <button
+            onClick={handlePrepareStats}
+            disabled={!currentSprint}
+            title="ステータスをコピー"
             style={{
-              width: 240,
-              flexShrink: 0,
-              borderRight: `1px solid ${c.border}`,
-              overflowY: 'auto',
-              backgroundColor: 'rgba(55,53,47,0.01)',
+              position: 'fixed',
+              bottom: isTablet ? `calc(16px + env(safe-area-inset-bottom))` : `calc(68px + env(safe-area-inset-bottom))`,
+              left: isTablet ? '88px' : '20px',
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              border: `1px solid ${c.border}`,
+              backgroundColor: '#fff',
+              color: statsCopied ? '#27ae60' : c.textHint,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 200,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
           >
-            <div
-              style={{
-                padding: '12px',
-                borderBottom: `1px solid ${c.border}`,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <span style={{ fontSize: font.sm, fontWeight: 700, color: c.textHint, letterSpacing: '0.06em' }}>
-                SPRINTS
-              </span>
-              <button
-                onClick={() => setSprintForm({ open: true, mode: 'create' })}
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  border: 'none',
-                  backgroundColor: 'rgba(35,131,226,0.1)',
-                  color: c.blue,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                }}
-              >
-                +
-              </button>
-            </div>
-
-            {sprints.map((sp) => {
-              const selected = sp.id === currentSprintId
-              const isBacklog = sp.type === 'backlog'
-              const isDone = sp.status === 'completed'
-              return (
-                <div
-                  key={sp.id}
-                  style={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    padding: '10px 12px',
-                    cursor: 'pointer',
-                    borderLeft: selected ? `3px solid ${c.blue}` : '3px solid transparent',
-                    backgroundColor: selected ? c.blueBg : 'transparent',
-                    borderBottom: `1px solid ${c.border}`,
-                    opacity: isDone ? 0.65 : 1,
-                  }}
-                  onClick={() => setCurrentSprint(sp.id)}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: font.base,
-                        fontWeight: selected ? 700 : 500,
-                        color: selected ? c.blue : c.text,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {isBacklog && '☰ '}
-                      {sp.name}
-                      {isDone && ' ✓'}
-                    </div>
-                    {!isBacklog && sp.startDate && (
-                      <div style={{ fontSize: font.xs, color: c.textHint, marginTop: 2 }}>
-                        {sp.startDate} 〜 {sp.endDate ?? '?'}
-                      </div>
-                    )}
-                  </div>
-                  {!isBacklog && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSprintForm({ open: true, mode: 'edit', sprint: sp })
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: c.textHint,
-                        fontSize: '14px',
-                        padding: '0 2px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      ···
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Right — KPI + Kanban */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Sprint name header */}
-            <div
-              style={{
-                padding: '10px 16px',
-                borderBottom: `1px solid ${c.border}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexShrink: 0,
-              }}
-            >
-              <div>
-                <h2 style={{ margin: 0, fontSize: font.md, fontWeight: 700, color: c.text }}>
-                  {currentSprint?.name ?? '—'}
-                </h2>
-                {currentSprint && !isCompleted && currentSprint.type !== 'backlog' && currentSprint.endDate && (
-                  <div style={{ fontSize: font.xs, color: c.textHint, marginTop: 2 }}>
-                    {currentSprint.startDate} 〜 {currentSprint.endDate}
-                  </div>
-                )}
-                {isCompleted && (
-                  <span
-                    style={{
-                      fontSize: font.xs,
-                      color: '#27ae60',
-                      fontWeight: 600,
-                    }}
-                  >
-                    完了済み
-                  </span>
-                )}
-                {currentSprint?.goal && (
-                  <div
-                    style={{
-                      marginTop: 4,
-                      fontSize: font.xs,
-                      color: c.textSub,
-                      lineHeight: 1.5,
-                      maxWidth: 360,
-                    }}
-                  >
-                    {currentSprint.goal}
-                  </div>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  onClick={handlePrepareStats}
-                  disabled={!currentSprint}
-                  title="ステータスをコピー"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 32, height: 32,
-                    borderRadius: '6px',
-                    border: `1px solid ${c.border}`,
-                    background: 'transparent',
-                    color: statsCopied ? '#27ae60' : c.textHint,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {statsCopied ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="9" y="2" width="6" height="4" rx="1" />
-                      <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
-                    </svg>
-                  )}
-                </button>
-                {!isCompleted && (
-                  <button
-                    onClick={() => setTicketForm({ open: true, mode: 'create' })}
-                    style={{
-                      padding: '6px 14px',
-                      backgroundColor: c.blue,
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: font.sm,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + チケット
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* KPI */}
-            <SprintKpi stats={currentStats} loading={statsLoading} />
-
-            {/* Retrospective (completed sprints) */}
-            {isCompleted && currentSprint?.retrospective && (
-              <RetroSection retrospective={currentSprint.retrospective} />
+            {statsCopied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="4" rx="1" />
+                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+              </svg>
             )}
+          </button>
 
-            {/* Kanban */}
-            <div style={{ flex: 1, overflow: isCompleted ? 'auto' : 'hidden' }}>
-              <KanbanBoard
-                tickets={currentTickets}
-                onTicketTap={setSelectedTicket}
-                onStatusChange={moveTicketStatus}
-              />
-            </div>
-          </div>
+          {/* FAB */}
+          {!isCompleted && (
+            <button
+              onClick={() => setTicketForm({ open: true, mode: 'create' })}
+              style={{
+                position: 'fixed',
+                bottom: isTablet ? `calc(16px + env(safe-area-inset-bottom))` : `calc(68px + env(safe-area-inset-bottom))`,
+                right: '20px',
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                backgroundColor: c.blue,
+                color: '#fff',
+                fontSize: '24px',
+                fontWeight: 300,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(35,131,226,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 200,
+                lineHeight: 1,
+              }}
+              aria-label="チケット作成"
+            >
+              +
+            </button>
+          )}
         </div>
       ) : (
         /* ── Mobile layout ───────────────────────────────── */
