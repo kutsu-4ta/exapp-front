@@ -62,9 +62,20 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
   const [copied, setCopied] = useState(false)
   const [ticketsModalOpen, setTicketsModalOpen] = useState(false)
   const [ticketCreatedMsg, setTicketCreatedMsg] = useState<string | null>(null)
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set())
+
+  const toggleNote = (id: number) => {
+    setExpandedNoteIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const handleSessionTap = async (sessionId: number) => {
     setSessionLoading(true)
+    setExpandedNoteIds(new Set())
     try {
       const session = await fetchExamSession(sessionId)
       setSelectedSession(session)
@@ -77,7 +88,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
         lines.push('')
         lines.push('【問題一覧】')
         session.questions.forEach((q) => {
-          const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '-'
+          const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : ''
           const doubt = q.isDoubtful ? ' ?' : ''
           const note = q.note ? ` ｜${q.note}` : ''
           const rankStr = q.rank ? `[${q.rank}] ` : ''
@@ -309,25 +320,56 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
                   ) : null
                 })()}
 
-                {selectedSession.questions.length > 0 && (
-                  <div style={modalQuestionList}>
-                    <div style={sectionLabel}>解答用紙</div>
-                    {selectedSession.questions.map((q) => (
-                      <div key={q.id} style={modalQuestionRow}>
-                        <span style={modalQId}>{q.displayId}</span>
-                        {q.rank && <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>}
-                        <span style={modalQResult(q.isCorrect)}>
-                          {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
-                        </span>
-                        {q.isDoubtful && <DoubtIcon />}
-                        {!q.hasChildren && calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt) !== undefined && (
-                          <span style={modalQTime}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
-                        )}
-                        {q.note && <span style={modalQNote}>{q.note}</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {selectedSession.questions.length > 0 && (() => {
+                  const groups: ExamQuestion[][] = []
+                  for (const q of selectedSession.questions) {
+                    if (!q.isSub) {
+                      groups.push([q])
+                    } else {
+                      const last = groups[groups.length - 1]
+                      if (last) last.push(q)
+                      else groups.push([q])
+                    }
+                  }
+                  return (
+                    <div style={modalQuestionList}>
+                      <div style={sectionLabel}>解答用紙</div>
+                      {groups.map((group, gi) => (
+                        <div key={gi} style={modalQuestionGroup}>
+                          {group.map((q) => {
+                            const isExpanded = expandedNoteIds.has(q.id)
+                            return (
+                              <div
+                                key={q.id}
+                                style={{
+                                  ...(q.isSub ? modalQuestionRowSub : modalQuestionRow),
+                                  ...(q.note ? { cursor: 'pointer' } : {}),
+                                  ...(isExpanded ? { alignItems: 'flex-start' } : {}),
+                                }}
+                                onClick={q.note ? () => toggleNote(q.id) : undefined}
+                              >
+                                <span style={modalQId}>{q.displayId}</span>
+                                {q.rank && <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>}
+                                {!q.hasChildren && (
+                                  <span style={modalQResult(q.isCorrect)}>
+                                    {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
+                                  </span>
+                                )}
+                                {q.isDoubtful && <DoubtIcon />}
+                                {!q.hasChildren && calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt) !== undefined && (
+                                  <span style={modalQTime}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
+                                )}
+                                {q.note && (
+                                  <span style={isExpanded ? modalQNoteExpanded : modalQNote}>{q.note}</span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
 
               </>
             )}
@@ -569,13 +611,23 @@ const modalScoreLabel: React.CSSProperties = { fontSize: '9px', fontWeight: 700,
 const modalScoreValue: React.CSSProperties = { fontSize: '16px', fontWeight: 900, color: '#37352f' }
 const modalScoreDivider: React.CSSProperties = { width: '1px', height: '28px', background: '#e5e5e4' }
 const modalQuestionList: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '6px' }
+const modalQuestionGroup: React.CSSProperties = {
+  background: '#f9f9f8',
+  borderRadius: '8px',
+  overflow: 'hidden',
+}
 const modalQuestionRow: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '8px',
   padding: '6px 8px',
-  borderRadius: '8px',
-  background: '#f9f9f8',
+}
+const modalQuestionRowSub: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '5px 8px 5px 22px',
+  borderTop: '1px solid rgba(55,53,47,0.06)',
 }
 const modalQId: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: '#37352f', minWidth: '32px' }
 const modalQTime: React.CSSProperties = {
@@ -592,6 +644,14 @@ const modalQNote: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
+}
+const modalQNoteExpanded: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#888',
+  flex: 1,
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  lineHeight: 1.5,
 }
 const ticketizeBtn: React.CSSProperties = {
   padding: '4px 10px',
