@@ -731,6 +731,12 @@ export default function ExamInputView({
                         defaultPoint={
                           lastUsedPoint
                         }
+                        canRemoveSub={
+                          !q.isSub ||
+                          questions.filter(
+                            (s) => s.isSub && s.sortOrder === q.sortOrder
+                          ).length > 1
+                        }
                         onUpdate={(
                             patch
                         ) =>

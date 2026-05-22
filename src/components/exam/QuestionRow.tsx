@@ -72,6 +72,7 @@ interface QuestionRowProps {
   question: QuestionDraft
   isScoring: boolean
   defaultPoint: number
+  canRemoveSub: boolean
   onUpdate: (patch: Partial<QuestionDraft>) => void
   onAddParent: () => void
   onRemoveParent: () => void
@@ -84,6 +85,7 @@ export function QuestionRow({
   question: q,
   isScoring,
   defaultPoint,
+  canRemoveSub,
   onUpdate,
   onAddParent,
   onRemoveParent,
@@ -128,13 +130,15 @@ export function QuestionRow({
     >
       {!isScoring && (
         <div style={sideControl}>
-          <button
-            type="button"
-            style={{ ...sideBtn, color: c.red }}
-            onClick={q.isSub ? onRemoveSub : onRemoveParent}
-          >
-            －
-          </button>
+          {(!q.isSub || canRemoveSub) && (
+            <button
+              type="button"
+              style={{ ...sideBtn, color: c.red }}
+              onClick={q.isSub ? onRemoveSub : onRemoveParent}
+            >
+              －
+            </button>
+          )}
 
           <button type="button" style={sideBtn} onClick={q.isSub ? onAddSub : onAddParent}>
             ＋
