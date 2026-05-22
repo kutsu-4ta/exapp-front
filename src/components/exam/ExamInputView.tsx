@@ -183,6 +183,7 @@ function initQuestions(
 interface Props {
     session: ExamSession
     isEditMode?: boolean
+    isViewMode?: boolean
     questionCount?: number
     onComplete: (
         sessionId: number,
@@ -196,6 +197,7 @@ interface Props {
 export default function ExamInputView({
                                           session,
                                           isEditMode,
+                                          isViewMode,
                                           questionCount = 25,
                                           onComplete,
                                           onCancel,
@@ -215,8 +217,10 @@ export default function ExamInputView({
 
   const [isScoring, setIsScoring] = useState(
       savedDraft?.isScoring ??
-      (isEditMode || session.status === 'scoring')
+      (isEditMode || isViewMode || session.status === 'scoring')
   )
+
+  const [isEditing, setIsEditing] = useState(false)
 
   const [saving, setSaving] = useState(false)
   const [kbOffset, setKbOffset] = useState(0)
@@ -728,6 +732,9 @@ export default function ExamInputView({
                         isScoring={
                           isScoring
                         }
+                        isReadOnly={
+                          isViewMode && !isEditing
+                        }
                         defaultPoint={
                           lastUsedPoint
                         }
@@ -813,39 +820,23 @@ export default function ExamInputView({
                   試験終了（採点へ）
                 </button>
               </div>
+          ) : isViewMode && !isEditing ? (
+              <div style={footerActionGroup}>
+                <button style={examBackBtn} onClick={onCancel}>閉じる</button>
+                <button style={saveBtn} onClick={() => setIsEditing(true)}>編集</button>
+              </div>
           ) : (
-              <div
-                  style={
-                    footerActionGroup
-                  }
-              >
+              <div style={footerActionGroup}>
+                {(isEditMode || isEditing) && (
+                    <button style={examBackBtn} onClick={onCancel}>キャンセル</button>
+                )}
+                <button style={examBackBtn} onClick={() => setIsScoring(false)}>解答を修正</button>
                 <button
-                    style={
-                      examBackBtn
-                    }
-                    onClick={() =>
-                        setIsScoring(
-                            false
-                        )
-                    }
+                    style={saveBtn}
+                    onClick={handleSave}
+                    disabled={saving}
                 >
-                  解答を修正
-                </button>
-
-                <button
-                    style={
-                      saveBtn
-                    }
-                    onClick={
-                      handleSave
-                    }
-                    disabled={
-                      saving
-                    }
-                >
-                  {saving
-                      ? '保存中...'
-                      : '保存して実績確認'}
+                  {saving ? '保存中...' : '保存して実績確認'}
                 </button>
               </div>
           )}

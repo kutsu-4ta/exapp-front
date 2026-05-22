@@ -88,10 +88,10 @@ function OverviewTooltip({ active, payload }: { active?: boolean; payload?: Arra
 }
 
 interface AnalysisViewProps {
-  onEdit?: (sessionId: number) => void
+  onDetail?: (sessionId: number) => void
 }
 
-export default function AnalysisView({ onEdit }: AnalysisViewProps) {
+export default function AnalysisView({ onDetail }: AnalysisViewProps) {
   const subjects = useSettingsStore((s) => s.subjects)
   const [sessions, setSessions] = useState<ExamSessionSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -167,7 +167,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
         subject={selectedSubject}
         sessions={sessions.filter((s) => s.subject === selectedSubject)}
         onBack={() => setSelectedSubject(null)}
-        onEdit={onEdit}
+        onDetail={onDetail}
         onDelete={(sessionId) => setSessions((prev) => prev.filter((s) => s.id !== sessionId))}
       />
     )

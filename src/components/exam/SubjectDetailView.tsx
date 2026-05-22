@@ -45,11 +45,11 @@ interface SubjectDetailViewProps {
   subject: string
   sessions: ExamSessionSummary[]
   onBack: () => void
-  onEdit?: (sessionId: number) => void
+  onDetail?: (sessionId: number) => void
   onDelete?: (sessionId: number) => void
 }
 
-export default function SubjectDetailView({ subject, sessions, onBack, onEdit, onDelete }: SubjectDetailViewProps) {
+export default function SubjectDetailView({ subject, sessions, onBack, onDetail, onDelete }: SubjectDetailViewProps) {
   const [stats, setStats] = useState<ExamSubjectStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -198,12 +198,12 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit, o
                   </button>
                   {openMenuId === s.id && (
                     <div style={menuDropdown}>
-                      {onEdit && (
+                      {onDetail && (
                         <button
                           style={menuItem}
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); onEdit(s.id) }}
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); onDetail(s.id) }}
                         >
-                          編集
+                          詳細
                         </button>
                       )}
                       <button

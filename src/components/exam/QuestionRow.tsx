@@ -11,6 +11,11 @@ import {
     controlsContent,
     doubtBtn,
     layoutContainer,
+    memoOpt,
+    memoRow,
+    memosPanel,
+    memosToggleBtn,
+    memoText,
     metaGroup,
     miniLabel,
     myAnswerDisplay,
@@ -71,6 +76,7 @@ function focusFix(el: HTMLElement | null) {
 interface QuestionRowProps {
   question: QuestionDraft
   isScoring: boolean
+  isReadOnly?: boolean
   defaultPoint: number
   canRemoveSub: boolean
   onUpdate: (patch: Partial<QuestionDraft>) => void
@@ -84,6 +90,7 @@ interface QuestionRowProps {
 export function QuestionRow({
   question: q,
   isScoring,
+  isReadOnly,
   defaultPoint,
   canRemoveSub,
   onUpdate,
@@ -93,6 +100,7 @@ export function QuestionRow({
   onAddSub,
   onSetQuestionType,
 }: QuestionRowProps) {
+  const [showMemos, setShowMemos] = useState(false)
   const [isDescriptive, setIsDescriptive] = useState(
     () =>
       q.myAnswer !== '' && !ANSWER_OPTIONS.includes(q.myAnswer as (typeof ANSWER_OPTIONS)[number])
@@ -124,23 +132,25 @@ export function QuestionRow({
         borderLeft: q.hasChildren
           ? `4px solid ${c.border}`
           : q.isSub
-            ? `4px solid ${c.blue}`
+            ? `4px solid rgba(55,53,47,0.18)`
             : `1px solid ${c.border}`,
       }}
     >
       {!isScoring && (
         <div style={sideControl}>
-          {(!q.isSub || canRemoveSub) && (
             <button
               type="button"
-              style={{ ...sideBtn, color: c.red }}
+              disabled={!(!q.isSub || canRemoveSub)}
+              style={!(!q.isSub || canRemoveSub) ? { ...sideBtn, color: c.textSub } : { ...sideBtn, color: c.red }}
               onClick={q.isSub ? onRemoveSub : onRemoveParent}
             >
               －
             </button>
-          )}
 
-          <button type="button" style={sideBtn} onClick={q.isSub ? onAddSub : onAddParent}>
+          <button
+              type="button"
+              style={{sideBtn, color: "black"}}
+              onClick={q.isSub ? onAddSub : onAddParent}>
             ＋
           </button>
         </div>
@@ -170,7 +180,7 @@ export function QuestionRow({
           {!q.hasChildren && (
             <div style={controlsContent}>
               {isScoring ? (
-                <ScoringControls q={q} onUpdate={onUpdate} onCycleRank={cycleRank} defaultPoint={defaultPoint} />
+                <ScoringControls q={q} onUpdate={onUpdate} onCycleRank={cycleRank} defaultPoint={defaultPoint} isReadOnly={isReadOnly} />
               ) : (
                 <AnswerControls
                   q={q}
@@ -184,20 +194,46 @@ export function QuestionRow({
         </div>
 
         {isScoring && !q.hasChildren && (
-          <input
-            style={{
-              ...noteInput,
-              fontSize: 16,
-            }}
-            placeholder="ミスの傾向、論点のメモ..."
-            value={q.note ?? ''}
-            onFocus={(e) => focusFix(e.currentTarget)}
-            onChange={(e) =>
-              onUpdate({
-                note: e.target.value,
-              })
-            }
-          />
+          <>
+            <input
+              style={{
+                ...noteInput,
+                fontSize: 16,
+              }}
+              placeholder="ミスの傾向、論点のメモ..."
+              value={q.note ?? ''}
+              readOnly={isReadOnly}
+              onFocus={(e) => focusFix(e.currentTarget)}
+              onChange={(e) =>
+                onUpdate({
+                  note: e.target.value,
+                })
+              }
+            />
+            {Object.values(q.memos ?? {}).some((v) => v) && (
+              <>
+                <button
+                  type="button"
+                  style={memosToggleBtn}
+                  onClick={() => setShowMemos((v) => !v)}
+                >
+                  {showMemos ? '選択肢メモを隠す ▲' : '選択肢メモを表示 ▼'}
+                </button>
+                {showMemos && (
+                  <div style={memosPanel}>
+                    {Object.entries(q.memos ?? {})
+                      .filter(([, v]) => v)
+                      .map(([opt, memo]) => (
+                        <div key={opt} style={memoRow}>
+                          <span style={memoOpt}>{opt}</span>
+                          <span style={memoText}>{memo}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
       </div>
 
@@ -302,16 +338,18 @@ function ScoringControls({
   onUpdate,
   onCycleRank,
   defaultPoint,
+  isReadOnly,
 }: {
   q: QuestionDraft
   onUpdate: (p: Partial<QuestionDraft>) => void
   onCycleRank: () => void
   defaultPoint: number
+  isReadOnly?: boolean
 }) {
   const isScored = q.isCorrect !== null
   const displayPoint = isScored ? q.point : defaultPoint
   return (
-    <div style={scoringGroup}>
+    <div style={{ ...scoringGroup, ...(isReadOnly ? { pointerEvents: 'none', opacity: 0.7 } : {}) }}>
       <div style={scoringRow}>
         <div style={myAnswerDisplay}>{q.myAnswer || '-'}</div>
 

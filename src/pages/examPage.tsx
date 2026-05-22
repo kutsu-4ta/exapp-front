@@ -25,6 +25,7 @@ export default function ExamPage() {
   const view = searchParams.get('view')           // 'input' | 'quick-score' | null
   const sessionIdParam = searchParams.get('sessionId')
   const isEditMode = searchParams.get('edit') === '1'
+  const isViewMode = searchParams.get('view_mode') === '1'
 
   const [activeSession, setActiveSession] = useState<ExamSession | null>(null)
   const [sessionLoading, setSessionLoading] = useState(false)
@@ -69,10 +70,11 @@ export default function ExamPage() {
 
   // ── ナビゲーションヘルパー ─────────────────────────────────────────────────
 
-  const navigateToInput = (session: ExamSession, edit = false) => {
+  const navigateToInput = (session: ExamSession, edit = false, viewMode = false) => {
     setActiveSession(session)
     const params: Record<string, string> = {view: 'input', sessionId: String(session.id)}
     if (edit) params.edit = '1'
+    if (viewMode) params.view_mode = '1'
     setSearchParams(params)
   }
 
@@ -220,6 +222,15 @@ export default function ExamPage() {
     }
   }
 
+  const handleDetailSession = async (sessionId: number) => {
+    try {
+      const session = await fetchExamSession(sessionId)
+      navigateToInput(session, false, true)
+    } catch {
+      setError('セッションの読み込みに失敗しました')
+    }
+  }
+
   const handleCancel = () => {
     // 履歴スタックに /exam を積む（ドラフトは localStorage に残っているので戻ることも可能）
     navigate(-1)
@@ -301,6 +312,7 @@ export default function ExamPage() {
         <ExamInputView
             session={activeSession}
             isEditMode={isEditMode}
+            isViewMode={isViewMode}
             questionCount={
               pendingParams.current.questionCount
             }
@@ -407,7 +419,7 @@ export default function ExamPage() {
       {error && <p style={errorMsg}>{error}</p>}
       {copyError && <p style={errorMsg}>{copyError}</p>}
 
-      <AnalysisView key={analysisKey} onEdit={handleEditSession} />
+      <AnalysisView key={analysisKey} onDetail={handleDetailSession} />
 
       {isCopyModalOpen && (
         <StatusCopyModal

@@ -464,6 +464,50 @@ export const timeValue: React.CSSProperties = {
   color: c.textSub,
 }
 
+export const memosToggleBtn: React.CSSProperties = {
+  display: 'inline-block',
+  marginTop: '6px',
+  padding: '3px 8px',
+  border: `1px solid ${c.border}`,
+  borderRadius: '5px',
+  background: 'none',
+  fontSize: font.xs,
+  fontWeight: 600,
+  color: c.textHint,
+  cursor: 'pointer',
+}
+
+export const memosPanel: React.CSSProperties = {
+  marginTop: '6px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  padding: '8px 10px',
+  backgroundColor: 'rgba(55,53,47,0.03)',
+  borderRadius: '6px',
+  border: `1px solid ${c.border}`,
+}
+
+export const memoRow: React.CSSProperties = {
+  display: 'flex',
+  gap: '8px',
+  alignItems: 'flex-start',
+}
+
+export const memoOpt: React.CSSProperties = {
+  fontSize: font.sm,
+  fontWeight: 800,
+  color: c.textSub,
+  minWidth: '16px',
+  flexShrink: 0,
+}
+
+export const memoText: React.CSSProperties = {
+  fontSize: font.sm,
+  color: c.textSub,
+  lineHeight: 1.5,
+}
+
 export const noteInput: React.CSSProperties = {
   width: '100%',
   marginTop: '8px',
