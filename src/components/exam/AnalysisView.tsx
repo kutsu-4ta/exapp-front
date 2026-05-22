@@ -345,12 +345,12 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
       ) : (
         /* 科目カードグリッド（直近） */
         <div style={detailGrid}>
-          {recentSessions.length === 0 && <p style={{ ...emptyText, gridColumn: '1/-1' }}>記録がありません</p>}
-          {recentSessions.map((s) => {
+          {latestPerSubject.length === 0 && <p style={{ ...emptyText, gridColumn: '1/-1' }}>記録がありません</p>}
+          {latestPerSubject.map((s) => {
             const sessionStatus: SubjectCardData['status'] =
               s.totalScore >= 60 ? '安定' : s.totalScore >= 50 ? '注意' : '要強化'
             return (
-              <div key={s.id} style={subjCard} onClick={() => setSelectedSubject(s.subject)}>
+              <div key={s.subject} style={subjCard} onClick={() => setSelectedSubject(s.subject)}>
                 <div style={subjCardHeader}>
                   <span style={subjNameSmall}>{s.subject}</span>
                   <span style={{ ...subjStatusTag, ...statusStyle[sessionStatus] }}>{sessionStatus}</span>
@@ -368,7 +368,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
               </div>
             )
           })}
-          {recentSessions.length % 2 === 0 && <div />}
+          {latestPerSubject.length % 2 === 0 && <div />}
           <div style={summaryCard}>
             <div style={subjCardHeader}>
               <span style={{ ...subjNameSmall, color: '#2383e2' }}>合計点</span>
