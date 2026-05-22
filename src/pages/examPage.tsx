@@ -213,15 +213,6 @@ export default function ExamPage() {
     navigateToAnalysis(true)
   }
 
-  const handleEditSession = async (sessionId: number) => {
-    try {
-      const session = await fetchExamSession(sessionId)
-      navigateToInput(session, true)
-    } catch {
-      setError('セッションの読み込みに失敗しました')
-    }
-  }
-
   const handleDetailSession = async (sessionId: number) => {
     try {
       const session = await fetchExamSession(sessionId)

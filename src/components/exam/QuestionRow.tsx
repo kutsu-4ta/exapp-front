@@ -149,7 +149,7 @@ export function QuestionRow({
 
           <button
               type="button"
-              style={{sideBtn, color: "black"}}
+              style={{...sideBtn, color: "black"}}
               onClick={q.isSub ? onAddSub : onAddParent}>
             ＋
           </button>
