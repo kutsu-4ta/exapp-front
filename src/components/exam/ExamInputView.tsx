@@ -134,6 +134,8 @@ function draftsToInputs(
     point: q.point,
     note: q.note,
     answeredTimeMs: q.answeredTimeMs,
+    answeredStartedAt: q.answeredStartedAt,
+    answeredFinishedAt: q.answeredFinishedAt,
   }))
 }
 
@@ -161,6 +163,8 @@ function initQuestions(
           point: q.point,
           note: q.note,
           answeredTimeMs: q.answeredTimeMs,
+          answeredStartedAt: q.answeredStartedAt,
+          answeredFinishedAt: q.answeredFinishedAt,
         }))
     )
   }
@@ -223,6 +227,7 @@ export default function ExamInputView({
 
   const {time: timerTime} = useTimer()
   const timerTimeRef = useRef(timerTime)
+  const isEditModeRef = useRef(!!isEditMode)
 
   useEffect(() => {
     timerTimeRef.current = timerTime
@@ -346,6 +351,9 @@ export default function ExamInputView({
                   q.answeredTimeMs ===
                   undefined
 
+              const now = new Date().toISOString()
+              const preserveTimestamps = isEditModeRef.current
+
               return {
                 ...q,
                 ...patch,
@@ -355,6 +363,10 @@ export default function ExamInputView({
                       timerTimeRef.current,
                     }
                     : {}),
+                ...(preserveTimestamps ? {} : {
+                  answeredStartedAt: q.answeredStartedAt ?? now,
+                  answeredFinishedAt: now,
+                }),
               }
             })
         )

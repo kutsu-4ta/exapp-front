@@ -19,6 +19,8 @@ export type ExamQuestion = {
   point: number
   note: string | null
   answeredTimeMs?: number
+  answeredStartedAt?: string
+  answeredFinishedAt?: string
 }
 
 export type ExamSession = {
@@ -58,6 +60,8 @@ export type ExamQuestionInput = {
   point: number
   note: string | null
   answeredTimeMs?: number
+  answeredStartedAt?: string
+  answeredFinishedAt?: string
 }
 
 export type ExamMistakeNote = {
@@ -102,4 +106,6 @@ export type QuestionDraft = {
   answeredTimeMs?: number
   memos?: Record<string, string>
   excludedOptions?: string[]
+  answeredStartedAt?: string
+  answeredFinishedAt?: string
 }

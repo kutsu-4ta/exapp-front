@@ -7,6 +7,12 @@ import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {StatusCopyModal} from '../common/StatusCopyModal'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
 
+function calcDurationMs(started?: string, finished?: string): number | undefined {
+  if (!started || !finished) return undefined
+  const d = new Date(finished).getTime() - new Date(started).getTime()
+  return d >= 0 ? d : undefined
+}
+
 function formatMs(ms: number | undefined): string {
   if (ms === undefined) return '--:--'
   const totalSec = Math.floor(ms / 1000)
@@ -257,8 +263,8 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                           {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
                         </span>
                         {q.isDoubtful && <DoubtIcon />}
-                        {!q.hasChildren && q.answeredTimeMs !== undefined && (
-                          <span style={modalQTime}>{formatMs(q.answeredTimeMs)}</span>
+                        {!q.hasChildren && calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt) !== undefined && (
+                          <span style={modalQTime}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
                         )}
                         {q.note && <span style={modalQNote}>{q.note}</span>}
                       </div>

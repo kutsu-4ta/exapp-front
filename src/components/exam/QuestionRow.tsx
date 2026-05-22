@@ -41,6 +41,12 @@ import {
 } from './QuestionRow.styles'
 import {AnswerInputPanel} from './AnswerInputPanel'
 
+function calcDurationMs(started?: string, finished?: string): number | undefined {
+  if (!started || !finished) return undefined
+  const d = new Date(finished).getTime() - new Date(started).getTime()
+  return d >= 0 ? d : undefined
+}
+
 function formatMs(ms: number | undefined): string {
   if (ms === undefined) return '--:--'
   const totalSec = Math.floor(ms / 1000)
@@ -390,7 +396,7 @@ function ScoringControls({
           }}
         >
           <span style={miniLabel}>TIME</span>
-          <span style={timeValue}>{formatMs(q.answeredTimeMs)}</span>
+          <span style={timeValue}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
         </div>
       </div>
     </div>
