@@ -9,6 +9,7 @@ import type {SubCategory} from '../../types/workspace'
 import {LoadingSpinner} from '../common/LoadingSpinner'
 import {c, font, formInput, formLabel} from '../../styles/notion'
 import {BottomSheet, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
+import {applyTemplate, useTicketTemplateStore} from '../../lib/store/ticketTemplates'
 
 interface Props {
   session: ExamSession
@@ -16,7 +17,7 @@ interface Props {
   onCreated: (count: number) => void
 }
 
-type FilterMode = 'both' | 'wrong' | 'doubt'
+type FilterMode = 'both' | 'wrong' | 'doubt' | 'correct' | 'all'
 
 function rankToPriority(rank: Rank): TicketPriority {
   if (rank === 'A') return 'high'
@@ -27,14 +28,17 @@ function rankToPriority(rank: Rank): TicketPriority {
 const RANK_COLOR: Record<Rank, string> = { A: '#eb5757', B: '#f2ab26', C: '#2383e2', D: 'rgba(55,53,47,0.4)', E: 'rgba(55,53,47,0.25)' }
 const RANK_BG: Record<Rank, string> = { A: 'rgba(235,87,87,0.08)', B: 'rgba(242,171,38,0.08)', C: 'rgba(35,131,226,0.08)', D: 'rgba(55,53,47,0.04)', E: 'rgba(55,53,47,0.02)' }
 
-function buildCriteria(rank: Rank, questions: ExamQuestion[]): string {
-  const lines = [`${rank}ランクの問題を正確に解けるようになる`, '', '対象問題:']
-  questions.forEach((q) => { const status = q.isCorrect === false ? '✗' : '?'; const note = q.note ? ` — ${q.note}` : ''; lines.push(`・問${q.displayId}（${status}）${note}`) })
-  return lines.join('\n')
+function buildQuestionsStr(questions: ExamQuestion[]): string {
+  return questions.map((q) => {
+    const status = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '?'
+    const note = q.note ? ` — ${q.note}` : ''
+    return `・問${q.displayId}（${status}）${note}`
+  }).join('\n')
 }
 
 export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
   const loadTickets = useSprintStore((s) => s.loadTickets)
+  const templates = useTicketTemplateStore((s) => s.templates)
   const [sprints, setSprints] = useState<Sprint[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [sprintsLoading, setSprintsLoading] = useState(true)
@@ -59,6 +63,8 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
   const candidates = session.questions.filter((q) => {
     if (filter === 'wrong') return q.isCorrect === false
     if (filter === 'doubt') return q.isDoubtful
+    if (filter === 'correct') return q.isCorrect === true
+    if (filter === 'all') return true
     return q.isCorrect === false || q.isDoubtful
   })
 
@@ -89,10 +95,29 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
     if (!backlogSprint || !canSubmit) return
     setSubmitting(true)
     try {
+      const tmpl = templates.wrong_answer
       await Promise.all(
-        selectedGroups.map((g) =>
-          createTicket({ sprintId: backlogSprint.id, subject: session.subject, title: `[${session.examYear}] ${g.rank}ランク 問題の復習（${g.questions.length}問）`, acceptanceCriteria: buildCriteria(g.rank, g.questions), dueDate, priority: rankToPriority(g.rank), ticketType: 'practice', source: 'wrong_answer', estimateMinutes: g.questions.length * 15, subCategoryIds: rankSubCats[g.rank] ?? [] })
-        )
+        selectedGroups.map((g) => {
+          const vars = {
+            examYear: session.examYear,
+            rank: g.rank,
+            count: String(g.questions.length),
+            subject: session.subject,
+            questions: buildQuestionsStr(g.questions),
+          }
+          return createTicket({
+            sprintId: backlogSprint.id,
+            subject: session.subject,
+            title: applyTemplate(tmpl.title, vars),
+            acceptanceCriteria: applyTemplate(tmpl.acceptanceCriteria, vars),
+            dueDate,
+            priority: rankToPriority(g.rank),
+            ticketType: 'practice',
+            source: 'wrong_answer',
+            estimateMinutes: g.questions.length * 15,
+            subCategoryIds: rankSubCats[g.rank] ?? [],
+          })
+        })
       )
       setCreatedCount(selectedGroups.length)
       setDone(true)
@@ -128,7 +153,7 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
             <div>
               <label style={formLabel}>対象</label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                {([{ value: 'both', label: '不正解＋疑問' }, { value: 'wrong', label: '不正解のみ' }, { value: 'doubt', label: '疑問マークのみ' }] as { value: FilterMode; label: string }[]).map(({ value, label }) => (
+                {([{ value: 'both', label: '不正解＋疑問' }, { value: 'wrong', label: '不正解のみ' }, { value: 'doubt', label: '疑問マークのみ' }, { value: 'correct', label: '正解のみ' }, { value: 'all', label: 'すべて' }] as { value: FilterMode; label: string }[]).map(({ value, label }) => (
                   <button key={value} style={{ padding: '5px 12px', borderRadius: 20, border: filter === value ? 'none' : `1px solid ${c.border}`, background: filter === value ? c.blue : 'transparent', color: filter === value ? '#fff' : c.textSub, fontSize: font.sm, fontWeight: filter === value ? 700 : 500, cursor: 'pointer' }} onClick={() => setFilter(value)}>
                     {label}
                   </button>

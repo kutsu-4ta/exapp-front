@@ -1,6 +1,6 @@
 import {useState} from 'react'
-import type {StudyTicket, TicketPriority, TicketStatus, TicketType} from '../../types/sprint'
-import {PRIORITY_LABEL, STATUS_LABEL, TICKET_TYPE_LABEL} from '../../types/sprint'
+import type {StudyTicket, TicketPriority, TicketSource, TicketStatus, TicketType} from '../../types/sprint'
+import {PRIORITY_LABEL, SOURCE_LABEL, STATUS_LABEL, TICKET_TYPE_LABEL} from '../../types/sprint'
 import {TicketCard} from './TicketCard'
 import {c, font} from '../../styles/notion'
 
@@ -24,6 +24,7 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
 
 const PRIORITIES: TicketPriority[] = ['high', 'medium', 'low']
 const TICKET_TYPES: TicketType[] = ['knowledge', 'practice', 'understanding', 'memorization']
+const TICKET_SOURCES: TicketSource[] = ['wrong_answer', 'load_map', 'review', 'manual']
 
 const PRIORITY_COLOR_MAP: Record<TicketPriority, string> = {
   high: '#d06d6d',
@@ -35,6 +36,7 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterPriority, setFilterPriority] = useState<Set<TicketPriority>>(new Set())
   const [filterType, setFilterType] = useState<Set<TicketType>>(new Set())
+  const [filterSource, setFilterSource] = useState<Set<TicketSource>>(new Set())
 
   const togglePriority = (p: TicketPriority) =>
     setFilterPriority((prev) => {
@@ -50,12 +52,20 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
       return next
     })
 
-  const activeFilterCount = filterPriority.size + filterType.size
+  const toggleSource = (s: TicketSource) =>
+    setFilterSource((prev) => {
+      const next = new Set(prev)
+      next.has(s) ? next.delete(s) : next.add(s)
+      return next
+    })
+
+  const activeFilterCount = filterPriority.size + filterType.size + filterSource.size
 
   const filtered = tickets
     .filter((t) => filter === 'all' || t.status === filter)
     .filter((t) => filterPriority.size === 0 || filterPriority.has(t.priority))
     .filter((t) => filterType.size === 0 || filterType.has(t.ticketType))
+    .filter((t) => filterSource.size === 0 || filterSource.has(t.source))
 
   const statusColor = (s: TicketStatus) =>
     s === 'done' ? '#27ae60' : s === 'doing' ? c.blue : c.textHint
@@ -216,10 +226,38 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
             </div>
           </div>
 
+          {/* Source */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>発生源</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {TICKET_SOURCES.map((s) => {
+                const active = filterSource.has(s)
+                return (
+                  <button
+                    key={s}
+                    onClick={() => toggleSource(s)}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: 20,
+                      border: active ? 'none' : `1px solid ${c.border}`,
+                      backgroundColor: active ? c.blue : 'transparent',
+                      color: active ? '#fff' : c.textSub,
+                      fontSize: font.sm,
+                      fontWeight: active ? 700 : 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {SOURCE_LABEL[s]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Clear */}
           {activeFilterCount > 0 && (
             <button
-              onClick={() => { setFilterPriority(new Set()); setFilterType(new Set()) }}
+              onClick={() => { setFilterPriority(new Set()); setFilterType(new Set()); setFilterSource(new Set()) }}
               style={{
                 alignSelf: 'flex-start',
                 padding: '2px 8px',
