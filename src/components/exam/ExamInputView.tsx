@@ -406,10 +406,25 @@ export default function ExamInputView({
           )
           if (idx === -1) return prev
 
+          const target = prev[idx]
+
+          // hasChildren=true の大問は配下の設問が直後に並んでいるため、
+          // 設問をすべてスキップした位置に挿入する
+          let insertIdx = idx + 1
+          if (target.hasChildren) {
+            while (
+                insertIdx < prev.length &&
+                prev[insertIdx].isSub &&
+                prev[insertIdx].sortOrder === target.sortOrder
+            ) {
+              insertIdx++
+            }
+          }
+
           const next = [
-            ...prev.slice(0, idx + 1),
+            ...prev.slice(0, insertIdx),
             makeDraft(),
-            ...prev.slice(idx + 1),
+            ...prev.slice(insertIdx),
           ]
 
           return renumberQuestions(next)

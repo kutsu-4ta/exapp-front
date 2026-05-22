@@ -3,9 +3,9 @@ import {LoadingSpinner} from '../common/LoadingSpinner'
 import {deleteExamSession, fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {RANKS} from '../../types/exam'
-import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {StatusCopyModal} from '../common/StatusCopyModal'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
+import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 
 function calcDurationMs(started?: string, finished?: string): number | undefined {
   if (!started || !finished) return undefined
@@ -288,26 +288,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit, o
                   </div>
                 </div>
 
-                {selectedSession.questions.length > 0 && (
-                  <div style={modalQuestionList}>
-                    <div style={sectionLabel}>問題一覧</div>
-                    {selectedSession.questions.map((q) => (
-                      <div key={q.id} style={modalQuestionRow}>
-                        <span style={modalQId}>{q.displayId}</span>
-                        {q.rank && <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>}
-                        <span style={modalQResult(q.isCorrect)}>
-                          {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
-                        </span>
-                        {q.isDoubtful && <DoubtIcon />}
-                        {!q.hasChildren && calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt) !== undefined && (
-                          <span style={modalQTime}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
-                        )}
-                        {q.note && <span style={modalQNote}>{q.note}</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 {(() => {
                   const sessionRankStats = computeSessionRankStats(selectedSession.questions)
                   return sessionRankStats.length > 0 ? (
@@ -328,6 +308,27 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit, o
                     </div>
                   ) : null
                 })()}
+
+                {selectedSession.questions.length > 0 && (
+                  <div style={modalQuestionList}>
+                    <div style={sectionLabel}>解答用紙</div>
+                    {selectedSession.questions.map((q) => (
+                      <div key={q.id} style={modalQuestionRow}>
+                        <span style={modalQId}>{q.displayId}</span>
+                        {q.rank && <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>}
+                        <span style={modalQResult(q.isCorrect)}>
+                          {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
+                        </span>
+                        {q.isDoubtful && <DoubtIcon />}
+                        {!q.hasChildren && calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt) !== undefined && (
+                          <span style={modalQTime}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
+                        )}
+                        {q.note && <span style={modalQNote}>{q.note}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
               </>
             )}
           </div>
