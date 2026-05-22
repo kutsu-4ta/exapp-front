@@ -168,6 +168,7 @@ export default function AnalysisView({ onEdit }: AnalysisViewProps) {
         sessions={sessions.filter((s) => s.subject === selectedSubject)}
         onBack={() => setSelectedSubject(null)}
         onEdit={onEdit}
+        onDelete={(sessionId) => setSessions((prev) => prev.filter((s) => s.id !== sessionId))}
       />
     )
   }

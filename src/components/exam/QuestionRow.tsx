@@ -16,7 +16,9 @@ import {
     myAnswerDisplay,
     noteInput,
     parentStyle,
-    pointInput,
+    pointStepper,
+    pointValueConfirmed,
+    pointValueDefault,
     qNumberHeader,
     qNumberParent,
     qNumberSub,
@@ -33,6 +35,7 @@ import {
     sideBtn,
     sideControl,
     statusBtn,
+    stepperBtn,
     subStyle,
     timeValue,
     typeToggleActive,
@@ -68,6 +71,7 @@ function focusFix(el: HTMLElement | null) {
 interface QuestionRowProps {
   question: QuestionDraft
   isScoring: boolean
+  defaultPoint: number
   onUpdate: (patch: Partial<QuestionDraft>) => void
   onAddParent: () => void
   onRemoveParent: () => void
@@ -79,6 +83,7 @@ interface QuestionRowProps {
 export function QuestionRow({
   question: q,
   isScoring,
+  defaultPoint,
   onUpdate,
   onAddParent,
   onRemoveParent,
@@ -161,7 +166,7 @@ export function QuestionRow({
           {!q.hasChildren && (
             <div style={controlsContent}>
               {isScoring ? (
-                <ScoringControls q={q} onUpdate={onUpdate} onCycleRank={cycleRank} />
+                <ScoringControls q={q} onUpdate={onUpdate} onCycleRank={cycleRank} defaultPoint={defaultPoint} />
               ) : (
                 <AnswerControls
                   q={q}
@@ -292,11 +297,15 @@ function ScoringControls({
   q,
   onUpdate,
   onCycleRank,
+  defaultPoint,
 }: {
   q: QuestionDraft
   onUpdate: (p: Partial<QuestionDraft>) => void
   onCycleRank: () => void
+  defaultPoint: number
 }) {
+  const isScored = q.isCorrect !== null
+  const displayPoint = isScored ? q.point : defaultPoint
   return (
     <div style={scoringGroup}>
       <div style={scoringRow}>
@@ -364,27 +373,20 @@ function ScoringControls({
 
         <div style={metaGroup}>
           <span style={miniLabel}>POINT</span>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: '1px',
-            }}
-          >
-            <input
-              type="number"
-              style={{
-                ...pointInput,
-                fontSize: 16,
-              }}
-              value={q.point}
-              onChange={(e) =>
-                onUpdate({
-                  point: parseInt(e.target.value) || 0,
-                })
-              }
-            />
+          <div style={pointStepper}>
+            <button
+              type="button"
+              style={stepperBtn}
+              onClick={() => onUpdate({point: Math.max(0, displayPoint - 1)})}
+            >−</button>
+            <span style={isScored ? pointValueConfirmed : pointValueDefault}>
+              {displayPoint}
+            </span>
+            <button
+              type="button"
+              style={stepperBtn}
+              onClick={() => onUpdate({point: displayPoint + 1})}
+            >＋</button>
             <span style={miniLabel}>pt</span>
           </div>
         </div>

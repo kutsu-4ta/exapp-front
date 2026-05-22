@@ -229,6 +229,13 @@ export default function ExamInputView({
   const timerTimeRef = useRef(timerTime)
   const isEditModeRef = useRef(!!isEditMode)
 
+  const [lastUsedPoint, setLastUsedPoint] = useState(4)
+  const lastUsedPointRef = useRef(4)
+
+  useEffect(() => {
+    lastUsedPointRef.current = lastUsedPoint
+  }, [lastUsedPoint])
+
   useEffect(() => {
     timerTimeRef.current = timerTime
   }, [timerTime])
@@ -340,10 +347,20 @@ export default function ExamInputView({
           localId: string,
           patch: Partial<QuestionDraft>
       ) => {
+        if (typeof patch.point === 'number') {
+          setLastUsedPoint(patch.point)
+          lastUsedPointRef.current = patch.point
+        }
+
         setQuestions((prev) =>
             prev.map((q) => {
               if (q.localId !== localId)
                 return q
+
+              const isBeingScored =
+                  'isCorrect' in patch &&
+                  patch.isCorrect !== null &&
+                  q.isCorrect === null
 
               const shouldRecordTime =
                   patch.myAnswer &&
@@ -354,14 +371,21 @@ export default function ExamInputView({
               const now = new Date().toISOString()
               const preserveTimestamps = isEditModeRef.current
 
+              // 未採点の問題への point 変更は lastUsedPoint 更新のみ（q.point は変えない）
+              const patchToApply = {...patch}
+              if (q.isCorrect === null && !isBeingScored && 'point' in patchToApply) {
+                delete patchToApply.point
+              }
+
               return {
                 ...q,
-                ...patch,
+                ...patchToApply,
+                // 採点確定時に lastUsedPoint を q.point として固定
+                ...(isBeingScored
+                    ? {point: lastUsedPointRef.current}
+                    : {}),
                 ...(shouldRecordTime
-                    ? {
-                      answeredTimeMs:
-                      timerTimeRef.current,
-                    }
+                    ? {answeredTimeMs: timerTimeRef.current}
                     : {}),
                 ...(preserveTimestamps ? {} : {
                   answeredStartedAt: q.answeredStartedAt ?? now,
@@ -688,6 +712,9 @@ export default function ExamInputView({
                         }
                         isScoring={
                           isScoring
+                        }
+                        defaultPoint={
+                          lastUsedPoint
                         }
                         onUpdate={(
                             patch

@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react'
 import {LoadingSpinner} from '../common/LoadingSpinner'
-import {fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
+import {deleteExamSession, fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {RANKS} from '../../types/exam'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
@@ -46,14 +46,16 @@ interface SubjectDetailViewProps {
   sessions: ExamSessionSummary[]
   onBack: () => void
   onEdit?: (sessionId: number) => void
+  onDelete?: (sessionId: number) => void
 }
 
-export default function SubjectDetailView({ subject, sessions, onBack, onEdit }: SubjectDetailViewProps) {
+export default function SubjectDetailView({ subject, sessions, onBack, onEdit, onDelete }: SubjectDetailViewProps) {
   const [stats, setStats] = useState<ExamSubjectStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [sessionLoading, setSessionLoading] = useState(false)
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
@@ -87,6 +89,17 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
       // ignore
     } finally {
       setSessionLoading(false)
+    }
+  }
+
+  const handleDeleteSession = async (sessionId: number) => {
+    if (!window.confirm('この受験回を削除しますか？この操作は取り消せません。')) return
+    try {
+      await deleteExamSession(sessionId)
+      if (selectedSession?.id === sessionId) setSelectedSession(null)
+      onDelete?.(sessionId)
+    } catch {
+      // ignore
     }
   }
 
@@ -144,6 +157,13 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
             </div>
           </div>
 
+          {openMenuId !== null && (
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+              onClick={() => setOpenMenuId(null)}
+            />
+          )}
+
           <div style={sessionListCard}>
             <div style={sessionListHeader}>
               <h3 style={sectionLabel}>受験履歴</h3>
@@ -154,8 +174,8 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
               .map((s) => (
                 <div
                   key={s.id}
-                  style={sessionRow}
-                  onClick={() => handleSessionTap(s.id)}
+                  style={{ ...sessionRow, position: 'relative' }}
+                  onClick={() => { if (openMenuId === s.id) setOpenMenuId(null); else handleSessionTap(s.id) }}
                 >
                   <div style={sessionRowLeft}>
                     <span style={sessionDate}>
@@ -170,13 +190,29 @@ export default function SubjectDetailView({ subject, sessions, onBack, onEdit }:
                     <span style={scoreLabel}>PURE</span>
                     <span style={scoreValue}>{s.pureScore}</span>
                   </div>
-                  {onEdit && (
-                    <button
-                      style={editSessionBtn}
-                      onClick={(e) => { e.stopPropagation(); onEdit(s.id) }}
-                    >
-                      編集
-                    </button>
+                  <button
+                    style={menuTriggerBtn}
+                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === s.id ? null : s.id) }}
+                  >
+                    ⋯
+                  </button>
+                  {openMenuId === s.id && (
+                    <div style={menuDropdown}>
+                      {onEdit && (
+                        <button
+                          style={menuItem}
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); onEdit(s.id) }}
+                        >
+                          編集
+                        </button>
+                      )}
+                      <button
+                        style={{ ...menuItem, color: '#eb5757' }}
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleDeleteSession(s.id) }}
+                      >
+                        削除
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -427,16 +463,39 @@ const sessionRowScores: React.CSSProperties = {
 const scoreLabel: React.CSSProperties = { fontSize: '9px', fontWeight: 700, color: '#aaa' }
 const scoreValue: React.CSSProperties = { fontSize: '13px', fontWeight: 900, color: '#37352f' }
 const scoreDivider: React.CSSProperties = { fontSize: '10px', color: '#ddd', margin: '0 2px' }
-const editSessionBtn: React.CSSProperties = {
-  padding: '4px 10px',
-  border: '1px solid #e5e5e4',
-  borderRadius: '6px',
-  background: '#fff',
-  color: '#37352f',
-  fontSize: '11px',
-  fontWeight: 700,
+const menuTriggerBtn: React.CSSProperties = {
+  border: 'none',
+  background: 'none',
   cursor: 'pointer',
+  fontSize: '16px',
+  color: '#aaa',
+  padding: '0 4px',
+  lineHeight: 1,
   flexShrink: 0,
+}
+const menuDropdown: React.CSSProperties = {
+  position: 'absolute',
+  top: '100%',
+  right: 0,
+  zIndex: 100,
+  background: '#fff',
+  border: '1px solid #e5e5e4',
+  borderRadius: '8px',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+  overflow: 'hidden',
+  minWidth: '80px',
+}
+const menuItem: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  padding: '10px 14px',
+  border: 'none',
+  background: 'none',
+  textAlign: 'left',
+  fontSize: '13px',
+  fontWeight: 600,
+  color: '#37352f',
+  cursor: 'pointer',
 }
 const modalOverlay: React.CSSProperties = {
   position: 'fixed',

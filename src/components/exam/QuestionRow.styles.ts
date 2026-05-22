@@ -418,6 +418,45 @@ export const pointInput: React.CSSProperties = {
   background: 'transparent',
 }
 
+export const pointStepper: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '3px',
+}
+
+export const stepperBtn: React.CSSProperties = {
+  width: '18px',
+  height: '18px',
+  border: `1px solid ${c.border}`,
+  borderRadius: '4px',
+  background: 'transparent',
+  fontSize: '12px',
+  fontWeight: 700,
+  color: c.textSub,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+  lineHeight: 1,
+}
+
+export const pointValueConfirmed: React.CSSProperties = {
+  fontSize: '15px',
+  fontWeight: 900,
+  color: c.text,
+  minWidth: '16px',
+  textAlign: 'center',
+}
+
+export const pointValueDefault: React.CSSProperties = {
+  fontSize: '15px',
+  fontWeight: 900,
+  color: c.textFaint,
+  minWidth: '16px',
+  textAlign: 'center',
+}
+
 export const timeValue: React.CSSProperties = {
   fontSize: font.sm,
   fontFamily: 'monospace',
