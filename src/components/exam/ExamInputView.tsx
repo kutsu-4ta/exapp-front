@@ -231,7 +231,7 @@ export default function ExamInputView({
 
   const {time: timerTime} = useTimer()
   const timerTimeRef = useRef(timerTime)
-  const isEditModeRef = useRef(!!isEditMode)
+  const isEditModeRef = useRef(!!(isEditMode || isViewMode))
 
   const [lastUsedPoint, setLastUsedPoint] = useState(4)
   const lastUsedPointRef = useRef(4)
