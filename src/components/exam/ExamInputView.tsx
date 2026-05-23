@@ -22,6 +22,9 @@ import {
     scoreVal,
     scoreValPure,
     scoreVLine,
+    solvedBadge,
+    solvedBtn,
+    solvedMarker,
     statItem,
     statsBadge,
     stickyHeader,
@@ -33,6 +36,14 @@ type ExamDraft = {
   examYear: string
   questions: QuestionDraft[]
   isScoring: boolean
+  solvedTimerValue?: number
+}
+
+function formatMs(ms: number): string {
+  const totalSec = Math.floor(ms / 1000)
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 function draftKey(sessionId: number) {
@@ -229,6 +240,11 @@ export default function ExamInputView({
     initQuestions(session, savedDraft, questionCount)
   )
 
+  const [solvedTimerValue, setSolvedTimerValue] = useState<number | undefined>(
+    savedDraft?.solvedTimerValue
+  )
+  const solvedRef = useRef(savedDraft?.solvedTimerValue !== undefined)
+
   const {time: timerTime} = useTimer()
   const timerTimeRef = useRef(timerTime)
   const isEditModeRef = useRef(!!(isEditMode || isViewMode))
@@ -252,13 +268,15 @@ export default function ExamInputView({
       examYear,
       questions,
       isScoring,
+      solvedTimerValue,
     })
   }, [
     session.id,
     subject,
     examYear,
     questions,
-    isScoring
+    isScoring,
+    solvedTimerValue,
   ])
 
   useEffect(() => {
@@ -373,7 +391,7 @@ export default function ExamInputView({
                   undefined
 
               const now = new Date().toISOString()
-              const preserveTimestamps = isEditModeRef.current
+              const preserveTimestamps = isEditModeRef.current || solvedRef.current
 
               // 未採点の問題への point 変更は lastUsedPoint 更新のみ（q.point は変えない）
               const patchToApply = {...patch}
@@ -391,10 +409,10 @@ export default function ExamInputView({
                 ...(shouldRecordTime
                     ? {answeredTimeMs: timerTimeRef.current}
                     : {}),
-                ...(preserveTimestamps ? {} : {
+                ...(!preserveTimestamps && 'myAnswer' in patch ? {
                   answeredStartedAt: q.answeredStartedAt ?? now,
                   answeredFinishedAt: now,
-                }),
+                } : {}),
               }
             })
         )
@@ -601,6 +619,12 @@ export default function ExamInputView({
     })
   }
 
+  const handleSolved = () => {
+    const val = timerTimeRef.current
+    setSolvedTimerValue(val)
+    solvedRef.current = true
+  }
+
   const handleCancel = () => {
     if (
         !window.confirm(
@@ -644,6 +668,10 @@ export default function ExamInputView({
               {examYear}{' '}
               {subject}
             </div>
+
+            {!isScoring && solvedTimerValue !== undefined && (
+                <div style={solvedBadge}>✓ {formatMs(solvedTimerValue)}</div>
+            )}
 
             {isScoring && (
                 <div style={statsBadge}>
@@ -793,32 +821,14 @@ export default function ExamInputView({
             }}
         >
           {!isScoring ? (
-              <div
-                  style={
-                    footerActionGroup
-                  }
-              >
-                <button
-                    style={
-                      examBackBtn
-                    }
-                    onClick={
-                      handleCancel
-                    }
-                >
-                  中断
-                </button>
-
-                <button
-                    style={
-                      finishBtn
-                    }
-                    onClick={
-                      handleFinishExam
-                    }
-                >
-                  試験終了（採点へ）
-                </button>
+              <div style={footerActionGroup}>
+                <button style={examBackBtn} onClick={handleCancel}>中断</button>
+                {solvedTimerValue === undefined ? (
+                    <button style={solvedBtn} onClick={handleSolved}>解答完了</button>
+                ) : (
+                    <div style={solvedMarker}>✓ {formatMs(solvedTimerValue)}</div>
+                )}
+                <button style={finishBtn} onClick={handleFinishExam}>試験終了</button>
               </div>
           ) : isViewMode && !isEditing ? (
               <div style={footerActionGroup}>

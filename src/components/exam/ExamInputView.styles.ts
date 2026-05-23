@@ -151,3 +151,42 @@ export const examBackBtn: React.CSSProperties = {
   fontWeight: 700,
   cursor: 'pointer',
 }
+
+export const solvedBtn: React.CSSProperties = {
+  flex: 1,
+  padding: '16px',
+  backgroundColor: '#fff8ec',
+  color: '#d48b00',
+  border: '1px solid #f2c55a',
+  borderRadius: '12px',
+  fontSize: '12px',
+  fontWeight: 700,
+  cursor: 'pointer',
+}
+
+export const solvedMarker: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 12px',
+  backgroundColor: '#fff8ec',
+  color: '#d48b00',
+  border: '1px solid #f2c55a',
+  borderRadius: '12px',
+  fontSize: '11px',
+  fontWeight: 700,
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+}
+
+export const solvedBadge: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 700,
+  color: '#d48b00',
+  backgroundColor: '#fff8ec',
+  border: '1px solid #f2c55a',
+  padding: '3px 8px',
+  borderRadius: '10px',
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+}
