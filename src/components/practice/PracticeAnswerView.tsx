@@ -101,9 +101,6 @@ const ALPHA_MAP: Record<string, string> = {
   オ: 'E',
 }
 
-function displayLabel(opt: string, isAlphabet: boolean) {
-  return isAlphabet ? (ALPHA_MAP[opt] ?? opt) : opt
-}
 
 function makeInitial(): AnswerState {
   return {
@@ -181,12 +178,18 @@ export function PracticeAnswerView({
       prev.map((a, idx) => {
         if (idx !== i) return a
         const already = a.excludedOptions.includes(opt)
-        return {
-          ...a,
-          excludedOptions: already
-            ? a.excludedOptions.filter((o) => o !== opt)
-            : [...a.excludedOptions, opt],
+        const newExcluded = already
+          ? a.excludedOptions.filter((o) => o !== opt)
+          : [...a.excludedOptions, opt]
+        if (a.isAlphabet) {
+          const marker = '（×）'
+          const cur = a.memos[opt] ?? ''
+          const newMemo = already
+            ? cur.replace(new RegExp(`\\s*${marker}\\s*`), ' ').trim()
+            : cur.includes(marker) ? cur : cur ? `${cur} ${marker}` : marker
+          return { ...a, excludedOptions: newExcluded, memos: { ...a.memos, [opt]: newMemo } }
         }
+        return { ...a, excludedOptions: newExcluded }
       })
     )
   }
@@ -198,7 +201,7 @@ export function PracticeAnswerView({
         isDoubtful: a.isDoubtful,
         note: a.isDescriptive
           ? a.descriptiveText || null
-          : a.generalMemo || a.memos[a.selectedOption] || null,
+          : a.generalMemo || a.memos[a.isAlphabet ? (ALPHA_MAP[a.selectedOption] ?? a.selectedOption) : a.selectedOption] || null,
         memos: a.isDescriptive ? {} : a.memos,
       })),
     })
@@ -283,7 +286,8 @@ export function PracticeAnswerView({
                     <div style={optionRow}>
                       {ANSWER_OPTIONS.map((opt) => {
                         const isSelected = a.selectedOption === opt
-                        const isExcluded = a.excludedOptions.includes(opt)
+                        const excludeKey = a.isAlphabet ? (ALPHA_MAP[opt] ?? opt) : opt
+                        const isExcluded = a.excludedOptions.includes(excludeKey)
                         return (
                           <button
                             key={opt}
@@ -301,7 +305,7 @@ export function PracticeAnswerView({
                                 isExcluded && !isSelected ? { textDecoration: 'line-through' } : {}
                               }
                             >
-                              {displayLabel(opt, a.isAlphabet)}
+                              {opt}
                             </span>
                           </button>
                         )
@@ -322,7 +326,7 @@ export function PracticeAnswerView({
                     )}
                     {memoEntries.map(([opt, text]) => (
                       <div key={opt} style={memoReviewItem}>
-                        <span style={memoReviewLabel}>{displayLabel(opt, a.isAlphabet)}</span>
+                        <span style={memoReviewLabel}>{opt}</span>
                         <span style={memoReviewText}>{text}</span>
                       </div>
                     ))}
