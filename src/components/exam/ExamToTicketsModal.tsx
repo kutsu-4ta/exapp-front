@@ -191,7 +191,7 @@ export function ExamToTicketsModal({ session, onClose, onCreated }: Props) {
                           {questions.map((q, i) => (
                             <div key={q.id} style={{ padding: '8px 12px', borderBottom: i < questions.length - 1 ? `1px solid ${c.border}` : 'none', backgroundColor: c.bg }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: q.note ? 4 : 0 }}>
-                                <span style={{ fontSize: font.sm, fontWeight: 700, color: c.text, minWidth: 36 }}>問{q.displayId}</span>
+                                <span style={{ fontSize: font.sm, fontWeight: 700, color: c.text, minWidth: 36 }}>{q.displayId}</span>
                                 {q.isCorrect === false && <span style={{ fontSize: font.xs, fontWeight: 700, color: '#fff', background: c.red, borderRadius: 4, padding: '1px 5px' }}>✗</span>}
                                 {q.isDoubtful && <span style={{ fontSize: font.xs, fontWeight: 700, color: '#fff', background: '#f2ab26', borderRadius: 4, padding: '1px 5px' }}>?</span>}
                               </div>
