@@ -22,6 +22,7 @@ import {useTimer} from '@/context/TimerContext.tsx'
 import {getCached, invalidateCache, setCached} from '../lib/pageCache'
 import {WorkspaceBottomBar} from "@/components/workspace/WorkspaceBottomBar.tsx";
 import {WorkspaceDeleteSection} from "@/components/workspace/WorkspaceDeleteSection.tsx";
+import {StatusCopyModal} from '../components/common/StatusCopyModal'
 
 function triggerTaptic(ms = 15) {
   if (navigator.vibrate) {
@@ -174,6 +175,39 @@ function WorkspaceSkeleton({ onBack }: { onBack: () => void }) {
   )
 }
 
+function fmtMins(mins: number): string {
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return h > 0 ? `${h}h${m}m` : `${m}m`
+}
+
+function buildWorkspaceCopyText(log: DailyLog): string {
+  const lines = [`【${log.date} Workspace】`]
+  lines.push(log.isCompleted ? '✓ Completed' : '○ In progress')
+  lines.push('')
+  lines.push(`合計: ${fmtMins(log.totalMinutes)}`)
+
+  if (log.studySessions.length > 0) {
+    const subjectMap: Record<string, number> = {}
+    for (const s of log.studySessions) {
+      subjectMap[s.subject] = (subjectMap[s.subject] ?? 0) + s.minutes
+    }
+    lines.push('')
+    lines.push('【セッション】')
+    Object.entries(subjectMap)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([subj, mins]) => lines.push(`${subj}: ${fmtMins(mins)}`))
+  }
+
+  if (log.reflection) {
+    lines.push('')
+    lines.push('【振り返り】')
+    lines.push(log.reflection)
+  }
+
+  return lines.join('\n')
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DailyWorkspacePage() {
@@ -208,6 +242,9 @@ function WorkspaceDateContent() {
   const [deleteConfirming, setDeleteConfirming] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+  const [copyText, setCopyText] = useState('')
+  const [workspaceCopied, setWorkspaceCopied] = useState(false)
 
   // 初期データ取得（キャッシュヒット時は即表示 → バックグラウンド再フェッチ）
   useEffect(() => {
@@ -332,6 +369,20 @@ function WorkspaceDateContent() {
     [log, date]
   )
 
+  const handleCopyScreen = useCallback(() => {
+    if (!log) return
+    setCopyText(buildWorkspaceCopyText(log))
+    setIsCopyModalOpen(true)
+  }, [log])
+
+  const handleFinalCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setWorkspaceCopied(true)
+      setTimeout(() => { setWorkspaceCopied(false); setIsCopyModalOpen(false) }, 800)
+    } catch (e) { console.error(e) }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) return <WorkspaceSkeleton onBack={() => navigate(-1)} />
@@ -432,6 +483,41 @@ function WorkspaceDateContent() {
           />
         </div>
       </div>
+
+      <button
+        onClick={handleCopyScreen}
+        style={{
+          position: 'fixed',
+          left: '16px',
+          bottom: 'calc(140px + env(safe-area-inset-bottom))',
+          zIndex: 200,
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          backgroundColor: '#fff',
+          border: '1px solid rgba(55,53,47,0.12)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(55,53,47,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      </button>
+
+      {isCopyModalOpen && (
+        <StatusCopyModal
+          onClose={() => setIsCopyModalOpen(false)}
+          onCopy={handleFinalCopy}
+          text={copyText}
+          copied={workspaceCopied}
+        />
+      )}
 
       <WorkspaceBottomBar
           isCompleted={log.isCompleted}

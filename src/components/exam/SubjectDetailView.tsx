@@ -3,9 +3,29 @@ import {LoadingSpinner} from '../common/LoadingSpinner'
 import {deleteExamSession, fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {RANKS} from '../../types/exam'
-import {StatusCopyModal} from '../common/StatusCopyModal'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
+
+function buildSubjectDetailText(subject: string, stats: ExamSubjectStats, sessions: ExamSessionSummary[]): string {
+  const lines = [`【${subject} 分析】`, '']
+  if (stats.rankStats.length > 0) {
+    lines.push('【ランク別正答率】')
+    stats.rankStats.forEach((r) => {
+      lines.push(`${r.rank}: ${Math.round(r.correctRate * 100)}% (${r.count}問)`)
+    })
+    lines.push('')
+  }
+  if (sessions.length > 0) {
+    lines.push('【受験履歴】')
+    ;[...sessions]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .forEach((s) => {
+        const date = s.createdAt.slice(0, 10).replace(/-/g, '/')
+        lines.push(`${date} ${s.examYear}年度: TOTAL ${s.totalScore} / PURE ${s.pureScore}`)
+      })
+  }
+  return lines.join('\n')
+}
 
 function calcDurationMs(started?: string, finished?: string): number | undefined {
   if (!started || !finished) return undefined
@@ -47,9 +67,10 @@ interface SubjectDetailViewProps {
   onBack: () => void
   onDetail?: (sessionId: number) => void
   onDelete?: (sessionId: number) => void
+  onSubjectCopyTextReady?: (text: string) => void
 }
 
-export default function SubjectDetailView({ subject, sessions, onBack, onDetail, onDelete }: SubjectDetailViewProps) {
+export default function SubjectDetailView({ subject, sessions, onBack, onDetail, onDelete, onSubjectCopyTextReady }: SubjectDetailViewProps) {
   const [stats, setStats] = useState<ExamSubjectStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,9 +78,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [sessionLoading, setSessionLoading] = useState(false)
-  const [copyModalOpen, setCopyModalOpen] = useState(false)
-  const [copyText, setCopyText] = useState('')
-  const [copied, setCopied] = useState(false)
   const [ticketsModalOpen, setTicketsModalOpen] = useState(false)
   const [ticketCreatedMsg, setTicketCreatedMsg] = useState<string | null>(null)
   const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set())
@@ -79,23 +97,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
     try {
       const session = await fetchExamSession(sessionId)
       setSelectedSession(session)
-      const lines: string[] = []
-      lines.push(`【試験詳細】${session.subject} - ${session.examYear}`)
-      lines.push(`日時: ${session.createdAt.slice(0, 10).replace(/-/g, '/')}`)
-      lines.push(`TOTAL: ${session.totalScore} / PURE: ${session.pureScore}`)
-      lines.push(`正解: ${session.correctCount}問 / 不正解: ${session.incorrectCount}問 / 疑問: ${session.doubtfulCount}問`)
-      if (session.questions.length > 0) {
-        lines.push('')
-        lines.push('【問題一覧】')
-        session.questions.forEach((q) => {
-          const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : ''
-          const doubt = q.isDoubtful ? ' ?' : ''
-          const note = q.note ? ` ｜${q.note}` : ''
-          const rankStr = q.rank ? `[${q.rank}] ` : ''
-          lines.push(`${q.displayId} ${rankStr}${result}${doubt}${note}`)
-        })
-      }
-      setCopyText(lines.join('\n'))
     } catch {
       // ignore
     } finally {
@@ -114,24 +115,15 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
     }
   }
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(copyText)
-      setCopied(true)
-      setTimeout(() => {
-        setCopied(false)
-        setCopyModalOpen(false)
-        setSelectedSession(null)
-      }, 800)
-    } catch { /* ignore */ }
-  }
-
   useEffect(() => {
     fetchSubjectStats(subject)
-      .then(setStats)
+      .then((s) => {
+        setStats(s)
+        onSubjectCopyTextReady?.(buildSubjectDetailText(subject, s, sessions))
+      })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
-  }, [subject])
+  }, [subject]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={detailContainer}>
@@ -258,16 +250,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
                         + チケット化
                       </button>
                     )}
-                    <button
-                      style={copyIconBtn}
-                      onClick={() => setCopyModalOpen(true)}
-                      title="コピー"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="2" width="6" height="4" rx="1" />
-                        <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
-                      </svg>
-                    </button>
                     <button style={modalCloseBtn} onClick={() => setSelectedSession(null)}>✕</button>
                   </div>
                 </div>
@@ -375,15 +357,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
             )}
           </div>
         </div>
-      )}
-
-      {copyModalOpen && (
-        <StatusCopyModal
-          text={copyText}
-          copied={copied}
-          onCopy={handleCopy}
-          onClose={() => setCopyModalOpen(false)}
-        />
       )}
 
       {ticketsModalOpen && selectedSession && (
@@ -579,18 +552,6 @@ const modalCloseBtn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-}
-const copyIconBtn: React.CSSProperties = {
-  border: '1px solid #e5e5e4',
-  background: '#fff',
-  borderRadius: '8px',
-  width: '32px',
-  height: '28px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#37352f',
 }
 const modalScoreRow: React.CSSProperties = {
   display: 'flex',

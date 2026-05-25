@@ -52,6 +52,8 @@ export default function ExamPage() {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
   const [copyError, setCopyError] = useState<string | null>(null)
+  const [selectedExamSubject, setSelectedExamSubject] = useState<string | null>(null)
+  const [examSubjectCopyText, setExamSubjectCopyText] = useState('')
 
   // リロード対応: URL に sessionId があるときセッションをフェッチする
   const activeSessionRef = useRef<ExamSession | null>(null)
@@ -282,6 +284,15 @@ export default function ExamPage() {
     }
   }
 
+  const handleCopyScreen = async () => {
+    if (selectedExamSubject) {
+      setCopyText(examSubjectCopyText)
+      setIsCopyModalOpen(true)
+    } else {
+      await handlePrepareStats()
+    }
+  }
+
   const handleFinalCopy = async () => {
     try {
       await navigator.clipboard.writeText(copyText)
@@ -374,23 +385,6 @@ export default function ExamPage() {
         <span style={pageTitle}>PAST EXAM</span>
         <div style={headerButtons}>
           <button
-            style={copyBtn}
-            onClick={handlePrepareStats}
-            disabled={statsCopying}
-            title="ステータスをコピー"
-          >
-            {statsCopied ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="4" rx="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
-              </svg>
-            )}
-          </button>
-          <button
             style={quickBtn}
             onClick={() => setSearchParams({view: 'quick-score'}, {replace: true})}
             disabled={starting || stoppingTimer}
@@ -410,7 +404,41 @@ export default function ExamPage() {
       {error && <p style={errorMsg}>{error}</p>}
       {copyError && <p style={errorMsg}>{copyError}</p>}
 
-      <AnalysisView key={analysisKey} onDetail={handleDetailSession} />
+      <AnalysisView
+        key={analysisKey}
+        onDetail={handleDetailSession}
+        onSubjectChange={setSelectedExamSubject}
+        onSubjectCopyTextReady={setExamSubjectCopyText}
+      />
+
+      {/* 左下固定コピーボタン */}
+      <button
+        onClick={handleCopyScreen}
+        disabled={statsCopying}
+        title="画面の内容をコピー"
+        style={{
+          position: 'fixed',
+          bottom: 'calc(68px + env(safe-area-inset-bottom))',
+          left: '20px',
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          border: '1px solid rgba(55,53,47,0.12)',
+          backgroundColor: '#fff',
+          color: 'rgba(55,53,47,0.4)',
+          cursor: statsCopying ? 'default' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 200,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="2" width="6" height="4" rx="1" />
+          <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+        </svg>
+      </button>
 
       {isCopyModalOpen && (
         <StatusCopyModal
@@ -470,18 +498,7 @@ const quickBtn: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-const copyBtn: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 34,
-  height: 34,
-  borderRadius: '8px',
-  border: `1px solid ${c.border}`,
-  background: '#fff',
-  color: c.textHint,
-  cursor: 'pointer',
-}
+
 
 const errorMsg: React.CSSProperties = {
   fontSize: font.base,

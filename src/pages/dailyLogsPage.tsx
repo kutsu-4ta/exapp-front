@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {LoadingSpinner} from '../components/common/LoadingSpinner'
+import {StatusCopyModal} from '../components/common/StatusCopyModal'
 import {Link, useNavigate, useSearchParams} from 'react-router-dom'
 import {
   Bar,
@@ -66,6 +67,52 @@ function IconTrend({ active }: { active: boolean }) {
   )
 }
 
+function buildLogsListText(logs: DailyLogSummary[]): string {
+  const lines = [`Daily Logs (${logs.length}件)`, '']
+  logs.forEach((log) => {
+    const status = log.isCompleted ? '✓' : '○'
+    lines.push(`${status} ${log.date}  ${formatDuration(log.totalMinutes)}  ${formatSessions(log.sessionCount)}`)
+  })
+  return lines.join('\n')
+}
+
+function buildLogsChartText(
+  baseMonth: string,
+  monthTotals: { totalMinutes: number; subjectMap: Record<string, number> },
+  selectedDate: string | null,
+  detailLog: DailyLog | null,
+): string {
+  const lines = [`【Daily Logs ${baseMonth}】`, '']
+  lines.push(`TOTAL: ${formatDuration(monthTotals.totalMinutes)}`)
+  const subjEntries = Object.entries(monthTotals.subjectMap).sort((a, b) => b[1] - a[1])
+  if (subjEntries.length > 0) {
+    lines.push('')
+    lines.push('【科目別】')
+    subjEntries.forEach(([subj, mins]) => {
+      const pct = monthTotals.totalMinutes > 0 ? Math.round((mins / monthTotals.totalMinutes) * 100) : 0
+      lines.push(`${subj}: ${formatDuration(mins)} (${pct}%)`)
+    })
+  }
+  if (selectedDate && detailLog) {
+    lines.push('')
+    lines.push(`【${selectedDate} 詳細】`)
+    lines.push(`合計: ${formatDuration(detailLog.totalMinutes)}`)
+    const subjectMap: Record<string, number> = {}
+    for (const s of detailLog.studySessions) {
+      subjectMap[s.subject] = (subjectMap[s.subject] ?? 0) + s.minutes
+    }
+    Object.entries(subjectMap)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([subj, mins]) => lines.push(`  ${subj}: ${mins}m`))
+    if (detailLog.reflection) {
+      lines.push('')
+      lines.push('【振り返り】')
+      lines.push(detailLog.reflection)
+    }
+  }
+  return lines.join('\n')
+}
+
 export default function DailyLogsPage() {
   const navigate = useNavigate()
   const subjectColors = useSettingsStore((s) => s.subjectColors)
@@ -98,6 +145,11 @@ export default function DailyLogsPage() {
   // --- Modal state ---
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalDate, setModalDate] = useState(() => new Date().toISOString().slice(0, 10))
+
+  // --- Copy state ---
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+  const [copyText, setCopyText] = useState('')
+  const [logCopied, setLogCopied] = useState(false)
 
   // Initial list fetch
   useEffect(() => {
@@ -235,6 +287,23 @@ export default function DailyLogsPage() {
     Promise.all([worker(), worker(), worker()])
     return () => { cancelled = true }
   }, [chartData])
+
+  const handleCopyScreen = useCallback(() => {
+    if (viewMode === 'list') {
+      setCopyText(buildLogsListText(listLogs))
+    } else {
+      setCopyText(buildLogsChartText(baseMonth, monthTotals, selectedDate, detailLog))
+    }
+    setIsCopyModalOpen(true)
+  }, [viewMode, listLogs, baseMonth, monthTotals, selectedDate, detailLog])
+
+  const handleFinalCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setLogCopied(true)
+      setTimeout(() => { setLogCopied(false); setIsCopyModalOpen(false) }, 800)
+    } catch (e) { console.error(e) }
+  }
 
   const handleSelectDate = async (fullDate: string) => {
     if (selectedDate === fullDate) {
@@ -520,6 +589,41 @@ export default function DailyLogsPage() {
           </div>
         )}
       </div>
+
+      <button
+        onClick={handleCopyScreen}
+        style={{
+          position: 'fixed',
+          left: '16px',
+          bottom: 'calc(68px + env(safe-area-inset-bottom))',
+          zIndex: 200,
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          backgroundColor: '#fff',
+          border: '1px solid rgba(55,53,47,0.12)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(55,53,47,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      </button>
+
+      {isCopyModalOpen && (
+        <StatusCopyModal
+          onClose={() => setIsCopyModalOpen(false)}
+          onCopy={handleFinalCopy}
+          text={copyText}
+          copied={logCopied}
+        />
+      )}
 
       {isModalOpen && (
         <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>

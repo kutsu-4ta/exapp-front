@@ -1,5 +1,6 @@
 import type {FailureType, Problem, ProblemInput, Proficiency, SubCategoryRank} from '../types/workspace'
 import {FAILURE_TYPE_VALUES, PROFICIENCY_VALUES} from '../types/workspace'
+import {StatusCopyModal} from '../components/common/StatusCopyModal'
 import {useSettingsStore} from '../lib/store/settings'
 import {ProblemCard} from '../components/note/ProblemCard'
 import {ProblemQuickModal} from '../components/note/ProblemQuickModal'
@@ -73,6 +74,35 @@ function SkeletonCard({ isLast = false }: { isLast?: boolean }) {
   )
 }
 
+function buildProblemDetailText(p: Problem): string {
+  const lines: string[] = []
+  const meta = [p.materialName, p.questionRef].filter(Boolean).join(' ')
+  lines.push(`[${p.subject}] ${meta}`)
+  lines.push(`習熟度: ${p.proficiency}`)
+  if (p.subCategory) lines.push(`小分類: ${p.subCategory}`)
+  if (p.failureTypes.length > 0) lines.push(`属性: ${p.failureTypes.join(', ')}`)
+  const flags = [p.isGoodQuestion && '★ 良問', p.isFormula && '公式'].filter(Boolean)
+  if (flags.length > 0) lines.push(flags.join(' '))
+  if (p.note) { lines.push(''); lines.push('【ノート】'); lines.push(p.note) }
+  return lines.join('\n')
+}
+
+function buildProblemListText(grouped: Array<{ subject: string; items: Problem[] }>): string {
+  const total = grouped.reduce((sum, g) => sum + g.items.length, 0)
+  const lines = [`Note一覧 (${total}件)`, '']
+  grouped.forEach(({ subject, items }) => {
+    if (subject !== 'all') lines.push(`■ ${subject}`)
+    items.forEach((p, i) => {
+      const meta = [p.materialName, p.questionRef].filter(Boolean).join(' ')
+      lines.push(`${i + 1}. [${p.subject}] ${meta} (${p.proficiency})`)
+      if (p.subCategory) lines.push(`   ${p.subCategory}`)
+      if (p.failureTypes.length > 0) lines.push(`   ${p.failureTypes.join(' ')}`)
+    })
+    if (subject !== 'all') lines.push('')
+  })
+  return lines.join('\n')
+}
+
 export default function NoteListPage() {
   const navigate = useNavigate()
 
@@ -98,6 +128,9 @@ export default function NoteListPage() {
 
   const [showNoteToTickets, setShowNoteToTickets] = useState(false)
   const [showDegConfig, setShowDegConfig] = useState(false)
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+  const [copyText, setCopyText] = useState('')
+  const [noteCopied, setNoteCopied] = useState(false)
   const handleDegStart = (config: DegBugfixConfig) => {
     setShowDegConfig(false)
     const label = config.subject ?? 'すべての科目'
@@ -198,6 +231,23 @@ export default function NoteListPage() {
 
   const activeDetail = detailActiveCount(detailFilter)
   const totalItems = grouped.flatMap((g) => g.items).length
+
+  const handleCopyScreen = useCallback(() => {
+    if (quickProblem) {
+      setCopyText(buildProblemDetailText(quickProblem))
+    } else {
+      setCopyText(buildProblemListText(grouped))
+    }
+    setIsCopyModalOpen(true)
+  }, [quickProblem, grouped])
+
+  const handleFinalCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText)
+      setNoteCopied(true)
+      setTimeout(() => { setNoteCopied(false); setIsCopyModalOpen(false) }, 800)
+    } catch (e) { console.error(e) }
+  }
 
   return (
     <div style={container}>
@@ -336,6 +386,43 @@ export default function NoteListPage() {
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
         </button>
+      )}
+
+      {/* 左下固定コピーボタン */}
+      <button
+        onClick={handleCopyScreen}
+        title="画面の内容をコピー"
+        style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '20px',
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          border: '1px solid rgba(55,53,47,0.12)',
+          backgroundColor: '#fff',
+          color: 'rgba(55,53,47,0.4)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: quickProblem ? 1201 : 200,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="2" width="6" height="4" rx="1" />
+          <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+        </svg>
+      </button>
+
+      {isCopyModalOpen && (
+        <StatusCopyModal
+          text={copyText}
+          copied={noteCopied}
+          onCopy={handleFinalCopy}
+          onClose={() => setIsCopyModalOpen(false)}
+        />
       )}
 
       {showNoteToTickets && (

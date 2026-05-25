@@ -285,27 +285,36 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* 指標コピー */}
-        <div className="flex gap-2 mt-10 pt-8 border-t border-[var(--nt-border)]">
-          <button
-            onClick={handlePrepareStats}
-            disabled={statsCopying || isInitialLoading}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-[var(--nt-border)] bg-[rgba(55,53,47,0.03)] text-[rgba(55,53,47,0.5)] text-[13px] font-semibold cursor-pointer disabled:opacity-50"
-          >
-            {statsCopied ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="4" rx="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
-              </svg>
-            )}
-            <span>{statsCopied ? 'Copied' : statsCopying ? 'Loading...' : 'Copy status'}</span>
-          </button>
-        </div>
       </div>
+
+      {/* 左下固定コピーボタン */}
+      <button
+        onClick={handlePrepareStats}
+        disabled={statsCopying || isInitialLoading}
+        title="画面の内容をコピー"
+        style={{
+          position: 'fixed',
+          bottom: 'calc(68px + env(safe-area-inset-bottom))',
+          left: '20px',
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          border: '1px solid rgba(55,53,47,0.12)',
+          backgroundColor: '#fff',
+          color: 'rgba(55,53,47,0.4)',
+          cursor: (statsCopying || isInitialLoading) ? 'default' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 200,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="2" width="6" height="4" rx="1" />
+          <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+        </svg>
+      </button>
 
       {isCopyModalOpen && (
         <StatusCopyModal text={copyText} copied={statsCopied} onCopy={handleFinalCopy} onClose={() => setIsCopyModalOpen(false)} />

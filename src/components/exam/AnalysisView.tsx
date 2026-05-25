@@ -89,9 +89,11 @@ function OverviewTooltip({ active, payload }: { active?: boolean; payload?: Arra
 
 interface AnalysisViewProps {
   onDetail?: (sessionId: number) => void
+  onSubjectChange?: (subject: string | null) => void
+  onSubjectCopyTextReady?: (text: string) => void
 }
 
-export default function AnalysisView({ onDetail }: AnalysisViewProps) {
+export default function AnalysisView({ onDetail, onSubjectChange, onSubjectCopyTextReady }: AnalysisViewProps) {
   const subjects = useSettingsStore((s) => s.subjects)
   const [sessions, setSessions] = useState<ExamSessionSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -166,9 +168,10 @@ export default function AnalysisView({ onDetail }: AnalysisViewProps) {
       <SubjectDetailView
         subject={selectedSubject}
         sessions={sessions.filter((s) => s.subject === selectedSubject)}
-        onBack={() => setSelectedSubject(null)}
+        onBack={() => { setSelectedSubject(null); onSubjectChange?.(null) }}
         onDetail={onDetail}
         onDelete={(sessionId) => setSessions((prev) => prev.filter((s) => s.id !== sessionId))}
+        onSubjectCopyTextReady={onSubjectCopyTextReady}
       />
     )
   }
@@ -309,7 +312,7 @@ export default function AnalysisView({ onDetail }: AnalysisViewProps) {
       {cardView === 'subjects' ? (
         <div style={detailGrid}>
           {subjectCards.map((card) => (
-            <div key={card.subject} style={subjCard} onClick={() => setSelectedSubject(card.subject)}>
+            <div key={card.subject} style={subjCard} onClick={() => { setSelectedSubject(card.subject); onSubjectChange?.(card.subject) }}>
               <div style={subjCardHeader}>
                 <span style={subjNameSmall}>{card.subject}</span>
                 <span style={{ ...subjStatusTag, ...statusStyle[card.status] }}>{card.status}</span>
@@ -351,7 +354,7 @@ export default function AnalysisView({ onDetail }: AnalysisViewProps) {
             const sessionStatus: SubjectCardData['status'] =
               s.totalScore >= 60 ? '安定' : s.totalScore >= 50 ? '注意' : '要強化'
             return (
-              <div key={s.subject} style={subjCard} onClick={() => setSelectedSubject(s.subject)}>
+              <div key={s.subject} style={subjCard} onClick={() => { setSelectedSubject(s.subject); onSubjectChange?.(s.subject) }}>
                 <div style={subjCardHeader}>
                   <span style={subjNameSmall}>{s.subject}</span>
                   <span style={{ ...subjStatusTag, ...statusStyle[sessionStatus] }}>{sessionStatus}</span>
