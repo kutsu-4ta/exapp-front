@@ -98,6 +98,22 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
     try {
       const session = await fetchExamSession(sessionId)
       setSelectedSession(session)
+      const lines: string[] = []
+      lines.push(`【試験詳細】${session.subject} - ${session.examYear}`)
+      lines.push(`日時: ${session.createdAt.slice(0, 10).replace(/-/g, '/')}`)
+      lines.push(`TOTAL: ${session.totalScore} / PURE: ${session.pureScore}`)
+      lines.push(`正解: ${session.correctCount}問 / 不正解: ${session.incorrectCount}問 / 疑問: ${session.doubtfulCount}問`)
+      if (session.questions.length > 0) {
+        lines.push('')
+        lines.push('【問題一覧】')
+        session.questions.forEach((q) => {
+          const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : ''
+          const doubt = q.isDoubtful ? ' ?' : ''
+          const note = q.note ? ` ｜${q.note}` : ''
+          const rankStr = q.rank ? `[${q.rank}] ` : ''
+          lines.push(`${q.displayId} ${rankStr}${result}${doubt}${note}`)
+        })
+      }
     } catch {
       // ignore
     } finally {
