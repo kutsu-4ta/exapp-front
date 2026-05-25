@@ -42,6 +42,7 @@ export function TicketList({ tickets, onTicketTap, onStatusChange, loading, onVi
   const subjects = useSettingsStore((s) => s.subjects)
 
   const [filterOpen, setFilterOpen] = useState(false)
+  const [sortOpen, setSortOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<Set<TicketStatus>>(new Set())
   const [filterPriority, setFilterPriority] = useState<Set<TicketPriority>>(new Set())
   const [filterType, setFilterType] = useState<Set<TicketType>>(new Set())
@@ -110,16 +111,18 @@ export function TicketList({ tickets, onTicketTap, onStatusChange, loading, onVi
     </button>
   )
 
+  const currentSortLabel = SORT_KEYS.find((k) => k.value === sortKey)?.label ?? '優先度'
+
   return (
     <div>
-      {/* Filter bar */}
+      {/* Header bar */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 12px 8px 16px',
-          borderBottom: filterOpen ? 'none' : `1px solid ${c.border}`,
+          borderBottom: filterOpen || sortOpen ? 'none' : `1px solid ${c.border}`,
         }}
       >
         <span style={{ fontSize: font.sm, color: c.textHint, fontVariantNumeric: 'tabular-nums' }}>
@@ -127,42 +130,112 @@ export function TicketList({ tickets, onTicketTap, onStatusChange, loading, onVi
           {activeFilterCount > 0 && ` / 絞込中 ${sorted.length}件`}
         </span>
 
-        <button
-          onClick={() => setFilterOpen((v) => !v)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: '5px 8px',
-            borderRadius: '6px',
-            border: activeFilterCount > 0 ? `1px solid ${c.blue}` : `1px solid ${c.border}`,
-            backgroundColor: activeFilterCount > 0 ? 'rgba(35,131,226,0.07)' : 'transparent',
-            color: activeFilterCount > 0 ? c.blue : c.textSub,
-            fontSize: font.sm,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
-          </svg>
-          絞込
-          {activeFilterCount > 0 && (
-            <span style={{
-              minWidth: 16, height: 16, borderRadius: 8,
-              backgroundColor: c.blue, color: '#fff',
-              fontSize: font.xs, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 4px',
-            }}>
-              {activeFilterCount}
-            </span>
-          )}
-          <span style={{ fontSize: 10, opacity: 0.6 }}>{filterOpen ? '▲' : '▼'}</span>
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {/* Sort button */}
+          <button
+            onClick={() => { setSortOpen((v) => !v); setFilterOpen(false) }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '5px 8px',
+              borderRadius: '6px',
+              border: sortOpen ? `1px solid ${c.blue}` : `1px solid ${c.border}`,
+              backgroundColor: sortOpen ? 'rgba(35,131,226,0.07)' : 'transparent',
+              color: sortOpen ? c.blue : c.textSub,
+              fontSize: font.sm,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M3 6h18M7 12h10M11 18h2"/>
+            </svg>
+            {currentSortLabel} {sortOrder === 'asc' ? '↑' : '↓'}
+            <span style={{ fontSize: 10, opacity: 0.6 }}>{sortOpen ? '▲' : '▼'}</span>
+          </button>
+
+          {/* Filter button */}
+          <button
+            onClick={() => { setFilterOpen((v) => !v); setSortOpen(false) }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '5px 8px',
+              borderRadius: '6px',
+              border: activeFilterCount > 0 ? `1px solid ${c.blue}` : `1px solid ${c.border}`,
+              backgroundColor: activeFilterCount > 0 ? 'rgba(35,131,226,0.07)' : 'transparent',
+              color: activeFilterCount > 0 ? c.blue : c.textSub,
+              fontSize: font.sm,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+            </svg>
+            絞込
+            {activeFilterCount > 0 && (
+              <span style={{
+                minWidth: 16, height: 16, borderRadius: 8,
+                backgroundColor: c.blue, color: '#fff',
+                fontSize: font.xs, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0 4px',
+              }}>
+                {activeFilterCount}
+              </span>
+            )}
+            <span style={{ fontSize: 10, opacity: 0.6 }}>{filterOpen ? '▲' : '▼'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Collapsible filter + sort panel */}
+      {/* Sort panel */}
+      {sortOpen && (
+        <div style={{
+          padding: '10px 16px 12px',
+          borderBottom: `1px solid ${c.border}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          backgroundColor: 'rgba(55,53,47,0.015)',
+        }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {SORT_KEYS.map(({ value, label }) => {
+              const active = sortKey === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => {
+                    if (sortKey === value) setSortOrder((o) => o === 'asc' ? 'desc' : 'asc')
+                    else { setSortKey(value); setSortOrder('asc') }
+                  }}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 20,
+                    border: active ? 'none' : `1px solid ${c.border}`,
+                    backgroundColor: active ? c.blue : 'transparent',
+                    color: active ? '#fff' : c.textSub,
+                    fontSize: font.sm,
+                    fontWeight: active ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  {label}
+                  {active && <span style={{ fontSize: 10 }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Filter panel */}
       {filterOpen && (
         <div style={{
           padding: '10px 16px 12px',
@@ -172,41 +245,6 @@ export function TicketList({ tickets, onTicketTap, onStatusChange, loading, onVi
           gap: 10,
           backgroundColor: 'rgba(55,53,47,0.015)',
         }}>
-          {/* Sort */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>ソート</span>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {SORT_KEYS.map(({ value, label }) => {
-                const active = sortKey === value
-                return (
-                  <button
-                    key={value}
-                    onClick={() => {
-                      if (sortKey === value) setSortOrder((o) => o === 'asc' ? 'desc' : 'asc')
-                      else { setSortKey(value); setSortOrder('asc') }
-                    }}
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: 20,
-                      border: active ? 'none' : `1px solid ${c.border}`,
-                      backgroundColor: active ? c.blue : 'transparent',
-                      color: active ? '#fff' : c.textSub,
-                      fontSize: font.sm,
-                      fontWeight: active ? 700 : 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    {label}
-                    {active && <span style={{ fontSize: 10 }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           {/* Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>状態</span>

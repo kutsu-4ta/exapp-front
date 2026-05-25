@@ -11,7 +11,7 @@ export const SUBJECT_PALETTE = [
     { bg: 'rgba(142,68,173,0.1)',   color: '#8e44ad' },  // purple
     { bg: 'rgba(168,85,247,0.1)',   color: '#a855f7' },  // violet
     { bg: 'rgba(232,94,139,0.1)',   color: '#e85e8b' },  // rose
-    { bg: 'rgba(236,72,153,0.1)',   color: '#ec4899' },  // fuchsia
+    { bg: 'rgba(244,63,94,0.08)',   color: '#f43f5e' },  // fuchsia
     { bg: 'rgba(249,115,22,0.1)',   color: '#f97316' },  // orange
     { bg: 'rgba(212,146,15,0.1)',   color: '#d4920f' },  // amber-brown
     { bg: 'rgba(100,116,139,0.1)',  color: '#64748b' },  // slate
