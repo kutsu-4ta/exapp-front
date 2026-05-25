@@ -5,6 +5,7 @@ import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Ra
 import {RANKS} from '../../types/exam'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
+import {sheetBottomCloseBtnStyle} from '@/components/common/BottomSheet'
 
 function buildSubjectDetailText(subject: string, stats: ExamSubjectStats, sessions: ExamSessionSummary[]): string {
   const lines = [`【${subject} 分析】`, '']
@@ -250,7 +251,6 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
                         + チケット化
                       </button>
                     )}
-                    <button style={modalCloseBtn} onClick={() => setSelectedSession(null)}>✕</button>
                   </div>
                 </div>
 
@@ -353,6 +353,9 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
                   )
                 })()}
 
+                <div style={{ paddingTop: '8px' }}>
+                  <button onClick={() => setSelectedSession(null)} style={sheetBottomCloseBtnStyle}>閉じる</button>
+                </div>
               </>
             )}
           </div>
@@ -541,18 +544,7 @@ const modalHeader: React.CSSProperties = {
 }
 const modalTitle: React.CSSProperties = { fontSize: '16px', fontWeight: 900, color: '#37352f' }
 const modalSubtitle: React.CSSProperties = { fontSize: '11px', color: '#aaa', fontWeight: 700, marginTop: '2px' }
-const modalCloseBtn: React.CSSProperties = {
-  border: 'none',
-  background: '#f4f4f3',
-  borderRadius: '50%',
-  width: '28px',
-  height: '28px',
-  fontSize: '12px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}
+
 const modalScoreRow: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',

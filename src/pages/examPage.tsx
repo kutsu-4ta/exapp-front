@@ -55,6 +55,8 @@ export default function ExamPage() {
   const [selectedExamSubject, setSelectedExamSubject] = useState<string | null>(null)
   const [examSubjectCopyText, setExamSubjectCopyText] = useState('')
 
+  useEffect(() => { setExamSubjectCopyText('') }, [selectedExamSubject])
+
   // リロード対応: URL に sessionId があるときセッションをフェッチする
   const activeSessionRef = useRef<ExamSession | null>(null)
   activeSessionRef.current = activeSession
@@ -414,7 +416,7 @@ export default function ExamPage() {
       {/* 左下固定コピーボタン */}
       <button
         onClick={handleCopyScreen}
-        disabled={statsCopying}
+        disabled={statsCopying || (!!selectedExamSubject && !examSubjectCopyText)}
         title="画面の内容をコピー"
         style={{
           position: 'fixed',
@@ -426,12 +428,13 @@ export default function ExamPage() {
           border: '1px solid rgba(55,53,47,0.12)',
           backgroundColor: '#fff',
           color: 'rgba(55,53,47,0.4)',
-          cursor: statsCopying ? 'default' : 'pointer',
+          cursor: (statsCopying || (!!selectedExamSubject && !examSubjectCopyText)) ? 'default' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: selectedExamSubject ? 1002 : 200,
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          opacity: (!!selectedExamSubject && !examSubjectCopyText) ? 0.4 : 1,
         }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
