@@ -5,7 +5,7 @@ import {c, font} from '../../styles/notion'
 import {PROF_STYLE, subjectPalette} from '@/styles/subjectUI.ts'
 import {FailureTypeSelector} from '@/components/common/FailureTypeSlecter.tsx'
 import {useSettingsStore} from '../../lib/store/settings'
-import {sheetCloseBtnStyle, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
+import {sheetBottomCloseBtnStyle, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
 
 interface Props {
   problem: Problem
@@ -42,8 +42,7 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm, onCl
   return (
     <div style={card}>
       {/* Header */}
-      <div style={sheetFlexHeaderStyle}>
-        <button onClick={onClose} style={sheetCloseBtnStyle}>×</button>
+      <div style={{ ...sheetFlexHeaderStyle, justifyContent: 'flex-end' }}>
         <span style={progressBadge}>{cardIndex} / {totalCards}</span>
       </div>
 
@@ -83,6 +82,7 @@ export function TodayCardModal({ problem, cardIndex, totalCards, onConfirm, onCl
         <button style={{ ...confirmBtn, backgroundColor: prof.bg, color: prof.color, opacity: loading ? 0.6 : 1 }} onClick={handleConfirm} disabled={loading}>
           {loading ? '保存中...' : '確認'}
         </button>
+        <button onClick={onClose} style={sheetBottomCloseBtnStyle}>閉じる</button>
       </div>
     </div>
   )

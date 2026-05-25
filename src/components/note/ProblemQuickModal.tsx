@@ -10,7 +10,12 @@ import {Copy, Pencil, Star, X} from "lucide-react";
 import {MarkdownContent} from "@/components/common/MarkdownContent.tsx";
 import {useNavigate} from "react-router-dom";
 import {useSettingsStore} from "../../lib/store/settings";
-import {BottomSheet, sheetBodyStyle, sheetCloseBtnStyle, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
+import {
+  BottomSheet,
+  sheetBodyStyle,
+  sheetBottomCloseBtnStyle,
+  sheetFlexHeaderStyle
+} from '@/components/common/BottomSheet'
 import {NoteEditor} from './NoteEditor'
 import {ProficiencySelector} from '@/components/common/ProficiencySelector'
 import {
@@ -174,15 +179,12 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, onNavig
   return (
     <BottomSheet onClose={onClose} height="90vh" zIndex={zIndex}>
       {/* ヘッダー */}
-      <div style={sheetFlexHeaderStyle}>
-        <button onClick={onClose} disabled={isSaving} style={{...sheetCloseBtnStyle, opacity: isSaving ? 0.7 : 1}}>×</button>
-        <div style={headerRight}>
-          {(isSaving || saveSuccessVisible) && (
-            <span style={isSaving ? saveLabelSaving : saveLabelSuccess}>
-              {isSaving ? "保存中…" : "保存済み"}
-            </span>
-          )}
-        </div>
+      <div style={{ ...sheetFlexHeaderStyle, justifyContent: 'flex-end' }}>
+        {(isSaving || saveSuccessVisible) && (
+          <span style={isSaving ? saveLabelSaving : saveLabelSuccess}>
+            {isSaving ? "保存中…" : "保存済み"}
+          </span>
+        )}
       </div>
 
       <div
@@ -461,11 +463,17 @@ export function ProblemQuickModal({problem, onClose, onDelete, onUpdate, onNavig
           </div>
         )}
 
-        {/* 削除ボタン（ノート編集中は非表示） */}
+        {/* Close + 削除ボタン（ノート編集中は非表示） */}
         {!isEditingNote && (
-          <div style={{paddingBottom: 32}}>
-            <LongPressButton onConfirm={handleDelete} disabled={deleting} style={deleteBtn}>この問題を削除</LongPressButton>
-          </div>
+          <>
+            <div style={{ padding: '4px 0 12px' }}>
+              <button onClick={onClose} disabled={isSaving} style={{ ...sheetBottomCloseBtnStyle, opacity: isSaving ? 0.7 : 1 }}>閉じる</button>
+            </div>
+            {/* 削除 — Close より下に配置、スクロールが必要 */}
+            <div style={{ padding: '32px 0 calc(20px + env(safe-area-inset-bottom))' }}>
+              <LongPressButton onConfirm={handleDelete} disabled={deleting} style={deleteBtn}>この問題を削除</LongPressButton>
+            </div>
+          </>
         )}
       </div>
     </BottomSheet>
@@ -558,7 +566,6 @@ const tagsRow: React.CSSProperties = {
   flexWrap: "wrap",
 }
 
-const headerRight: React.CSSProperties = {display: "flex", alignItems: "center", gap: "12px"}
 const iconBtn: React.CSSProperties = {border: "none", background: "none", color: 'rgba(55,53,47,0.4)', cursor: "pointer", display: "flex", alignItems: "center", gap: "3px", padding: "2px 4px"}
 
 const metaChipsRow: React.CSSProperties = {display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", marginBottom: 4}

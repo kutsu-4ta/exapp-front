@@ -3,7 +3,7 @@ import {SubjectDangerZone} from '@/components/subject/SubjectDangerZone'
 import {SUBJECT_COLOR_OPTIONS, subjectPalette} from '@/styles/subjectUI'
 import type {SubCategory, SubjectAlertSettings, SubjectSettings} from '@/types/workspace'
 import {useSettingsStore} from '@/lib/store/settings'
-import {BottomSheet, sheetCloseBtnAbsStyle, sheetHeaderStyle} from '@/components/common/BottomSheet'
+import {BottomSheet, sheetBottomCloseBtnStyle, sheetHeaderStyle} from '@/components/common/BottomSheet'
 
 type Props = {
   subjectName: string
@@ -50,7 +50,6 @@ export function SubjectSettingsModal({
     <BottomSheet onClose={onClose} maxWidth={600} maxHeight="85vh" paddingBottom="calc(40px + env(safe-area-inset-bottom, 0px))">
       <div style={sheetHeaderStyle}>
         <p style={sheetTitle}>設定</p>
-        <button style={sheetCloseBtnAbsStyle} onClick={onClose}>×</button>
       </div>
 
       <div style={body}>
@@ -129,8 +128,13 @@ export function SubjectSettingsModal({
           </div>
         </div>
 
-        {/* DANGER ZONE */}
+        {/* Close button */}
         <div style={{ paddingTop: '20px' }}>
+          <button onClick={onClose} style={sheetBottomCloseBtnStyle}>閉じる</button>
+        </div>
+
+        {/* DANGER ZONE — Close より下に配置、スクロールが必要 */}
+        <div style={{ paddingTop: '40px', paddingBottom: '12px' }}>
           <SubjectDangerZone subjectName={subjectName} deleteSubject={deleteSubject} subjects={subjects} setSubjects={setSubjects} subCategories={subCategories} setSubCategories={setSubCategories} navigate={navigate} />
         </div>
       </div>

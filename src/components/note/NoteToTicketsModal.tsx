@@ -5,7 +5,7 @@ import type {Sprint, TicketPriority, TicketType} from '../../types/sprint'
 import {useSprintStore} from '../../lib/store/sprintStore'
 import {LoadingSpinner} from '../common/LoadingSpinner'
 import {c, font, formInput, formLabel} from '../../styles/notion'
-import {BottomSheet, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
+import {BottomSheet, sheetBottomCloseBtnStyle, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
 
 interface Props {
   problems: Problem[]
@@ -135,7 +135,6 @@ export function NoteToTicketsModal({ problems, allSubCategories, onClose, onCrea
     <BottomSheet onClose={onClose} zIndex={1001} maxWidth={600} maxHeight="92vh" paddingBottom="calc(20px + env(safe-area-inset-bottom))">
       <div style={sheetFlexHeaderStyle}>
         <h3 style={{ margin: 0, fontSize: font.md, fontWeight: 700, color: c.text }}>Noteからチケット生成</h3>
-        <button onClick={onClose} style={closeBtn} aria-label="閉じる">×</button>
       </div>
       <div style={{ padding: '0 20px 20px' }}>
         <p style={{ margin: '8px 0 16px', fontSize: font.sm, color: c.textHint }}>
@@ -157,7 +156,7 @@ export function NoteToTicketsModal({ problems, allSubCategories, onClose, onCrea
             <p style={{ margin: 0, fontSize: font.base, fontWeight: 700, color: c.text, textAlign: 'center' }}>
               {createdCount}件のチケットをバックログに追加しました
             </p>
-            <button style={btnPrimary} onClick={() => { onCreated(createdCount); onClose() }}>閉じる</button>
+            <button style={sheetBottomCloseBtnStyle} onClick={() => { onCreated(createdCount); onClose() }}>閉じる</button>
           </div>
         ) : problems.length === 0 ? (
           <p style={{ fontSize: font.base, color: c.textHint, textAlign: 'center', padding: '32px 0' }}>
@@ -242,6 +241,7 @@ export function NoteToTicketsModal({ problems, allSubCategories, onClose, onCrea
               <button style={{ ...btnPrimary, opacity: canSubmit ? 1 : 0.45, cursor: canSubmit ? 'pointer' : 'not-allowed' }} disabled={!canSubmit} onClick={handleCreate}>
                 {submitting ? '追加中…' : `${selectedProblems.length}件のチケットをバックログに追加`}
               </button>
+              <button onClick={onClose} style={{ ...sheetBottomCloseBtnStyle, marginTop: 8 }}>閉じる</button>
             </div>
           </div>
         )}
@@ -250,6 +250,5 @@ export function NoteToTicketsModal({ problems, allSubCategories, onClose, onCrea
   )
 }
 
-const closeBtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: 'rgba(55,53,47,0.4)', lineHeight: 1, padding: '0 2px', flexShrink: 0 }
 const toggleBtn: React.CSSProperties = { border: `1px solid ${c.border}`, background: 'transparent', borderRadius: 6, padding: '3px 8px', fontSize: font.xs, fontWeight: 700, color: c.textSub, cursor: 'pointer' }
 const btnPrimary: React.CSSProperties = { width: '100%', padding: '12px', background: '#2383e2', color: '#fff', border: 'none', borderRadius: 10, fontSize: '14px', fontWeight: 700, cursor: 'pointer' }

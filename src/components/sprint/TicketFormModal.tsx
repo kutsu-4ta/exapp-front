@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react'
-import {BottomSheet} from '@/components/common/BottomSheet'
+import {BottomSheet, sheetBottomCloseBtnStyle} from '@/components/common/BottomSheet'
 import type {
   Sprint,
   StudyTicket,
@@ -550,38 +550,25 @@ export function TicketFormModal(props: Props) {
           {error && <p style={{ margin: 0, fontSize: '12px', color: c.red }}>{error}</p>}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginTop: '20px', justifyContent: 'flex-end' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '10px 18px',
-              border: `1px solid rgba(55,53,47,0.16)`,
-              borderRadius: '8px',
-              fontSize: font.base,
-              fontWeight: 600,
-              color: c.textSub,
-              background: 'transparent',
-              cursor: 'pointer',
-            }}
-          >
-            キャンセル
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '20px' }}>
           <button
             onClick={handleSave}
             disabled={saving}
             style={{
-              padding: '10px 18px',
+              width: '100%',
+              padding: '12px',
               backgroundColor: saving ? 'rgba(35,131,226,0.5)' : c.blue,
               color: '#fff',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '10px',
               fontSize: font.base,
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: saving ? 'default' : 'pointer',
             }}
           >
             {saving ? '保存中...' : '保存'}
           </button>
+          <button onClick={onClose} style={sheetBottomCloseBtnStyle}>閉じる</button>
         </div>
       </div>
     </BottomSheet>

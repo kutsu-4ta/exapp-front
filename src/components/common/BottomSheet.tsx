@@ -161,3 +161,16 @@ export const sheetBodyStyle: CSSProperties = {
   overflowY: 'auto',
   flex: 1,
 }
+
+// Full-width close button at the bottom of sheet content
+export const sheetBottomCloseBtnStyle: CSSProperties = {
+  width: '100%',
+  padding: '14px',
+  border: '1px solid rgba(55,53,47,0.14)',
+  borderRadius: '10px',
+  backgroundColor: '#fff',
+  fontSize: '15px',
+  fontWeight: 600,
+  color: 'rgba(55,53,47,0.6)',
+  cursor: 'pointer',
+}

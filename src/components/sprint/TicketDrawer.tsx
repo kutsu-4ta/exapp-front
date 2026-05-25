@@ -5,6 +5,7 @@ import {c, font} from '../../styles/notion'
 import {TicketNotes} from './TicketNotes'
 import {LongPressButton} from '@/components/common/LongPressButton.tsx'
 import {MarkdownContent} from '@/components/common/MarkdownContent.tsx'
+import {sheetBottomCloseBtnStyle} from '@/components/common/BottomSheet'
 
 export function buildTicketDetailText(ticket: StudyTicket, notes: TicketNote[]): string {
   const icon = ticket.priority === 'high' ? '↑' : ticket.priority === 'medium' ? '→' : '↓'
@@ -141,20 +142,7 @@ export function TicketDrawer({
           <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(55,53,47,0.12)' }} />
         </div>
 
-        <div style={{ padding: '8px 0 24px' }}>
-          {/* Close row */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 20px 8px' }}>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '18px', color: c.textHint, padding: '4px', lineHeight: 1,
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
+        <div style={{ padding: '8px 0 0' }}>
           {/* Sprint row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
             {/* Sprint chip — click to change */}
@@ -372,6 +360,13 @@ export function TicketDrawer({
             </div>
         </div>
 
+        {/* Close button */}
+        <div style={{ padding: '4px 20px 12px' }}>
+          <button onClick={onClose} style={sheetBottomCloseBtnStyle}>閉じる</button>
+        </div>
+
+        {/* Delete — close button より下に配置、スクロールが必要 */}
+        <div style={{ padding: '32px 20px 8px' }}>
           <LongPressButton
               onConfirm={handleDelete}
               disabled={actionLoading === 'delete'}
@@ -379,6 +374,7 @@ export function TicketDrawer({
           >
               Delete this ticket
           </LongPressButton>
+        </div>
       </div>
 
       {/* Backdrop for sprint dropdown */}

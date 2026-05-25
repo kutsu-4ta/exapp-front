@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import type {Sprint, SprintInput, SprintUpdateInput} from '../../types/sprint'
 import {c, font, formInput, formLabel, formTextarea} from '../../styles/notion'
-import {BottomSheet, sheetCloseBtnStyle, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
+import {BottomSheet, sheetBottomCloseBtnStyle, sheetFlexHeaderStyle} from '@/components/common/BottomSheet'
 
 type Props =
   | { mode: 'create'; onSave: (input: SprintInput) => Promise<void>; onClose: () => void }
@@ -82,7 +82,6 @@ export function SprintFormModal(props: Props) {
         <h3 style={{ margin: 0, fontSize: font.md, fontWeight: 700, color: c.text }}>
           {mode === 'create' ? 'スプリント作成' : 'スプリント編集'}
         </h3>
-        <button onClick={onClose} style={sheetCloseBtnStyle}>×</button>
       </div>
 
       <div style={{ padding: '16px 20px calc(20px + env(safe-area-inset-bottom))' }}>
@@ -160,6 +159,10 @@ export function SprintFormModal(props: Props) {
           }}
         >
           {saving ? '保存中...' : '保存'}
+        </button>
+
+        <button onClick={onClose} style={{ ...sheetBottomCloseBtnStyle, marginTop: 8 }}>
+          閉じる
         </button>
       </div>
     </BottomSheet>
