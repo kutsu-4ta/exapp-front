@@ -28,12 +28,6 @@ function buildSubjectDetailText(subject: string, stats: ExamSubjectStats, sessio
   return lines.join('\n')
 }
 
-function calcDurationMs(started?: string, finished?: string): number | undefined {
-  if (!started || !finished) return undefined
-  const d = new Date(finished).getTime() - new Date(started).getTime()
-  return d >= 0 ? d : undefined
-}
-
 function formatMs(ms: number | undefined): string {
   if (ms === undefined) return '--:--'
   const totalSec = Math.floor(ms / 1000)
@@ -354,8 +348,8 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
                                   </span>
                                 )}
                                 {q.isDoubtful && <DoubtIcon />}
-                                {!q.hasChildren && calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt) !== undefined && (
-                                  <span style={modalQTime}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
+                                {!q.hasChildren && !!q.answeredTimeMs && (
+                                  <span style={modalQTime}>{formatMs(q.answeredTimeMs)}</span>
                                 )}
                                 {q.note && (
                                   <span style={isExpanded ? modalQNoteExpanded : modalQNote}>{q.note}</span>

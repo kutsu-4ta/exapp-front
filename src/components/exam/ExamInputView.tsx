@@ -252,6 +252,10 @@ export default function ExamInputView({
   const [lastUsedPoint, setLastUsedPoint] = useState(4)
   const lastUsedPointRef = useRef(4)
 
+  // per-question focus time tracking
+  const activeFocusRef = useRef<{ localId: string; startTime: number } | null>(null)
+  const isTrackingRef = useRef(!isEditModeRef.current)
+
   useEffect(() => {
     lastUsedPointRef.current = lastUsedPoint
   }, [lastUsedPoint])
@@ -364,6 +368,28 @@ export default function ExamInputView({
     }
   }, [questions])
 
+  const finalizeActiveFocus = useCallback(() => {
+    if (!activeFocusRef.current) return
+    const { localId, startTime } = activeFocusRef.current
+    const elapsed = Date.now() - startTime
+    activeFocusRef.current = null
+    if (elapsed <= 0) return
+    setQuestions((prev) =>
+      prev.map((q) =>
+        q.localId === localId
+          ? { ...q, answeredTimeMs: (q.answeredTimeMs ?? 0) + elapsed }
+          : q
+      )
+    )
+  }, [])
+
+  const handleQuestionFocus = useCallback((localId: string) => {
+    if (!isTrackingRef.current) return
+    if (activeFocusRef.current?.localId === localId) return
+    finalizeActiveFocus()
+    activeFocusRef.current = { localId, startTime: Date.now() }
+  }, [finalizeActiveFocus])
+
   const updateQuestion = useCallback(
       (
           localId: string,
@@ -384,12 +410,6 @@ export default function ExamInputView({
                   patch.isCorrect !== null &&
                   q.isCorrect === null
 
-              const shouldRecordTime =
-                  patch.myAnswer &&
-                  q.myAnswer === '' &&
-                  q.answeredTimeMs ===
-                  undefined
-
               const now = new Date().toISOString()
               const preserveTimestamps = isEditModeRef.current || solvedRef.current
 
@@ -405,9 +425,6 @@ export default function ExamInputView({
                 // 採点確定時に lastUsedPoint を q.point として固定
                 ...(isBeingScored
                     ? {point: lastUsedPointRef.current}
-                    : {}),
-                ...(shouldRecordTime
-                    ? {answeredTimeMs: timerTimeRef.current}
                     : {}),
                 ...(!preserveTimestamps && 'myAnswer' in patch ? {
                   answeredStartedAt: q.answeredStartedAt ?? now,
@@ -610,6 +627,8 @@ export default function ExamInputView({
     )
       return
 
+    finalizeActiveFocus()
+    isTrackingRef.current = false
     setIsScoring(true)
 
     window.scrollTo({
@@ -620,6 +639,8 @@ export default function ExamInputView({
   }
 
   const handleSolved = () => {
+    finalizeActiveFocus()
+    isTrackingRef.current = false
     const val = timerTimeRef.current
     setSolvedTimerValue(val)
     solvedRef.current = true
@@ -808,6 +829,7 @@ export default function ExamInputView({
                                 type
                             )
                         }
+                        onFocusRow={() => handleQuestionFocus(q.localId)}
                     />
                 )
             )}

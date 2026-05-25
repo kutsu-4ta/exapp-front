@@ -49,12 +49,6 @@ import {
 } from './QuestionRow.styles'
 import {AnswerInputPanel} from './AnswerInputPanel'
 
-function calcDurationMs(started?: string, finished?: string): number | undefined {
-  if (!started || !finished) return undefined
-  const d = new Date(finished).getTime() - new Date(started).getTime()
-  return d >= 0 ? d : undefined
-}
-
 function formatMs(ms: number | undefined): string {
   if (ms === undefined) return '--:--'
   const totalSec = Math.floor(ms / 1000)
@@ -85,6 +79,7 @@ interface QuestionRowProps {
   onRemoveSub: () => void
   onAddSub: () => void
   onSetQuestionType: (type: 'single' | 'multi') => void
+  onFocusRow?: () => void
 }
 
 export function QuestionRow({
@@ -99,6 +94,7 @@ export function QuestionRow({
   onRemoveSub,
   onAddSub,
   onSetQuestionType,
+  onFocusRow,
 }: QuestionRowProps) {
   const [showMemos, setShowMemos] = useState(false)
   const [isDescriptive, setIsDescriptive] = useState(
@@ -135,6 +131,7 @@ export function QuestionRow({
             ? `4px solid rgba(55,53,47,0.18)`
             : `1px solid ${c.border}`,
       }}
+      onFocus={onFocusRow}
     >
       {!isScoring && (
         <div style={sideControl}>
@@ -440,7 +437,7 @@ function ScoringControls({
           }}
         >
           <span style={miniLabel}>TIME</span>
-          <span style={timeValue}>{formatMs(calcDurationMs(q.answeredStartedAt, q.answeredFinishedAt))}</span>
+          <span style={timeValue}>{formatMs(q.answeredTimeMs)}</span>
         </div>
       </div>
     </div>
