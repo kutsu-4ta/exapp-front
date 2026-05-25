@@ -1,30 +1,36 @@
-import {useState} from 'react'
+import {useCallback, useEffect, useMemo, useState} from 'react'
 import type {StudyTicket, TicketPriority, TicketSource, TicketStatus, TicketType} from '../../types/sprint'
-import {PRIORITY_LABEL, SOURCE_LABEL, STATUS_LABEL, TICKET_TYPE_LABEL} from '../../types/sprint'
+import {PRIORITY_LABEL, SOURCE_LABEL, TICKET_TYPE_LABEL} from '../../types/sprint'
 import {TicketCard} from './TicketCard'
 import {c, font} from '../../styles/notion'
+import {useSettingsStore} from '../../lib/store/settings'
 
-type StatusFilter = TicketStatus | 'all'
+type SortKey = 'priority' | 'subject' | 'dueDate' | 'createdAt'
+type SortOrder = 'asc' | 'desc'
 
 type Props = {
   tickets: StudyTicket[]
-  filter: StatusFilter
-  onFilterChange: (f: StatusFilter) => void
   onTicketTap: (ticket: StudyTicket) => void
   onStatusChange?: (ticket: StudyTicket, status: TicketStatus) => void
   loading?: boolean
+  onVisibleTicketsChange?: (tickets: StudyTicket[]) => void
 }
 
-const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'すべて' },
-  { value: 'todo', label: 'TODO' },
-  { value: 'doing', label: 'DOING' },
-  { value: 'done', label: 'DONE' },
+const STATUSES: { value: TicketStatus; label: string; color: string }[] = [
+  { value: 'todo', label: 'TODO', color: 'rgba(55,53,47,0.5)' },
+  { value: 'doing', label: 'DOING', color: '#2383e2' },
+  { value: 'done', label: 'DONE', color: '#27ae60' },
 ]
-
 const PRIORITIES: TicketPriority[] = ['high', 'medium', 'low']
 const TICKET_TYPES: TicketType[] = ['knowledge', 'practice', 'understanding', 'memorization']
 const TICKET_SOURCES: TicketSource[] = ['wrong_answer', 'load_map', 'review', 'manual']
+const SORT_KEYS: { value: SortKey; label: string }[] = [
+  { value: 'priority', label: '優先度' },
+  { value: 'subject', label: '科目' },
+  { value: 'dueDate', label: '期日' },
+  { value: 'createdAt', label: '起票日' },
+]
+const PRIORITY_ORDER: Record<TicketPriority, number> = { high: 0, medium: 1, low: 2 }
 
 const PRIORITY_COLOR_MAP: Record<TicketPriority, string> = {
   high: '#d06d6d',
@@ -32,98 +38,95 @@ const PRIORITY_COLOR_MAP: Record<TicketPriority, string> = {
   low: '#5e85ab',
 }
 
-export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onStatusChange, loading }: Props) {
+export function TicketList({ tickets, onTicketTap, onStatusChange, loading, onVisibleTicketsChange }: Props) {
+  const subjects = useSettingsStore((s) => s.subjects)
+
   const [filterOpen, setFilterOpen] = useState(false)
+  const [filterStatus, setFilterStatus] = useState<Set<TicketStatus>>(new Set())
   const [filterPriority, setFilterPriority] = useState<Set<TicketPriority>>(new Set())
   const [filterType, setFilterType] = useState<Set<TicketType>>(new Set())
   const [filterSource, setFilterSource] = useState<Set<TicketSource>>(new Set())
+  const [filterSubject, setFilterSubject] = useState<Set<string>>(new Set())
+  const [sortKey, setSortKey] = useState<SortKey>('priority')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+
+  const toggleStatus = (s: TicketStatus) =>
+    setFilterStatus((prev) => { const next = new Set(prev); next.has(s) ? next.delete(s) : next.add(s); return next })
 
   const togglePriority = (p: TicketPriority) =>
-    setFilterPriority((prev) => {
-      const next = new Set(prev)
-      next.has(p) ? next.delete(p) : next.add(p)
-      return next
-    })
+    setFilterPriority((prev) => { const next = new Set(prev); next.has(p) ? next.delete(p) : next.add(p); return next })
 
   const toggleType = (t: TicketType) =>
-    setFilterType((prev) => {
-      const next = new Set(prev)
-      next.has(t) ? next.delete(t) : next.add(t)
-      return next
-    })
+    setFilterType((prev) => { const next = new Set(prev); next.has(t) ? next.delete(t) : next.add(t); return next })
 
   const toggleSource = (s: TicketSource) =>
-    setFilterSource((prev) => {
-      const next = new Set(prev)
-      next.has(s) ? next.delete(s) : next.add(s)
-      return next
-    })
+    setFilterSource((prev) => { const next = new Set(prev); next.has(s) ? next.delete(s) : next.add(s); return next })
 
-  const activeFilterCount = filterPriority.size + filterType.size + filterSource.size
+  const toggleSubject = (s: string) =>
+    setFilterSubject((prev) => { const next = new Set(prev); next.has(s) ? next.delete(s) : next.add(s); return next })
 
-  const filtered = tickets
-    .filter((t) => filter === 'all' || t.status === filter)
-    .filter((t) => filterPriority.size === 0 || filterPriority.has(t.priority))
-    .filter((t) => filterType.size === 0 || filterType.has(t.ticketType))
-    .filter((t) => filterSource.size === 0 || filterSource.has(t.source))
+  const activeFilterCount = filterStatus.size + filterPriority.size + filterType.size + filterSource.size + filterSubject.size
 
-  const statusColor = (s: TicketStatus) =>
-    s === 'done' ? '#27ae60' : s === 'doing' ? c.blue : c.textHint
+  const filtered = useMemo(() =>
+    tickets
+      .filter((t) => filterStatus.size === 0 || filterStatus.has(t.status))
+      .filter((t) => filterPriority.size === 0 || filterPriority.has(t.priority))
+      .filter((t) => filterType.size === 0 || filterType.has(t.ticketType))
+      .filter((t) => filterSource.size === 0 || filterSource.has(t.source))
+      .filter((t) => filterSubject.size === 0 || filterSubject.has(t.subject)),
+    [tickets, filterStatus, filterPriority, filterType, filterSource, filterSubject]
+  )
 
-  const countByStatus = (s: TicketStatus) => tickets.filter((t) => t.status === s).length
+  const sorted = useMemo(() =>
+    [...filtered].sort((a, b) => {
+      let cmp = 0
+      if (sortKey === 'priority') cmp = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+      else if (sortKey === 'subject') cmp = a.subject.localeCompare(b.subject, 'ja')
+      else if (sortKey === 'dueDate') cmp = a.dueDate.localeCompare(b.dueDate)
+      else if (sortKey === 'createdAt') cmp = a.createdAt.localeCompare(b.createdAt)
+      return sortOrder === 'asc' ? cmp : -cmp
+    }),
+    [filtered, sortKey, sortOrder]
+  )
+
+  const stableOnVisibleChange = useCallback((t: StudyTicket[]) => { onVisibleTicketsChange?.(t) }, [onVisibleTicketsChange])
+  useEffect(() => { stableOnVisibleChange(sorted) }, [sorted, stableOnVisibleChange])
+
+  const chipBtn = (active: boolean, color: string, onClick: () => void, label: string) => (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '3px 10px',
+        borderRadius: 20,
+        border: active ? 'none' : `1px solid ${c.border}`,
+        backgroundColor: active ? color : 'transparent',
+        color: active ? '#fff' : c.textSub,
+        fontSize: font.sm,
+        fontWeight: active ? 700 : 500,
+        cursor: 'pointer',
+      }}
+    >
+      {label}
+    </button>
+  )
 
   return (
     <div>
-      {/* Status tabs + filter toggle */}
+      {/* Filter bar */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           padding: '8px 12px 8px 16px',
           borderBottom: filterOpen ? 'none' : `1px solid ${c.border}`,
-          gap: '4px',
         }}
       >
-        <div style={{ display: 'flex', gap: '4px', flex: 1, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {STATUS_FILTERS.map((f) => {
-            const active = filter === f.value
-            const count = f.value === 'all' ? tickets.length : countByStatus(f.value as TicketStatus)
-            const accentColor = f.value === 'all' ? c.text : statusColor(f.value as TicketStatus)
-            return (
-              <button
-                key={f.value}
-                onClick={() => onFilterChange(f.value)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: active ? `1px solid ${accentColor}22` : 'none',
-                  backgroundColor: active ? `${accentColor}0e` : 'transparent',
-                  color: active ? accentColor : c.textHint,
-                  fontSize: font.sm,
-                  fontWeight: active ? 700 : 500,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {f.label}
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: active ? accentColor : 'rgba(55,53,47,0.3)',
-                  fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {count}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+        <span style={{ fontSize: font.sm, color: c.textHint, fontVariantNumeric: 'tabular-nums' }}>
+          {tickets.length}件
+          {activeFilterCount > 0 && ` / 絞込中 ${sorted.length}件`}
+        </span>
 
-        {/* Filter toggle button */}
         <button
           onClick={() => setFilterOpen((v) => !v)}
           style={{
@@ -138,7 +141,6 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
             fontSize: font.sm,
             fontWeight: 600,
             cursor: 'pointer',
-            flexShrink: 0,
           }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -160,7 +162,7 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
         </button>
       </div>
 
-      {/* Collapsible filter panel */}
+      {/* Collapsible filter + sort panel */}
       {filterOpen && (
         <div style={{
           padding: '10px 16px 12px',
@@ -170,31 +172,69 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
           gap: 10,
           backgroundColor: 'rgba(55,53,47,0.015)',
         }}>
-          {/* Priority */}
+          {/* Sort */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>優先度</span>
+            <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>ソート</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {PRIORITIES.map((p) => {
-                const active = filterPriority.has(p)
+              {SORT_KEYS.map(({ value, label }) => {
+                const active = sortKey === value
                 return (
                   <button
-                    key={p}
-                    onClick={() => togglePriority(p)}
+                    key={value}
+                    onClick={() => {
+                      if (sortKey === value) setSortOrder((o) => o === 'asc' ? 'desc' : 'asc')
+                      else { setSortKey(value); setSortOrder('asc') }
+                    }}
                     style={{
                       padding: '3px 10px',
                       borderRadius: 20,
                       border: active ? 'none' : `1px solid ${c.border}`,
-                      backgroundColor: active ? PRIORITY_COLOR_MAP[p] : 'transparent',
+                      backgroundColor: active ? c.blue : 'transparent',
                       color: active ? '#fff' : c.textSub,
                       fontSize: font.sm,
                       fontWeight: active ? 700 : 500,
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
                     }}
                   >
-                    {PRIORITY_LABEL[p]} {p === 'high' ? '高' : p === 'medium' ? '中' : '低'}
+                    {label}
+                    {active && <span style={{ fontSize: 10 }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
                   </button>
                 )
               })}
+            </div>
+          </div>
+
+          {/* Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>状態</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {STATUSES.map(({ value, label, color }) =>
+                chipBtn(filterStatus.has(value), color, () => toggleStatus(value), label)
+              )}
+            </div>
+          </div>
+
+          {/* Subject */}
+          {subjects.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>科目</span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {subjects.map((s) => chipBtn(filterSubject.has(s), c.blue, () => toggleSubject(s), s))}
+              </div>
+            </div>
+          )}
+
+          {/* Priority */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>優先度</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {PRIORITIES.map((p) =>
+                chipBtn(filterPriority.has(p), PRIORITY_COLOR_MAP[p], () => togglePriority(p),
+                  `${PRIORITY_LABEL[p]} ${p === 'high' ? '高' : p === 'medium' ? '中' : '低'}`)
+              )}
             </div>
           </div>
 
@@ -202,27 +242,7 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>種別</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {TICKET_TYPES.map((t) => {
-                const active = filterType.has(t)
-                return (
-                  <button
-                    key={t}
-                    onClick={() => toggleType(t)}
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: 20,
-                      border: active ? 'none' : `1px solid ${c.border}`,
-                      backgroundColor: active ? c.blue : 'transparent',
-                      color: active ? '#fff' : c.textSub,
-                      fontSize: font.sm,
-                      fontWeight: active ? 700 : 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {TICKET_TYPE_LABEL[t]}
-                  </button>
-                )
-              })}
+              {TICKET_TYPES.map((t) => chipBtn(filterType.has(t), c.blue, () => toggleType(t), TICKET_TYPE_LABEL[t]))}
             </div>
           </div>
 
@@ -230,34 +250,20 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: font.xs, fontWeight: 700, color: c.textHint, minWidth: 36 }}>発生源</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {TICKET_SOURCES.map((s) => {
-                const active = filterSource.has(s)
-                return (
-                  <button
-                    key={s}
-                    onClick={() => toggleSource(s)}
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: 20,
-                      border: active ? 'none' : `1px solid ${c.border}`,
-                      backgroundColor: active ? c.blue : 'transparent',
-                      color: active ? '#fff' : c.textSub,
-                      fontSize: font.sm,
-                      fontWeight: active ? 700 : 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {SOURCE_LABEL[s]}
-                  </button>
-                )
-              })}
+              {TICKET_SOURCES.map((s) => chipBtn(filterSource.has(s), c.blue, () => toggleSource(s), SOURCE_LABEL[s]))}
             </div>
           </div>
 
           {/* Clear */}
           {activeFilterCount > 0 && (
             <button
-              onClick={() => { setFilterPriority(new Set()); setFilterType(new Set()); setFilterSource(new Set()) }}
+              onClick={() => {
+                setFilterStatus(new Set())
+                setFilterPriority(new Set())
+                setFilterType(new Set())
+                setFilterSource(new Set())
+                setFilterSubject(new Set())
+              }}
               style={{
                 alignSelf: 'flex-start',
                 padding: '2px 8px',
@@ -284,20 +290,14 @@ export function TicketList({ tickets, filter, onFilterChange, onTicketTap, onSta
               style={{ height: 72, borderRadius: 8, backgroundColor: 'rgba(55,53,47,0.04)' }}
             />
           ))
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div
             style={{ textAlign: 'center', padding: '40px 0', fontSize: font.base, color: c.textHint }}
           >
-            {activeFilterCount > 0
-              ? '条件に一致するチケットがありません'
-              : filter === 'done'
-                ? 'まだ完了したチケットがありません'
-                : filter === 'all'
-                  ? 'チケットがありません'
-                  : `${STATUS_LABEL[filter as TicketStatus]} のチケットがありません`}
+            {activeFilterCount > 0 ? '条件に一致するチケットがありません' : 'チケットがありません'}
           </div>
         ) : (
-          filtered.map((ticket) => (
+          sorted.map((ticket) => (
             <TicketCard
               key={ticket.id}
               ticket={ticket}

@@ -10,6 +10,7 @@ type Props = {
   onEdit: (sprint: Sprint) => void
   onDelete: (sprint: Sprint) => void
   onComplete: (sprint: Sprint) => void
+  onCopyStatus: (sprint: Sprint) => void
 }
 
 type MenuState = { sprint: Sprint; x: number; y: number } | null
@@ -22,6 +23,7 @@ export function SprintBar({
   onEdit,
   onDelete,
   onComplete,
+  onCopyStatus,
 }: Props) {
   const [menu, setMenu] = useState<MenuState>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -198,6 +200,7 @@ export function SprintBar({
             {[
               { label: '編集', action: () => { onEdit(menu.sprint); setMenu(null) }, show: true },
               { label: 'スプリント完了', action: () => { onComplete(menu.sprint); setMenu(null) }, show: menu.sprint.status === 'active' },
+              { label: 'ステータスをコピー', action: () => { onCopyStatus(menu.sprint); setMenu(null) }, show: true },
               { label: '削除', action: () => { onDelete(menu.sprint); setMenu(null) }, show: true, danger: true },
             ]
               .filter((item) => item.show)

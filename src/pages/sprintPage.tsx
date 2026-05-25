@@ -1,4 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {fetchTicketNotes} from '../lib/api/sprint'
+import {buildTicketDetailText, TicketDrawer} from '../components/sprint/TicketDrawer'
 import type {
   Sprint,
   SprintInput,
@@ -17,12 +19,25 @@ import {SprintFormModal} from '../components/sprint/SprintFormModal'
 import {SprintRetroModal} from '../components/sprint/SprintRetroModal'
 import {TicketList} from '../components/sprint/TicketList'
 import {KanbanBoard} from '../components/sprint/KanbanBoard'
-import {TicketDrawer} from '../components/sprint/TicketDrawer'
 import {TicketFormModal} from '../components/sprint/TicketFormModal'
 import {c, font} from '../styles/notion'
 import {useIsTablet} from '../hooks/useIsTablet'
 import {MarkdownContent} from '../components/common/MarkdownContent'
 import {StatusCopyModal} from '../components/common/StatusCopyModal'
+
+function buildTicketListText(sprintName: string, tickets: StudyTicket[]): string {
+  const lines = [`[${sprintName}] チケット一覧 (${tickets.length}件)`, '']
+  tickets.forEach((t, i) => {
+    const icon = t.priority === 'high' ? '↑' : t.priority === 'medium' ? '→' : '↓'
+    lines.push(`${i + 1}. ${icon} [${t.subject}] ${t.title}`)
+    lines.push(`   ${TICKET_TYPE_LABEL[t.ticketType]} / ${STATUS_LABEL[t.status]} / 期日: ${t.dueDate}`)
+    if (t.acceptanceCriteria) {
+      const first = t.acceptanceCriteria.split('\n')[0].trim()
+      if (first) lines.push(`   ${first}`)
+    }
+  })
+  return lines.join('\n')
+}
 
 function buildSprintStatusText(sprint: Sprint, stats: SprintStats | undefined, tickets: StudyTicket[]): string {
   const isCompleted = sprint.status === 'completed'
@@ -101,7 +116,6 @@ export default function SprintPage() {
     assignTicketToSprint,
   } = useSprintStore()
 
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all')
   const [sprintForm, setSprintForm] = useState<SprintFormState>({ open: false })
   const [retroForm, setRetroForm] = useState<RetroFormState>({ open: false })
   const [ticketForm, setTicketForm] = useState<TicketFormState>({ open: false })
@@ -113,7 +127,9 @@ export default function SprintPage() {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
   const [copyText, setCopyText] = useState('')
   const [aiCopied, setAiCopied] = useState(false)
-  const [copyModalMode, setCopyModalMode] = useState<'status' | 'ai'>('status')
+  const [copyModalMode, setCopyModalMode] = useState<'status' | 'ai' | 'tickets' | 'ticket'>('status')
+  const [ticketCopyLoading, setTicketCopyLoading] = useState(false)
+  const visibleTicketsRef = useRef<StudyTicket[]>([])
 
   // Initial load
   useEffect(() => {
@@ -217,12 +233,35 @@ export default function SprintPage() {
   const currentSprint = sprints.find((s) => s.id === currentSprintId) ?? null
   const isCompleted = currentSprint?.status === 'completed'
 
-  const handlePrepareStats = () => {
-    if (!currentSprint) return
-    setCopyText(buildSprintStatusText(currentSprint, currentStats, currentTickets))
+  // スプリントの三点リーダーメニューから呼ばれる
+  const handleCopySprintStatus = useCallback((sprint: Sprint) => {
+    const tickets = ticketsBySprintId[sprint.id] ?? []
+    const stats = statsCache[sprint.id]
+    setCopyText(buildSprintStatusText(sprint, stats, tickets))
     setCopyModalMode('status')
     setIsCopyModalOpen(true)
-  }
+  }, [ticketsBySprintId, statsCache])
+
+  // 左下ボタン: チケット一覧 or チケット個別
+  const handleCopyScreen = useCallback(async () => {
+    if (selectedTicket) {
+      setTicketCopyLoading(true)
+      try {
+        const notes = await fetchTicketNotes(selectedTicket.id)
+        setCopyText(buildTicketDetailText(selectedTicket, notes))
+        setCopyModalMode('ticket')
+        setIsCopyModalOpen(true)
+      } catch { /* ignore */ } finally {
+        setTicketCopyLoading(false)
+      }
+    } else {
+      if (!currentSprint) return
+      const tickets = isWide ? currentTickets : visibleTicketsRef.current
+      setCopyText(buildTicketListText(currentSprint.name, tickets))
+      setCopyModalMode('tickets')
+      setIsCopyModalOpen(true)
+    }
+  }, [selectedTicket, currentSprint, isWide, currentTickets])
 
   const handleFinalCopy = async () => {
     try {
@@ -238,6 +277,10 @@ export default function SprintPage() {
       console.error(e)
     }
   }
+
+  const handleVisibleTicketsChange = useCallback((t: StudyTicket[]) => {
+    visibleTicketsRef.current = t
+  }, [])
 
   if (!sprintsLoaded) {
     return (
@@ -290,6 +333,7 @@ export default function SprintPage() {
             onEdit={(sp) => setSprintForm({ open: true, mode: 'edit', sprint: sp })}
             onDelete={handleSprintDelete}
             onComplete={handleSprintComplete}
+            onCopyStatus={handleCopySprintStatus}
           />
 
           {/* Compact KPI strip — same as mobile */}
@@ -316,9 +360,9 @@ export default function SprintPage() {
 
           {/* Copy button */}
           <button
-            onClick={handlePrepareStats}
-            disabled={!currentSprint}
-            title="ステータスをコピー"
+            onClick={handleCopyScreen}
+            disabled={ticketCopyLoading}
+            title="画面の内容をコピー"
             style={{
               position: 'fixed',
               bottom: isTablet ? `calc(16px + env(safe-area-inset-bottom))` : `calc(68px + env(safe-area-inset-bottom))`,
@@ -328,25 +372,19 @@ export default function SprintPage() {
               borderRadius: '50%',
               border: `1px solid ${c.border}`,
               backgroundColor: '#fff',
-              color: statsCopied ? '#27ae60' : c.textHint,
-              cursor: 'pointer',
+              color: c.textHint,
+              cursor: ticketCopyLoading ? 'default' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 200,
+              zIndex: selectedTicket ? 1502 : 200,
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
           >
-            {statsCopied ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="4" rx="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
-              </svg>
-            )}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="4" rx="1" />
+              <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+            </svg>
           </button>
 
           {/* FAB */}
@@ -390,6 +428,7 @@ export default function SprintPage() {
             onEdit={(sp) => setSprintForm({ open: true, mode: 'edit', sprint: sp })}
             onDelete={handleSprintDelete}
             onComplete={handleSprintComplete}
+            onCopyStatus={handleCopySprintStatus}
           />
 
           <SprintKpi
@@ -406,21 +445,20 @@ export default function SprintPage() {
 
           <TicketList
             tickets={currentTickets}
-            filter={statusFilter}
-            onFilterChange={setStatusFilter}
             onTicketTap={setSelectedTicket}
             onStatusChange={handleTicketStatusChange}
             loading={ticketsLoading}
+            onVisibleTicketsChange={handleVisibleTicketsChange}
           />
 
           {/* Bottom spacer */}
           <div style={{ height: 80 }} />
 
-          {/* ステータスコピーボタン (モバイル固定) */}
+          {/* コピーボタン (モバイル固定) */}
           <button
-            onClick={handlePrepareStats}
-            disabled={!currentSprint}
-            title="ステータスをコピー"
+            onClick={handleCopyScreen}
+            disabled={ticketCopyLoading}
+            title="画面の内容をコピー"
             style={{
               position: 'fixed',
               bottom: `calc(68px + env(safe-area-inset-bottom))`,
@@ -430,25 +468,19 @@ export default function SprintPage() {
               borderRadius: '50%',
               border: `1px solid ${c.border}`,
               backgroundColor: '#fff',
-              color: statsCopied ? '#27ae60' : c.textHint,
-              cursor: 'pointer',
+              color: c.textHint,
+              cursor: ticketCopyLoading ? 'default' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 200,
+              zIndex: selectedTicket ? 1502 : 200,
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
           >
-            {statsCopied ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="4" rx="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
-              </svg>
-            )}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="4" rx="1" />
+              <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+            </svg>
           </button>
 
           {/* FAB */}

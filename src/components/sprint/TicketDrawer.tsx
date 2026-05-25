@@ -1,10 +1,44 @@
 import {useState} from 'react'
-import type {Sprint, StudyTicket, TicketStatus} from '../../types/sprint'
-import {PRIORITY_COLOR, PRIORITY_LABEL, SOURCE_LABEL, TICKET_TYPE_LABEL,} from '../../types/sprint'
+import type {Sprint, StudyTicket, TicketNote, TicketStatus} from '../../types/sprint'
+import {PRIORITY_COLOR, PRIORITY_LABEL, SOURCE_LABEL, STATUS_LABEL, TICKET_TYPE_LABEL,} from '../../types/sprint'
 import {c, font} from '../../styles/notion'
 import {TicketNotes} from './TicketNotes'
 import {LongPressButton} from '@/components/common/LongPressButton.tsx'
 import {MarkdownContent} from '@/components/common/MarkdownContent.tsx'
+
+export function buildTicketDetailText(ticket: StudyTicket, notes: TicketNote[]): string {
+  const icon = ticket.priority === 'high' ? '↑' : ticket.priority === 'medium' ? '→' : '↓'
+  const lines = [
+    `[${ticket.subject}] ${ticket.title}`,
+    `${icon} ${PRIORITY_LABEL[ticket.priority]} | ${TICKET_TYPE_LABEL[ticket.ticketType]} | ${STATUS_LABEL[ticket.status]}`,
+    `期日: ${ticket.dueDate} | 発生源: ${SOURCE_LABEL[ticket.source]}`,
+  ]
+  if (ticket.estimateMinutes) {
+    const h = Math.floor(ticket.estimateMinutes / 60)
+    const m = ticket.estimateMinutes % 60
+    lines.push(`見積: ${h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`}`)
+  }
+  if (ticket.subCategories.length > 0) {
+    lines.push(`カテゴリ: ${ticket.subCategories.map((sc) => sc.name).join(', ')}`)
+  }
+  lines.push('')
+  if (ticket.acceptanceCriteria) {
+    lines.push('【達成基準】')
+    lines.push(ticket.acceptanceCriteria)
+    lines.push('')
+  }
+  if (notes.length > 0) {
+    lines.push('【ノート】')
+    notes.forEach((note) => {
+      const d = new Date(note.createdAt)
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+      lines.push(dateStr)
+      lines.push(note.body)
+      lines.push('')
+    })
+  }
+  return lines.join('\n')
+}
 
 const deleteBtn: React.CSSProperties = {
   padding: '10px 16px',
@@ -73,6 +107,7 @@ export function TicketDrawer({
     setActionLoading('delete')
     try { await onDelete(ticket) } finally { setActionLoading(null) }
   }
+
 
   return (
     <>
