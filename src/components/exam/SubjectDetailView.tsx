@@ -7,6 +7,35 @@ import {ExamToTicketsModal} from './ExamToTicketsModal'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 import {sheetBottomCloseBtnStyle} from '@/components/common/BottomSheet'
 
+function buildSessionDetailText(session: ExamSession): string {
+  const lines: string[] = []
+  const date = session.createdAt.slice(0, 10).replace(/-/g, '/')
+  lines.push(`【${session.subject} ${session.examYear}年度】`)
+  lines.push(date)
+  lines.push(`TOTAL ${session.totalScore} / PURE ${session.pureScore}`)
+  lines.push(`正解 ${session.correctCount} / 不正解 ${session.incorrectCount} / 疑問 ${session.doubtfulCount}`)
+  const rankStats = computeSessionRankStats(session.questions)
+  if (rankStats.length > 0) {
+    lines.push('')
+    lines.push('【ランク別正答率】')
+    rankStats.forEach((r) => lines.push(`${r.rank}: ${Math.round(r.correctRate * 100)}% (${r.count}問)`))
+  }
+  if (session.questions.length > 0) {
+    lines.push('')
+    lines.push('【解答用紙】')
+    session.questions.forEach((q) => {
+      if (q.hasChildren) { lines.push(q.displayId); return }
+      const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'
+      const doubt = q.isDoubtful ? ' ?' : ''
+      const rank = q.rank ? ` [${q.rank}]` : ''
+      const time = q.answeredTimeMs ? ` ${formatMs(q.answeredTimeMs)}` : ''
+      const note = q.note ? ` ｜${q.note}` : ''
+      lines.push(`${q.displayId}${rank} ${result}${doubt}${time}${note}`)
+    })
+  }
+  return lines.join('\n')
+}
+
 function buildSubjectDetailText(subject: string, stats: ExamSubjectStats, sessions: ExamSessionSummary[]): string {
   const lines = [`【${subject} 分析】`, '']
   if (stats.rankStats.length > 0) {
@@ -86,28 +115,18 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
     })
   }
 
+  const closeSession = () => {
+    closeSession()
+    if (stats) onSubjectCopyTextReady?.(buildSubjectDetailText(subject, stats, sessions))
+  }
+
   const handleSessionTap = async (sessionId: number) => {
     setSessionLoading(true)
     setExpandedNoteIds(new Set())
     try {
       const session = await fetchExamSession(sessionId)
       setSelectedSession(session)
-      const lines: string[] = []
-      lines.push(`【試験詳細】${session.subject} - ${session.examYear}`)
-      lines.push(`日時: ${session.createdAt.slice(0, 10).replace(/-/g, '/')}`)
-      lines.push(`TOTAL: ${session.totalScore} / PURE: ${session.pureScore}`)
-      lines.push(`正解: ${session.correctCount}問 / 不正解: ${session.incorrectCount}問 / 疑問: ${session.doubtfulCount}問`)
-      if (session.questions.length > 0) {
-        lines.push('')
-        lines.push('【問題一覧】')
-        session.questions.forEach((q) => {
-          const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : ''
-          const doubt = q.isDoubtful ? ' ?' : ''
-          const note = q.note ? ` ｜${q.note}` : ''
-          const rankStr = q.rank ? `[${q.rank}] ` : ''
-          lines.push(`${q.displayId} ${rankStr}${result}${doubt}${note}`)
-        })
-      }
+      onSubjectCopyTextReady?.(buildSessionDetailText(session))
     } catch {
       // ignore
     } finally {
@@ -119,7 +138,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
     if (!window.confirm('この受験回を削除しますか？この操作は取り消せません。')) return
     try {
       await deleteExamSession(sessionId)
-      if (selectedSession?.id === sessionId) setSelectedSession(null)
+      if (selectedSession?.id === sessionId) closeSession()
       onDelete?.(sessionId)
     } catch {
       // ignore
@@ -236,7 +255,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
       )}
       {/* セッション詳細モーダル */}
       {(sessionLoading || selectedSession) && (
-        <div style={modalOverlay} onClick={() => setSelectedSession(null)}>
+        <div style={modalOverlay} onClick={() => closeSession()}>
           <div style={modalSheet} onClick={(e) => e.stopPropagation()}>
             {sessionLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
@@ -364,7 +383,7 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
                 })()}
 
                 <div style={{ paddingTop: '8px' }}>
-                  <button onClick={() => setSelectedSession(null)} style={sheetBottomCloseBtnStyle}>閉じる</button>
+                  <button onClick={() => closeSession()} style={sheetBottomCloseBtnStyle}>閉じる</button>
                 </div>
               </>
             )}
