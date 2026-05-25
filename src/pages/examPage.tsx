@@ -430,7 +430,7 @@ export default function ExamPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 200,
+          zIndex: selectedExamSubject ? 1002 : 200,
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         }}
       >
