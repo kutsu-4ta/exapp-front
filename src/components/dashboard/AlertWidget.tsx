@@ -77,7 +77,7 @@ function AlertCard({ item, onClick }: { item: AlertEntry; onClick: () => void })
       ? item.lastDate
         ? formatDaysAgo(item.lastDate)
         : 'Not studied'
-      : `Last ${item.settings.minutesThresholdDays}d: ${item.recentMinutes}m`
+      : `直近 ${item.settings.minutesThresholdDays}日: ${item.recentMinutes}分`
 
   return (
     <button
