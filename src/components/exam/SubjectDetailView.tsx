@@ -1,59 +1,84 @@
 import {useEffect, useState} from 'react'
-import {LoadingSpinner} from '../common/LoadingSpinner'
 import {deleteExamSession, fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {RANKS} from '../../types/exam'
 import {ExamToTicketsModal} from './ExamToTicketsModal'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 import {sheetBottomCloseBtnStyle} from '@/components/common/BottomSheet'
+import {LoadingSpinner} from "@/components/common/LoadingSpinner.tsx";
 
+// ── session detail copy ──
 function buildSessionDetailText(session: ExamSession): string {
   const lines: string[] = []
   const date = session.createdAt.slice(0, 10).replace(/-/g, '/')
+
   lines.push(`【${session.subject} ${session.examYear}年度】`)
   lines.push(date)
+
   lines.push(`TOTAL ${session.totalScore} / PURE ${session.pureScore}`)
   lines.push(`正解 ${session.correctCount} / 不正解 ${session.incorrectCount} / 疑問 ${session.doubtfulCount}`)
+
   const rankStats = computeSessionRankStats(session.questions)
   if (rankStats.length > 0) {
     lines.push('')
-    lines.push('【ランク別正答率】')
-    rankStats.forEach((r) => lines.push(`${r.rank}: ${Math.round(r.correctRate * 100)}% (${r.count}問)`))
+    lines.push('【ランク別成績】')
+    rankStats.forEach((r) => {
+      const correct = r.correct
+      const total = r.count
+      const rate = Math.round(r.correctRate * 100)
+      lines.push(`${r.rank}: ${rate}% (${correct}/${total}問)`)
+    })
   }
+
   if (session.questions.length > 0) {
     lines.push('')
     lines.push('【解答用紙】')
+
     session.questions.forEach((q) => {
-      if (q.hasChildren) { lines.push(q.displayId); return }
+      if (q.hasChildren) {
+        lines.push(q.displayId)
+        return
+      }
+
       const result = q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'
       const doubt = q.isDoubtful ? ' ?' : ''
       const rank = q.rank ? ` [${q.rank}]` : ''
       const time = q.answeredTimeMs ? ` ${formatMs(q.answeredTimeMs)}` : ''
       const note = q.note ? ` ｜${q.note}` : ''
+
       lines.push(`${q.displayId}${rank} ${result}${doubt}${time}${note}`)
     })
   }
+
   return lines.join('\n')
 }
 
+// ── subject detail copy ──
 function buildSubjectDetailText(subject: string, stats: ExamSubjectStats, sessions: ExamSessionSummary[]): string {
   const lines = [`【${subject} 分析】`, '']
+
   if (stats.rankStats.length > 0) {
-    lines.push('【ランク別正答率】')
+    lines.push('【ランク別成績】')
     stats.rankStats.forEach((r) => {
-      lines.push(`${r.rank}: ${Math.round(r.correctRate * 100)}% (${r.count}問)`)
+      const correct = Math.round(r.correctRate * r.count)
+      const total = r.count
+      const rate = Math.round(r.correctRate * 100)
+      lines.push(`${r.rank}: ${rate}% (${correct}/${total}問)`)
     })
     lines.push('')
   }
+
   if (sessions.length > 0) {
     lines.push('【受験履歴】')
+
     ;[...sessions]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .forEach((s) => {
-        const date = s.createdAt.slice(0, 10).replace(/-/g, '/')
-        lines.push(`${date} ${s.examYear}年度: TOTAL ${s.totalScore} / PURE ${s.pureScore}`)
-      })
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .forEach((s) => {
+          const date = s.createdAt.slice(0, 10).replace(/-/g, '/')
+          lines.push(`${date} ${s.examYear}年度: TOTAL ${s.totalScore} / PURE ${s.pureScore}`)
+        })
   }
+
   return lines.join('\n')
 }
 
@@ -65,36 +90,56 @@ function formatMs(ms: number | undefined): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+// ── rank stats ──
 function computeSessionRankStats(
-  questions: ExamQuestion[]
-): Array<{ rank: Rank; correctRate: number; count: number }> {
+    questions: ExamQuestion[]
+): Array<{ rank: Rank; correctRate: number; count: number; correct: number }> {
+
   const scored = questions.filter(
-    (q) => !q.hasChildren && q.rank !== null && q.isCorrect !== null
+      (q) => !q.hasChildren && q.rank !== null && q.isCorrect !== null
   )
+
   const byRank = new Map<Rank, { correct: number; total: number }>()
+
   for (const q of scored) {
     const r = q.rank as Rank
     const cur = byRank.get(r) ?? { correct: 0, total: 0 }
-    byRank.set(r, { correct: cur.correct + (q.isCorrect ? 1 : 0), total: cur.total + 1 })
-  }
-  return RANKS
-    .filter((r) => byRank.has(r))
-    .map((r) => {
-      const { correct, total } = byRank.get(r)!
-      return { rank: r, correctRate: total > 0 ? correct / total : 0, count: total }
+    byRank.set(r, {
+      correct: cur.correct + (q.isCorrect ? 1 : 0),
+      total: cur.total + 1
     })
+  }
+
+  return RANKS
+      .filter((r) => byRank.has(r))
+      .map((r) => {
+        const { correct, total } = byRank.get(r)!
+        return {
+          rank: r,
+          correctRate: total > 0 ? correct / total : 0,
+          count: total,
+          correct
+        }
+      })
 }
 
-interface SubjectDetailViewProps {
+// ── component ──
+export default function SubjectDetailView({
+                                            subject,
+                                            sessions,
+                                            onBack,
+                                            onDetail,
+                                            onDelete,
+                                            onSubjectCopyTextReady
+                                          }: {
   subject: string
   sessions: ExamSessionSummary[]
   onBack: () => void
   onDetail?: (sessionId: number) => void
   onDelete?: (sessionId: number) => void
   onSubjectCopyTextReady?: (text: string) => void
-}
+}) {
 
-export default function SubjectDetailView({ subject, sessions, onBack, onDetail, onDelete, onSubjectCopyTextReady }: SubjectDetailViewProps) {
   const [stats, setStats] = useState<ExamSubjectStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -109,304 +154,315 @@ export default function SubjectDetailView({ subject, sessions, onBack, onDetail,
   const toggleNote = (id: number) => {
     setExpandedNoteIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }
 
+  // ── FIX: recursive bug fixed ──
   const closeSession = () => {
-    closeSession()
-    if (stats) onSubjectCopyTextReady?.(buildSubjectDetailText(subject, stats, sessions))
+    setSelectedSession(null)
+    setSessionLoading(false)
+
+    if (stats) {
+      onSubjectCopyTextReady?.(
+          buildSubjectDetailText(subject, stats, sessions)
+      )
+    }
   }
 
   const handleSessionTap = async (sessionId: number) => {
     setSessionLoading(true)
     setExpandedNoteIds(new Set())
+
     try {
       const session = await fetchExamSession(sessionId)
       setSelectedSession(session)
-      onSubjectCopyTextReady?.(buildSessionDetailText(session))
-    } catch {
-      // ignore
+
+      onSubjectCopyTextReady?.(
+          buildSessionDetailText(session)
+      )
     } finally {
       setSessionLoading(false)
     }
   }
 
   const handleDeleteSession = async (sessionId: number) => {
-    if (!window.confirm('この受験回を削除しますか？この操作は取り消せません。')) return
-    try {
-      await deleteExamSession(sessionId)
-      if (selectedSession?.id === sessionId) closeSession()
-      onDelete?.(sessionId)
-    } catch {
-      // ignore
+    if (!window.confirm('削除しますか？')) return
+
+    await deleteExamSession(sessionId)
+
+    if (selectedSession?.id === sessionId) {
+      closeSession()
     }
+
+    onDelete?.(sessionId)
   }
 
   useEffect(() => {
     fetchSubjectStats(subject)
-      .then((s) => {
-        setStats(s)
-        onSubjectCopyTextReady?.(buildSubjectDetailText(subject, s, sessions))
-      })
-      .catch(() => setError('データの取得に失敗しました'))
-      .finally(() => setLoading(false))
-  }, [subject]) // eslint-disable-line react-hooks/exhaustive-deps
+        .then((s) => {
+          setStats(s)
+          onSubjectCopyTextReady?.(
+              buildSubjectDetailText(subject, s, sessions)
+          )
+        })
+        .catch(() => setError('データ取得失敗'))
+        .finally(() => setLoading(false))
+  }, [subject])
 
   return (
-    <div style={detailContainer}>
-      <div style={detailHeader}>
-        <button onClick={onBack} style={backBtn}>
-          ← 戻る
-        </button>
-        <h2 style={detailTitle}>{subject} 分析</h2>
-      </div>
-
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
-          <LoadingSpinner />
+      <div style={detailContainer}>
+        <div style={detailHeader}>
+          <button onClick={onBack} style={backBtn}>
+            ← 戻る
+          </button>
+          <h2 style={detailTitle}>{subject} 分析</h2>
         </div>
-      )}
-      {error && <p style={{ ...stateText, color: '#eb5757' }}>{error}</p>}
 
-      {stats && (
-        <>
-          <div style={rankSummaryCard}>
-            <h3 style={sectionLabel}>ランク別正答率</h3>
-            <div style={rankGrid}>
-              {stats.rankStats.map((r) => (
-                <div key={r.rank} style={rankStatItem}>
-                  <span style={rankLabel}>{r.rank}</span>
-                  <span style={rankPercent}>{Math.round(r.correctRate * 100)}%</span>
-                  <div style={rankBarBase}>
-                    <div style={{ ...rankBarFill, width: `${r.correctRate * 100}%` }} />
-                  </div>
-                  <span style={rankCount}>{r.count}問</span>
+        {loading && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
+              <LoadingSpinner />
+            </div>
+        )}
+        {error && <p style={{ ...stateText, color: '#eb5757' }}>{error}</p>}
+
+        {stats && (
+            <>
+              <div style={rankSummaryCard}>
+                <h3 style={sectionLabel}>ランク別正答率</h3>
+                <div style={rankGrid}>
+                  {stats.rankStats.map((r) => (
+                      <div key={r.rank} style={rankStatItem}>
+                        <span style={rankLabel}>{r.rank}</span>
+                        <span style={rankPercent}>{Math.round(r.correctRate * 100)}%</span>
+                        <div style={rankBarBase}>
+                          <div style={{ ...rankBarFill, width: `${r.correctRate * 100}%` }} />
+                        </div>
+                        <span style={rankCount}>{r.count}問</span>
+                      </div>
+                  ))}
+                  {stats.rankStats.length === 0 && <p style={stateText}>データがありません</p>}
                 </div>
-              ))}
-              {stats.rankStats.length === 0 && <p style={stateText}>データがありません</p>}
-            </div>
-          </div>
+              </div>
 
-          {openMenuId !== null && (
-            <div
-              style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-              onClick={() => setOpenMenuId(null)}
-            />
-          )}
+              {openMenuId !== null && (
+                  <div
+                      style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                      onClick={() => setOpenMenuId(null)}
+                  />
+              )}
 
-          <div style={sessionListCard}>
-            <div style={sessionListHeader}>
-              <h3 style={sectionLabel}>受験履歴</h3>
-            </div>
-            {sessions.length === 0 && <p style={stateText}>記録がありません</p>}
-            {[...sessions]
-              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-              .map((s) => (
-                <div
-                  key={s.id}
-                  style={{ ...sessionRow, position: 'relative' }}
-                  onClick={() => { if (openMenuId === s.id) setOpenMenuId(null); else handleSessionTap(s.id) }}
-                >
-                  <div style={sessionRowLeft}>
+              <div style={sessionListCard}>
+                <div style={sessionListHeader}>
+                  <h3 style={sectionLabel}>受験履歴</h3>
+                </div>
+                {sessions.length === 0 && <p style={stateText}>記録がありません</p>}
+                {[...sessions]
+                    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                    .map((s) => (
+                        <div
+                            key={s.id}
+                            style={{ ...sessionRow, position: 'relative' }}
+                            onClick={() => { if (openMenuId === s.id) setOpenMenuId(null); else handleSessionTap(s.id) }}
+                        >
+                          <div style={sessionRowLeft}>
                     <span style={sessionDate}>
                       {s.createdAt.slice(5, 10).replace('-', '/')}
                     </span>
-                    <span style={sessionYear}>{s.examYear}</span>
-                  </div>
-                  <div style={sessionRowScores}>
-                    <span style={scoreLabel}>TOTAL</span>
-                    <span style={scoreValue}>{s.totalScore}</span>
-                    <span style={scoreDivider}>|</span>
-                    <span style={scoreLabel}>PURE</span>
-                    <span style={scoreValue}>{s.pureScore}</span>
-                  </div>
-                  <button
-                    style={menuTriggerBtn}
-                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === s.id ? null : s.id) }}
-                  >
-                    ⋯
-                  </button>
-                  {openMenuId === s.id && (
-                    <div style={menuDropdown}>
-                      {onDetail && (
-                        <button
-                          style={menuItem}
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); onDetail(s.id) }}
-                        >
-                          詳細
-                        </button>
-                      )}
-                      <button
-                        style={{ ...menuItem, color: '#eb5757' }}
-                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleDeleteSession(s.id) }}
-                      >
-                        削除
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-
-        </>
-      )}
-      {/* セッション詳細モーダル */}
-      {(sessionLoading || selectedSession) && (
-        <div style={modalOverlay} onClick={() => closeSession()}>
-          <div style={modalSheet} onClick={(e) => e.stopPropagation()}>
-            {sessionLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-                <LoadingSpinner />
-              </div>
-            ) : selectedSession && (
-              <>
-                <div style={modalHeader}>
-                  <div>
-                    <div style={modalTitle}>{selectedSession.examYear}</div>
-                    <div style={modalSubtitle}>
-                      {selectedSession.createdAt.slice(0, 10).replace(/-/g, '/')}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {selectedSession.questions.length > 0 && (
-                      <button
-                        style={ticketizeBtn}
-                        onClick={() => setTicketsModalOpen(true)}
-                        title="チケット一括生成"
-                      >
-                        + チケット化
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div style={modalScoreRow}>
-                  <div style={modalScoreBlock}>
-                    <span style={modalScoreLabel}>TOTAL</span>
-                    <span style={modalScoreValue}>{selectedSession.totalScore}</span>
-                  </div>
-                  <div style={modalScoreDivider} />
-                  <div style={modalScoreBlock}>
-                    <span style={modalScoreLabel}>PURE</span>
-                    <span style={modalScoreValue}>{selectedSession.pureScore}</span>
-                  </div>
-                  <div style={modalScoreDivider} />
-                  <div style={modalScoreBlock}>
-                    <span style={modalScoreLabel}>正解</span>
-                    <span style={{ ...modalScoreValue, color: '#19a576' }}>{selectedSession.correctCount}</span>
-                  </div>
-                  <div style={modalScoreDivider} />
-                  <div style={modalScoreBlock}>
-                    <span style={modalScoreLabel}>不正解</span>
-                    <span style={{ ...modalScoreValue, color: '#eb5757' }}>{selectedSession.incorrectCount}</span>
-                  </div>
-                  <div style={modalScoreDivider} />
-                  <div style={modalScoreBlock}>
-                    <span style={modalScoreLabel}>疑問</span>
-                    <span style={{ ...modalScoreValue, color: '#f2ab26' }}>{selectedSession.doubtfulCount}</span>
-                  </div>
-                </div>
-
-                {(() => {
-                  const sessionRankStats = computeSessionRankStats(selectedSession.questions)
-                  return sessionRankStats.length > 0 ? (
-                    <div style={modalRankSection}>
-                      <div style={sectionLabel}>ランク別正答率</div>
-                      <div style={rankGrid}>
-                        {sessionRankStats.map((r) => (
-                          <div key={r.rank} style={rankStatItem}>
-                            <span style={rankLabel}>{r.rank}</span>
-                            <span style={rankPercent}>{Math.round(r.correctRate * 100)}%</span>
-                            <div style={rankBarBase}>
-                              <div style={{ ...rankBarFill, width: `${r.correctRate * 100}%` }} />
-                            </div>
-                            <span style={rankCount}>{r.count}問</span>
+                            <span style={sessionYear}>{s.examYear}</span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null
-                })()}
+                          <div style={sessionRowScores}>
+                            <span style={scoreLabel}>TOTAL</span>
+                            <span style={scoreValue}>{s.totalScore}</span>
+                            <span style={scoreDivider}>|</span>
+                            <span style={scoreLabel}>PURE</span>
+                            <span style={scoreValue}>{s.pureScore}</span>
+                          </div>
+                          <button
+                              style={menuTriggerBtn}
+                              onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === s.id ? null : s.id) }}
+                          >
+                            ⋯
+                          </button>
+                          {openMenuId === s.id && (
+                              <div style={menuDropdown}>
+                                {onDetail && (
+                                    <button
+                                        style={menuItem}
+                                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); onDetail(s.id) }}
+                                    >
+                                      詳細
+                                    </button>
+                                )}
+                                <button
+                                    style={{ ...menuItem, color: '#eb5757' }}
+                                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleDeleteSession(s.id) }}
+                                >
+                                  削除
+                                </button>
+                              </div>
+                          )}
+                        </div>
+                    ))}
+              </div>
 
-                {selectedSession.questions.length > 0 && (() => {
-                  const groups: ExamQuestion[][] = []
-                  for (const q of selectedSession.questions) {
-                    if (!q.isSub) {
-                      groups.push([q])
-                    } else {
-                      const last = groups[groups.length - 1]
-                      if (last) last.push(q)
-                      else groups.push([q])
-                    }
-                  }
-                  return (
-                    <div style={modalQuestionList}>
-                      <div style={sectionLabel}>解答用紙</div>
-                      {groups.map((group, gi) => (
-                        <div key={gi} style={modalQuestionGroup}>
-                          {group.map((q) => {
-                            const isExpanded = expandedNoteIds.has(q.id)
-                            return (
-                              <div
-                                key={q.id}
-                                style={{
-                                  ...(q.isSub ? modalQuestionRowSub : modalQuestionRow),
-                                  ...(q.note ? { cursor: 'pointer' } : {}),
-                                  ...(isExpanded ? { alignItems: 'flex-start' } : {}),
-                                }}
-                                onClick={q.note ? () => toggleNote(q.id) : undefined}
+            </>
+        )}
+        {/* セッション詳細モーダル */}
+        {(sessionLoading || selectedSession) && (
+            <div style={modalOverlay} onClick={() => closeSession()}>
+              <div style={modalSheet} onClick={(e) => e.stopPropagation()}>
+                {sessionLoading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+                      <LoadingSpinner />
+                    </div>
+                ) : selectedSession && (
+                    <>
+                      <div style={modalHeader}>
+                        <div>
+                          <div style={modalTitle}>{selectedSession.examYear}</div>
+                          <div style={modalSubtitle}>
+                            {selectedSession.createdAt.slice(0, 10).replace(/-/g, '/')}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          {selectedSession.questions.length > 0 && (
+                              <button
+                                  style={ticketizeBtn}
+                                  onClick={() => setTicketsModalOpen(true)}
+                                  title="チケット一括生成"
                               >
-                                <span style={modalQId}>{q.displayId}</span>
-                                {q.rank && <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>}
-                                {!q.hasChildren && (
-                                  <span style={modalQResult(q.isCorrect)}>
+                                + チケット化
+                              </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={modalScoreRow}>
+                        <div style={modalScoreBlock}>
+                          <span style={modalScoreLabel}>TOTAL</span>
+                          <span style={modalScoreValue}>{selectedSession.totalScore}</span>
+                        </div>
+                        <div style={modalScoreDivider} />
+                        <div style={modalScoreBlock}>
+                          <span style={modalScoreLabel}>PURE</span>
+                          <span style={modalScoreValue}>{selectedSession.pureScore}</span>
+                        </div>
+                        <div style={modalScoreDivider} />
+                        <div style={modalScoreBlock}>
+                          <span style={modalScoreLabel}>正解</span>
+                          <span style={{ ...modalScoreValue, color: '#19a576' }}>{selectedSession.correctCount}</span>
+                        </div>
+                        <div style={modalScoreDivider} />
+                        <div style={modalScoreBlock}>
+                          <span style={modalScoreLabel}>不正解</span>
+                          <span style={{ ...modalScoreValue, color: '#eb5757' }}>{selectedSession.incorrectCount}</span>
+                        </div>
+                        <div style={modalScoreDivider} />
+                        <div style={modalScoreBlock}>
+                          <span style={modalScoreLabel}>疑問</span>
+                          <span style={{ ...modalScoreValue, color: '#f2ab26' }}>{selectedSession.doubtfulCount}</span>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const sessionRankStats = computeSessionRankStats(selectedSession.questions)
+                        return sessionRankStats.length > 0 ? (
+                            <div style={modalRankSection}>
+                              <div style={sectionLabel}>ランク別正答率</div>
+                              <div style={rankGrid}>
+                                {sessionRankStats.map((r) => (
+                                    <div key={r.rank} style={rankStatItem}>
+                                      <span style={rankLabel}>{r.rank}</span>
+                                      <span style={rankPercent}>{Math.round(r.correctRate * 100)}%</span>
+                                      <div style={rankBarBase}>
+                                        <div style={{ ...rankBarFill, width: `${r.correctRate * 100}%` }} />
+                                      </div>
+                                      <span style={rankCount}>{r.count}問</span>
+                                    </div>
+                                ))}
+                              </div>
+                            </div>
+                        ) : null
+                      })()}
+
+                      {selectedSession.questions.length > 0 && (() => {
+                        const groups: ExamQuestion[][] = []
+                        for (const q of selectedSession.questions) {
+                          if (!q.isSub) {
+                            groups.push([q])
+                          } else {
+                            const last = groups[groups.length - 1]
+                            if (last) last.push(q)
+                            else groups.push([q])
+                          }
+                        }
+                        return (
+                            <div style={modalQuestionList}>
+                              <div style={sectionLabel}>解答用紙</div>
+                              {groups.map((group, gi) => (
+                                  <div key={gi} style={modalQuestionGroup}>
+                                    {group.map((q) => {
+                                      const isExpanded = expandedNoteIds.has(q.id)
+                                      return (
+                                          <div
+                                              key={q.id}
+                                              style={{
+                                                ...(q.isSub ? modalQuestionRowSub : modalQuestionRow),
+                                                ...(q.note ? { cursor: 'pointer' } : {}),
+                                                ...(isExpanded ? { alignItems: 'flex-start' } : {}),
+                                              }}
+                                              onClick={q.note ? () => toggleNote(q.id) : undefined}
+                                          >
+                                            <span style={modalQId}>{q.displayId}</span>
+                                            {q.rank && <span style={{ ...rankTag, ...rankColors[q.rank] }}>{q.rank}</span>}
+                                            {!q.hasChildren && (
+                                                <span style={modalQResult(q.isCorrect)}>
                                     {q.isCorrect === true ? '○' : q.isCorrect === false ? '✗' : '－'}
                                   </span>
-                                )}
-                                {q.isDoubtful && <DoubtIcon />}
-                                {!q.hasChildren && !!q.answeredTimeMs && (
-                                  <span style={modalQTime}>{formatMs(q.answeredTimeMs)}</span>
-                                )}
-                                {q.note && (
-                                  <span style={isExpanded ? modalQNoteExpanded : modalQNote}>{q.note}</span>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })()}
+                                            )}
+                                            {q.isDoubtful && <DoubtIcon />}
+                                            {!q.hasChildren && !!q.answeredTimeMs && (
+                                                <span style={modalQTime}>{formatMs(q.answeredTimeMs)}</span>
+                                            )}
+                                            {q.note && (
+                                                <span style={isExpanded ? modalQNoteExpanded : modalQNote}>{q.note}</span>
+                                            )}
+                                          </div>
+                                      )
+                                    })}
+                                  </div>
+                              ))}
+                            </div>
+                        )
+                      })()}
 
-                <div style={{ paddingTop: '8px' }}>
-                  <button onClick={() => closeSession()} style={sheetBottomCloseBtnStyle}>閉じる</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+                      <div style={{ paddingTop: '8px' }}>
+                        <button onClick={() => closeSession()} style={sheetBottomCloseBtnStyle}>閉じる</button>
+                      </div>
+                    </>
+                )}
+              </div>
+            </div>
+        )}
 
-      {ticketsModalOpen && selectedSession && (
-        <ExamToTicketsModal
-          session={selectedSession}
-          onClose={() => setTicketsModalOpen(false)}
-          onCreated={(count) => {
-            setTicketsModalOpen(false)
-            setTicketCreatedMsg(`${count}件のチケットをバックログに追加しました`)
-            setTimeout(() => setTicketCreatedMsg(null), 3000)
-          }}
-        />
-      )}
+        {ticketsModalOpen && selectedSession && (
+            <ExamToTicketsModal
+                session={selectedSession}
+                onClose={() => setTicketsModalOpen(false)}
+                onCreated={(count) => {
+                  setTicketsModalOpen(false)
+                  setTicketCreatedMsg(`${count}件のチケットをバックログに追加しました`)
+                  setTimeout(() => setTicketCreatedMsg(null), 3000)
+                }}
+            />
+        )}
 
-      {ticketCreatedMsg && (
-        <div style={toastMsg}>{ticketCreatedMsg}</div>
-      )}
-    </div>
+        {ticketCreatedMsg && (
+            <div style={toastMsg}>{ticketCreatedMsg}</div>
+        )}
+      </div>
   )
 }
 
