@@ -19,7 +19,6 @@ import {fetchDailyLog, fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/wo
 import type {DailyLog, DailyLogSummary} from '../types/workspace'
 import {formatDuration, formatSessions} from '../types/workspace'
 import {getCached, setCached} from '../lib/pageCache'
-import {StatusBadge} from "@/components/common/StatusBadge.tsx";
 import {useSettingsStore} from '../lib/store/settings'
 
 type ViewMode = 'list' | 'chart'
@@ -419,33 +418,31 @@ export default function DailyLogsPage() {
         {viewMode === 'list' ? (
           <div style={listContainer}>
             <div style={listHeader}>
-              <div style={{ flex: 2 }}>DATE</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>TIME</div>
-              <div style={{ flex: 1, textAlign: 'center' }}>STATUS</div>
+              <div style={{ flex: 1 }}>DATE</div>
+              <div style={{ flexShrink: 0, width: '72px', textAlign: 'right' }}>TIME</div>
             </div>
 
             {listLogs.length > 0 ? (
               listLogs.map((log) => {
                 return (
                   <Link key={log.date} to={`/workspace/${log.date}`} style={logItem}>
-                    <div style={itemDate}>
-                      <span style={dateTxt}>{log.date}</span>
-                      <span style={reflectionSnippet}>
-                        {log.sessionCount ? formatSessions(log.sessionCount) : 'No record'}
-                      </span>
+                    <div style={itemRow1}>
+                      <div style={itemDate}>
+                        <span style={dateTxt}>
+                          <span style={statusMark}>{log.isCompleted ? '✓' : '○'}</span>
+                          {log.date}
+                        </span>
+                        <span style={reflectionSnippet}>
+                          {log.sessionCount ? formatSessions(log.sessionCount) : 'No record'}
+                        </span>
+                      </div>
+                      <div style={itemTime}>
+                        {formatDuration(log.totalMinutes)}
+                      </div>
                     </div>
-                    <div style={itemTime}>
-                      {formatDuration(log.totalMinutes)}
-                    </div>
-                    <div style={itemStatus}>
-                      <StatusBadge
-                          status={
-                            log.isCompleted
-                                ? 'done'
-                                : 'open'
-                          }
-                      />
-                    </div>
+                    {log.reflection && (
+                      <div style={itemMemo}>{log.reflection}</div>
+                    )}
                   </Link>
                 )
               })
@@ -842,34 +839,46 @@ const listHeader: React.CSSProperties = {
 }
 const logItem: React.CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
-  padding: '16px 8px',
+  flexDirection: 'column',
+  padding: '14px 8px',
   textDecoration: 'none',
   color: 'inherit',
   borderBottom: '1px solid rgba(55, 53, 47, 0.06)',
+  gap: '6px',
+}
+const itemRow1: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
 }
 const itemDate: React.CSSProperties = {
-  flex: 2,
   display: 'flex',
   flexDirection: 'column',
-  gap: '4px',
+  gap: '3px',
 }
 const dateTxt: React.CSSProperties = { fontWeight: 600, fontSize: '15px' }
 const reflectionSnippet: React.CSSProperties = {
   fontSize: '12px',
   color: 'rgba(55, 53, 47, 0.45)',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
 }
 const itemTime: React.CSSProperties = {
-  flex: 1,
+  flexShrink: 0,
   textAlign: 'right',
   fontSize: '14px',
   fontWeight: 500,
   fontFamily: 'monospace',
 }
-const itemStatus: React.CSSProperties = { flex: 1, textAlign: 'center' }
+const statusMark: React.CSSProperties = {
+  marginRight: '6px',
+  fontSize: '13px',
+  color: 'rgba(55, 53, 47, 0.45)',
+}
+const itemMemo: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(55, 53, 47, 0.5)',
+  lineHeight: '1.5',
+  paddingLeft: '20px',
+}
 const emptyMessage: React.CSSProperties = {
   padding: '40px',
   textAlign: 'center',
