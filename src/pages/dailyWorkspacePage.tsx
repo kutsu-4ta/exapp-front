@@ -1,13 +1,13 @@
 import {
-  addStudySession,
-  completeDailyLog,
-  createDailyLog,
-  deleteDailyLog,
-  deleteStudySession,
-  fetchDailyLog,
-  uncompleteDailyLog,
-  updateReflection,
-  updateStudySession,
+    addStudySession,
+    completeDailyLog,
+    createDailyLog,
+    deleteDailyLog,
+    deleteStudySession,
+    fetchDailyLog,
+    uncompleteDailyLog,
+    updateReflection,
+    updateStudySession,
 } from '../lib/api/workspace'
 import {DayHeader} from '../components/workspace/DayHeader'
 import {DayReflection} from '../components/workspace/DayReflection'
@@ -181,6 +181,12 @@ function fmtMins(mins: number): string {
   return h > 0 ? `${h}h${m}m` : `${m}m`
 }
 
+const TIME_SLOT_LABEL: Record<string, string> = {
+  morning: '午前',
+  lunch: '昼',
+  night: '夜',
+}
+
 function buildWorkspaceCopyText(log: DailyLog): string {
   const lines = [`【${log.date} Workspace】`]
   lines.push(log.isCompleted ? '✓ Completed' : '○ In progress')
@@ -188,15 +194,18 @@ function buildWorkspaceCopyText(log: DailyLog): string {
   lines.push(`合計: ${fmtMins(log.totalMinutes)}`)
 
   if (log.studySessions.length > 0) {
-    const subjectMap: Record<string, number> = {}
-    for (const s of log.studySessions) {
-      subjectMap[s.subject] = (subjectMap[s.subject] ?? 0) + s.minutes
+    const slotOrder: Array<'morning' | 'lunch' | 'night'> = ['morning', 'lunch', 'night']
+    for (const slot of slotOrder) {
+      const sessions = log.studySessions.filter((s) => s.timeSlot === slot)
+      if (sessions.length === 0) continue
+      lines.push('')
+      lines.push(`【${TIME_SLOT_LABEL[slot]}】`)
+      for (const s of sessions) {
+        const subcat = s.subCategory ? ` [${s.subCategory}]` : ''
+        lines.push(`${s.subject}${subcat}｜${fmtMins(s.minutes)}｜${s.material}`)
+        if (s.memo) lines.push(`  ${s.memo}`)
+      }
     }
-    lines.push('')
-    lines.push('【セッション】')
-    Object.entries(subjectMap)
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([subj, mins]) => lines.push(`${subj}: ${fmtMins(mins)}`))
   }
 
   if (log.reflection) {
