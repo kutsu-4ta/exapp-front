@@ -5,6 +5,7 @@ import {PRACTICE_THEME, type PracticeThemeKey} from '@/styles/practiceUI'
 import type {useFlashCardSession} from '@/hooks/useFlashCardSession'
 import {useSettingsStore} from '@/lib/store/settings'
 import {ProblemQuickModal} from '@/components/note/ProblemQuickModal'
+import {MarkdownContent} from '@/components/common/MarkdownContent'
 
 type Props = ReturnType<typeof useFlashCardSession> & {
   handleComplete: () => void
@@ -183,26 +184,24 @@ export function FlashCardSessionView({
         </div>
 
         {/* Card */}
-        <div style={cardPerspective}>
-          <div
-            style={{
-              ...cardInner,
-              transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-            }}
-          >
-            {/* Front */}
-            <div style={cardFace} onClick={handleFlip}>
+        <div style={cardWrap}>
+          {!flipped ? (
+            <div style={cardFront} onClick={handleFlip}>
               <p style={cardLabel}>問い</p>
               <p style={cardText}>{quiz.question}</p>
-              {!flipped && <p style={flipHint}>タップして答えを確認</p>}
+              <p style={flipHint}>タップして答えを確認</p>
             </div>
-
-            {/* Back */}
-            <div style={{...cardFaceBack, backgroundColor: theme.bg, borderColor: theme.border}}>
+          ) : (
+            <div
+              style={{...cardBack, backgroundColor: theme.bg, borderColor: theme.border}}
+              className="card-flip-in"
+            >
               <p style={cardLabel}>解説</p>
-              <p style={cardText}>{quiz.explanation}</p>
+              <div style={cardBackContent}>
+                <MarkdownContent>{quiz.explanation}</MarkdownContent>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Self-eval + save (shown after flip) */}
@@ -311,39 +310,30 @@ const problemRefBtn: React.CSSProperties = {
   textUnderlineOffset: '2px',
 }
 
-const cardPerspective: React.CSSProperties = {
-  perspective: '800px',
-  marginBottom: '24px',
-}
-const cardInner: React.CSSProperties = {
-  position: 'relative',
-  transformStyle: 'preserve-3d',
-  transition: 'transform 0.45s ease',
-  minHeight: '200px',
-}
+const cardWrap: React.CSSProperties = { marginBottom: '24px' }
 const cardFaceBase: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  backfaceVisibility: 'hidden',
   borderRadius: '14px',
   padding: '24px 20px',
   display: 'flex',
   flexDirection: 'column',
   gap: '12px',
-  minHeight: '200px',
 }
-const cardFace: React.CSSProperties = {
+const cardFront: React.CSSProperties = {
   ...cardFaceBase,
+  minHeight: '160px',
   backgroundColor: '#fff',
   border: `1px solid ${c.border}`,
   cursor: 'pointer',
 }
-const cardFaceBack: React.CSSProperties = {
+const cardBack: React.CSSProperties = {
   ...cardFaceBase,
   backgroundColor: 'rgba(35,131,226,0.04)',
   border: '1px solid rgba(35,131,226,0.18)',
-  transform: 'rotateY(180deg)',
-  cursor: 'default',
+}
+const cardBackContent: React.CSSProperties = {
+  fontSize: '14px',
+  lineHeight: 1.7,
+  color: c.text,
 }
 const cardLabel: React.CSSProperties = {
   fontSize: '10px',
