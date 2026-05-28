@@ -5,8 +5,9 @@ import {fetchStopwatch, resetStopwatch, startStopwatch, stopStopwatch} from '@/l
 import {useTimer} from '@/context/TimerContext'
 import type {TimeSlot} from '@/types/workspace'
 import {todayString} from '@/types/workspace'
-import {useQuizSession} from '@/hooks/useQuizSession'
-import {QuizSessionView} from '@/components/practice/QuizSessionView'
+import {fetchMorningQuiz} from '@/lib/api/morningQuiz'
+import {useFlashCardSession} from '@/hooks/useFlashCardSession'
+import {FlashCardSessionView} from '@/components/practice/FlashCardSessionView'
 import {font} from '@/styles/notion'
 
 function currentTimeSlot(): TimeSlot {
@@ -18,13 +19,13 @@ function currentTimeSlot(): TimeSlot {
 
 export default function MorningBugfixPage() {
   const navigate = useNavigate()
-  const { setTime, setIsActive } = useTimer()
+  const {setTime, setIsActive} = useTimer()
 
-  const session = useQuizSession({ type: 'morning' })
-  const { phase, setPhase, session: quizSession, results } = session
+  const cardSession = useFlashCardSession(fetchMorningQuiz)
+  const {phase, setPhase, session, results} = cardSession
 
   useEffect(() => {
-    if (!quizSession) return
+    if (!session) return
     const initStopwatch = async () => {
       try {
         await resetStopwatch()
@@ -34,7 +35,7 @@ export default function MorningBugfixPage() {
       } catch {}
     }
     initStopwatch()
-  }, [quizSession, setTime, setIsActive])
+  }, [session, setTime, setIsActive])
 
   const handleComplete = async () => {
     if (phase === 'saving') return
@@ -69,14 +70,14 @@ export default function MorningBugfixPage() {
   }
 
   const headerBadge = (
-    <span style={{ fontSize: font.sm, fontWeight: 700, color: '#37352f' }}>
+    <span style={{fontSize: font.sm, fontWeight: 700, color: '#37352f'}}>
       Morning Bugfix
     </span>
   )
 
   return (
-    <QuizSessionView
-      {...session}
+    <FlashCardSessionView
+      {...cardSession}
       handleComplete={handleComplete}
       headerBadge={headerBadge}
       themeKey="morning"

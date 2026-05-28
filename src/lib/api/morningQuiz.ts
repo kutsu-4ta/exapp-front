@@ -11,10 +11,8 @@ export type MorningQuizQuestion = {
     material_name: string | null
   }
   quiz: {
-    question: string
-    options: string[]
-    correct_index: number
-    explanation: string
+    question: string    // カード表面（AI生成キーワード質問）
+    explanation: string // カード裏面（#Definition + #Formula）
   } | null
 }
 
@@ -23,9 +21,12 @@ export type MorningQuizSession = {
   questions: MorningQuizQuestion[]
 }
 
-export type MorningQuizAnswer = {
-  question_id: string
-  selected_index: number
+export type FlashBugfixConfig = {
+  failureTypes: string[]
+  subCategoryIds: number[]
+  touchedOrder: 'recent' | 'old' | null
+  limit: number
+  proficiency: string[]
 }
 
 export async function fetchMorningQuiz(): Promise<MorningQuizSession> {
@@ -34,37 +35,7 @@ export async function fetchMorningQuiz(): Promise<MorningQuizSession> {
   return res.json()
 }
 
-export type FlashBugfixConfig = {
-  failureTypes: string[]
-  subCategoryIds: number[]
-  touchedOrder: 'recent' | 'old' | null
-  limit: number
-  proficiency: string[]
-  quizMode: 'multiple_choice' | 'word_card'
-  formulaOnly: boolean
-}
-
 export async function fetchFlashBugfix(
-  subject: string,
-  config: FlashBugfixConfig
-): Promise<MorningQuizSession> {
-  const q = new URLSearchParams({ subject })
-  config.failureTypes.forEach((ft) => q.append('failureTypes[]', ft))
-  config.subCategoryIds.forEach((id) => q.append('subCategoryIds[]', String(id)))
-  config.proficiency.forEach((p) => q.append('proficiency[]', p))
-
-  // 単一の値のみ set を使用
-  if (config.touchedOrder) {
-    q.set('touchedOrder', config.touchedOrder)
-  }
-  q.set('limit', String(config.limit))
-
-  const res = await apiFetch(`/api/morning-bugfix?${q}`)
-  if (!res.ok) await extractApiError(res, 'クイズの取得に失敗しました')
-  return res.json()
-}
-
-export async function fetchFlashCard(
   subject: string,
   config: FlashBugfixConfig
 ): Promise<MorningQuizSession> {
@@ -74,18 +45,15 @@ export async function fetchFlashCard(
   config.proficiency.forEach((p) => q.append('proficiency[]', p))
   if (config.touchedOrder) q.set('touchedOrder', config.touchedOrder)
   q.set('limit', String(config.limit))
-  if (config.formulaOnly) q.set('formulaOnly', 'true')
 
-  const res = await apiFetch(`/api/flash-card?${q}`)
-  if (!res.ok) await extractApiError(res, 'カードの取得に失敗しました')
+  const res = await apiFetch(`/api/morning-bugfix?${q}`)
+  if (!res.ok) await extractApiError(res, 'クイズの取得に失敗しました')
   return res.json()
 }
 
 export type DegBugfixConfig = {
   subject: string | null
   limit: number
-  quizMode: 'multiple_choice' | 'word_card'
-  formulaOnly: boolean
 }
 
 export async function fetchDegBugfix(config: DegBugfixConfig): Promise<MorningQuizSession> {
@@ -98,32 +66,5 @@ export async function fetchDegBugfix(config: DegBugfixConfig): Promise<MorningQu
     const body = await res.json().catch(() => ({}))
     throw new Error(body.message ?? '保存済みクイズの取得に失敗しました')
   }
-  return res.json()
-}
-
-export async function fetchDegWordCard(config: DegBugfixConfig): Promise<MorningQuizSession> {
-  const q = new URLSearchParams()
-  if (config.subject) q.set('subject', config.subject)
-  q.set('limit', String(config.limit))
-  if (config.formulaOnly) q.set('formulaOnly', 'true')
-
-  const res = await apiFetch(`/api/deg-word-card?${q}`)
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.message ?? '保存済み単語カードの取得に失敗しました')
-  }
-  return res.json()
-}
-
-export async function completeMorningQuiz(
-  sessionId: string,
-  answers: MorningQuizAnswer[],
-  elapsedMs: number
-): Promise<{ minutes: number }> {
-  const res = await apiFetch('/api/morning-bugfix/sessions', {
-    method: 'POST',
-    body: JSON.stringify({ session_id: sessionId, answers, elapsed_ms: elapsedMs }),
-  })
-  if (!res.ok) await extractApiError(res, '結果の保存に失敗しました')
   return res.json()
 }

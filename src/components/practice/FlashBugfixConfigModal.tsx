@@ -24,8 +24,6 @@ export function FlashBugfixConfigModal({ subjectName, subCategories, onClose, on
   const [touchedOrder, setTouchedOrder] = useState<'recent' | 'old' | null>(null)
   const [limit, setLimit] = useState(5)
   const [proficiency, setProficiency] = useState<Proficiency[]>(['△', '×'])
-  const [quizMode, setQuizMode] = useState<'multiple_choice' | 'word_card'>('multiple_choice')
-  const [formulaOnly, setFormulaOnly] = useState(false)
 
   const toggleSubCat = (id: number) =>
     setSubCategoryIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
@@ -44,18 +42,6 @@ export function FlashBugfixConfigModal({ subjectName, subCategories, onClose, on
       </div>
 
       <div style={body}>
-        <SheetField label="出題形式">
-          <div style={chipWrap}>
-            <Chip selected={quizMode === 'multiple_choice'} onClick={() => setQuizMode('multiple_choice')} activeColor={palette.color} activeBg={palette.bg}>一問一答</Chip>
-            <Chip selected={quizMode === 'word_card'} onClick={() => setQuizMode('word_card')} activeColor={palette.color} activeBg={palette.bg}>単語カード</Chip>
-          </div>
-          {quizMode === 'word_card' && (
-            <div style={chipWrap}>
-              <Chip selected={formulaOnly} onClick={() => setFormulaOnly((v) => !v)} activeColor={palette.color} activeBg={palette.bg}>公式チェック</Chip>
-            </div>
-          )}
-        </SheetField>
-
         {subCategories.length > 0 && (
           <SheetField label="論点">
             <div style={chipWrap}>
@@ -93,7 +79,7 @@ export function FlashBugfixConfigModal({ subjectName, subCategories, onClose, on
 
         <button
           style={{ ...startBtn, backgroundColor: palette.color }}
-          onClick={() => onStart({ failureTypes, subCategoryIds, touchedOrder, limit, proficiency, quizMode, formulaOnly: quizMode === 'word_card' ? formulaOnly : false })}
+          onClick={() => onStart({ failureTypes, subCategoryIds, touchedOrder, limit, proficiency })}
         >
           生成して開始する
         </button>
