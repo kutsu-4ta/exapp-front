@@ -1,41 +1,240 @@
-# 資格勉強アプリ 要件定義案
+# exapp (tsumiki) — フロントエンド
 
-1. 背景と目的
-* 背景: 学習開始2ヶ月が経過し、物理的なテキスト・ノート・iOSメモに分散した情報（学習ログ、苦手論点、ミス原因）の管理コストが増大している。
-* 課題: 机に向かっている貴重な時間に「情報の整理」や「分析」の作業が入り込み、演習効率を下げている。また、既存の汎用ツール（Notion等）では構造が煩雑になり、入力・管理のオーバーヘッドが大きい。
-* 目的: 物理的な「書く」プロセスを維持しつつ、情報をデジタルに集約。「机では演習に全振り、出先で弱点克服とプランニング」を完璧に使い分ける環境を作る。
+資格試験・受験勉強を管理する Web アプリ **tsumiki** のフロントエンドリポジトリ。
 
-2. 解決すべき現行の運用フロー
-   システム化にあたり、以下の具体的で物理的な運用をデータとして統合する。
-   ① 学習ログと進捗管理
-* 固定ブロック制の記録: 早朝・昼・通勤・深夜のブロックごとの「予定時間」と「実際時間」の対比。
-* 教材別ステータス: 「テキスト完」「問題集2周」「スピード問題集未着手」といった、科目ごとの教材進捗深度の可視化。
-  ② 独自のミス分析（最重要データ）
-  テキストやノートで行っている以下のタグ付け・整理を、デジタル上で活用可能にする。
-* 3種類の失敗原因タグ: 1. 定義漏れ: 知識不足（暗記で解決すべきもの）2. 解法: 手順・パターンの未習得（理解で解決すべきもの）3. ケアレス: ケアレスミス（精度向上の課題）
-* 問題評価と履歴: 「良問」フラグ、解いた日付、習熟度（○、×、△）の記録。
-* 苦手リスト: 苦手な論点リストと、それに紐づく問題集の演習番号のリンク。
+アプリの全体概要・バックエンド構成は `exapp-backend/README.md` を参照。
 
-3. UX・設計構想
-   UXコンセプト: 「Obsidianライクな自由度 × 難関資格の構造化」
-   前提：スマホ・iPadでの利用
-* デイリー・ワークスペース:
-    * 1日の活動を1画面で書き込めるワークスペース。iOSメモやObsidianのように、テキストベースでラフに記述できるが、科目や時間はシステムが自動抽出・集計する。
-    * 1日の終わりに「完了」することで、その日のデータが統計に反映される（過去の編集も可能）。
-* カード型・弱点復習ビュー:
-    * 出先や隙間時間に、「財務の計算」や「経済の良問」だけを抽出して表示。
-    * ノートに手書きした図解や思考プロセスを写真で紐付け、即座に確認できる。
-      AI (Gemini) 連携機能
-* 学習ログの多角的分離・分析:
-    * 蓄積された「失敗原因タグ」を分析し、「今週は解法が多いため、演習よりプロセスの再確認を優先すべき」といったアドバイスを生成。
-    * 過去問の「A/Bランク取りこぼし」データから、目標点数（例：70点ライン）に到達するために埋めるべき最短経路を提示。
-* セキュアなAPI連携: * Gemini API（無料枠）を活用。APIキー漏洩防止のため、APIサーバーを介した構成でプロンプトを制御。
+---
 
-4. 設計構成まとめ
-   項目	内容
-   入力	テキストベースのデイリーログ（手書きノートの写真添付を含む）
-   管理項目	科目別時間、正誤（○×△）、失敗原因（定義・解法・ケアレス）、教材進捗
-   UX	常時開けるワークスペース ＋ 隙間時間用の抽出ビュー
-   AI活用	ログからの学習傾向分析、苦手論点の抽出、プランニング支援
-   目指す状態	机では1秒も管理作業をせず、スマホが「次やるべきこと」を知っている状態
+## 目次
 
+1. [技術スタック](#技術スタック)
+2. [セットアップ](#セットアップ)
+3. [ページ構成](#ページ構成)
+4. [アーキテクチャ](#アーキテクチャ)
+5. [状態管理](#状態管理)
+6. [BugFix フロー](#bugfix-フロー)
+7. [不要コードの洗い出し](#不要コードの洗い出し)
+
+---
+
+## 技術スタック
+
+| 項目        | 技術                      |
+|-----------|-------------------------|
+| Framework | React 19 + TypeScript   |
+| Build     | Vite                    |
+| Routing   | React Router v7         |
+| State     | Zustand v5              |
+| CSS       | Tailwind CSS v4         |
+| Chart     | Recharts                |
+| Auth      | Firebase SDK            |
+| DnD       | @dnd-kit（Sprint Kanban） |
+
+---
+
+## セットアップ
+
+### 前提条件
+
+- Node.js 20+
+- バックエンドが `http://localhost:8000` で起動済み
+
+### 手順
+
+```bash
+# 1. 依存関係インストール
+npm install
+
+# 2. 環境変数ファイルを作成
+cp .env.example .env.local
+
+# 3. .env.local を編集（必須項目）
+#    VITE_BACKEND_ROOT=http://localhost:8000
+#    VITE_FIREBASE_API_KEY=...
+#    VITE_FIREBASE_AUTH_DOMAIN=...
+#    VITE_FIREBASE_PROJECT_ID=...
+#    （その他 Firebase 設定）
+
+# 4. 開発サーバー起動
+npm run dev
+# → http://localhost:5173
+```
+
+### 主要スクリプト
+
+```bash
+npm run dev      # 開発サーバー起動
+npm run build    # 型チェック + Vite ビルド
+npm run lint     # ESLint
+npm run preview  # ビルド結果のプレビュー
+```
+
+### 環境変数
+
+| 変数                          | 説明                 |
+|-----------------------------|--------------------|
+| `VITE_BACKEND_ROOT`         | バックエンドの URL        |
+| `VITE_FIREBASE_API_KEY`     | Firebase API キー    |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth ドメイン |
+| `VITE_FIREBASE_PROJECT_ID`  | Firebase プロジェクト ID |
+| `VITE_FIREBASE_APP_ID`      | Firebase App ID    |
+
+---
+
+## ページ構成
+
+### ルーティング（`src/App.tsx`）
+
+```
+/                              → DashboardPage
+/workspace/daily-logs          → DailyLogsPage
+/workspace/:date               → DailyWorkspacePage
+/notelist                      → NoteListPage
+/practice/:subject             → PracticeSessionPage
+/morning-bugfix                → MorningBugfixPage
+/subjects/:name/flash-bugfix   → FlashBugfixPage  （Flash / Deg 共用）
+/exam                          → ExamPage
+/subjects/:name                → SubjectPage
+/sprint                        → SprintPage
+/profile                       → ProfilePage
+/problems/:id/graph            → ProblemGraphPage （フルスクリーン）
+/login                         → LoginPage
+```
+
+### レイアウト
+
+- **iPad** (`useIsTablet` hook): サイドバー + メインのサイドバイサイドレイアウト
+- **スマホ / デスクトップ**: トップバー + メイン + ボトムナビ
+
+---
+
+## アーキテクチャ
+
+### ディレクトリ構成
+
+```
+src/
+├── pages/           # ページコンポーネント（Route に対応）
+├── components/      # 機能別コンポーネント
+│   ├── common/      # 共通 UI（BottomSheet, Selector など）
+│   ├── dashboard/
+│   ├── exam/
+│   ├── note/
+│   ├── practice/
+│   ├── sprint/
+│   ├── subject/
+│   └── workspace/
+├── hooks/           # カスタム hooks
+├── lib/
+│   ├── api/         # バックエンドとの通信（エンドポイント別）
+│   └── store/       # Zustand ストア
+├── types/           # 型定義
+├── styles/          # デザイントークン
+└── context/         # React Context（TimerContext）
+```
+
+### 設計方針
+
+- **API 通信は `src/lib/api/` に集約**。各ファイルがエンドポイントのグループに対応。
+- **ページはデータ取得と状態管理を担当**。表示ロジックはコンポーネントに渡す。
+- **モーダル駆動の UX**。多くの操作は `BottomSheet` ベースのモーダルで完結。
+- **問題ノートのハッシュタグ**（`#Definition`, `#Formula`, `#Keyword` など）がデータの中核。
+
+### HTTP クライアント（`src/lib/client.ts`）
+
+- 認証ヘッダーを自動付与
+- API レート制限（RPD/RPM）を `apiTraffic` ストアでチェック
+- 401 時に自動ログアウト・リダイレクト
+
+### キャッシュ戦略
+
+| 種類               | 実装                                 |
+|------------------|------------------------------------|
+| ページキャッシュ（5分 TTL） | `src/lib/pageCache.ts`             |
+| 科目・教材・論点         | `settings` Zustand ストア             |
+| ワークスペース下書き       | `workspaceDraft` ストア（localStorage） |
+| スプリント・チケット       | `sprintStore` ストア                  |
+
+---
+
+## 状態管理
+
+### Zustand ストア一覧（`src/lib/store/`）
+
+| ストア               | localStorage 永続化 | 主な内容            |
+|-------------------|------------------|-----------------|
+| `auth`            | ✓                | ユーザー情報・トークン     |
+| `settings`        | —                | 科目・教材・論点・カラー設定  |
+| `workspaceDraft`  | ✓                | 日次ログ下書き（日付キー）   |
+| `ticketTemplates` | ✓                | チケット生成テンプレート    |
+| `sprintStore`     | —                | スプリント・チケットキャッシュ |
+| `practiceStore`   | —                | 練習セッション状態       |
+| `apiTraffic`      | —                | API レート制限トラッキング |
+
+### API レート制限（`src/lib/api/apiWeights.ts`）
+
+Gemini の無料枠（20 RPD / 5 RPM）を超えないようにフロントエンドで管理している。
+
+| 重み           | 用途                          |
+|--------------|-----------------------------|
+| HIGH (500)   | 画像解析                        |
+| MIDDLE (100) | テキスト生成（BugFix カード、AI アドバイス） |
+| LOW (20)     | 集計・分析                       |
+| TINY (1)     | 通常の CRUD                    |
+
+---
+
+## BugFix フロー
+
+### 共通コンポーネント
+
+3 つの BugFix モードはすべて同じコンポーネントを使う。
+
+```
+useFlashCardSession(fetchFn)   # カードの読み込み・ナビゲーション状態
+      ↓
+FlashCardSessionView           # カード UI（表裏・○△× ジャッジ）
+```
+
+### モード別のフェッチ関数（`src/lib/api/morningQuiz.ts`）
+
+| モード     | 関数                                  | 設定モーダル                   |
+|---------|-------------------------------------|--------------------------|
+| Morning | `fetchMorningQuiz()`                | なし（自動選出）                 |
+| Flash   | `fetchFlashBugfix(subject, config)` | `FlashBugfixConfigModal` |
+| Deg     | `fetchDegBugfix(config)`            | `DegBugfixConfigModal`   |
+
+### カードのデータ形式
+
+```typescript
+quiz: {
+    question: string    // カード表: AI が生成したキーワード質問
+    explanation: string // カード裏: #Definition + #Formula
+}
+|
+null              // null の問題はスキップ
+```
+
+---
+
+## 不要コードの洗い出し
+
+### フロントエンド側で削除を推奨
+
+現時点では確認済みの削除対象なし。2026-05 の改修で整理済み。
+
+### 2026-05 改修で削除済み
+
+| 削除対象                                          | 理由             |
+|-----------------------------------------------|----------------|
+| `src/hooks/useQuizSession.ts`                 | 4択モード廃止        |
+| `src/components/practice/QuizSessionView.tsx` | 同上             |
+| `FlashBugfixConfig.quizMode` / `formulaOnly`  | 4択・公式チェックモード廃止 |
+| `DegBugfixConfig.quizMode` / `formulaOnly`    | 同上             |
+
+### バックエンド起因で将来的に整理が必要なもの
+
+バックエンドの `knowledge_digests` テーブルが削除された場合、フロントエンド側への影響はない（直接参照していない）。
+
+詳細は `exapp-backend/README.md` の「不要コードの洗い出し」を参照。
