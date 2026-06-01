@@ -218,7 +218,7 @@ export default function AnalysisView({ onDetail, onSubjectChange, onSubjectCopyT
                   <XAxis
                     type="number"
                     domain={[20, 80]}
-                    ticks={[20, 40, 60, 80]}
+                    ticks={[20, 30, 40, 50, 60, 70, 80]}
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
