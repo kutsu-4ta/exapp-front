@@ -217,8 +217,8 @@ export default function AnalysisView({ onDetail, onSubjectChange, onSubjectCopyT
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
                   <XAxis
                     type="number"
-                    domain={[0, 80]}
-                    ticks={[0, 20, 40, 60, 80]}
+                    domain={[20, 80]}
+                    ticks={[20, 40, 60, 80]}
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
@@ -257,7 +257,7 @@ export default function AnalysisView({ onDetail, onSubjectChange, onSubjectCopyT
                 <LineChart data={progressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="label" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
+                  <YAxis fontSize={10} tickLine={false} axisLine={false} domain={[20, 100]} />
                   <Tooltip content={<ProgressTooltip />} />
                   <ReferenceLine
                     y={60}
