@@ -217,8 +217,8 @@ export default function AnalysisView({ onDetail, onSubjectChange, onSubjectCopyT
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
                   <XAxis
                     type="number"
-                    domain={[0, 100]}
-                    ticks={[0, 20, 40, 60, 80, 100]}
+                    domain={[0, 80]}
+                    ticks={[0, 20, 40, 60, 80]}
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
