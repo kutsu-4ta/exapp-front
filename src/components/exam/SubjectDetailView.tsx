@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import {deleteExamSession, fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {RANKS} from '../../types/exam'
@@ -147,6 +147,22 @@ export default function SubjectDetailView({
   const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [sessionLoading, setSessionLoading] = useState(false)
   const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set())
+  const [sortOrder, setSortOrder] = useState<'date_desc' | 'date_asc' | 'score_desc' | 'score_asc'>('date_desc')
+
+  const sortedSessions = useMemo(() => {
+    const list = [...sessions]
+    switch (sortOrder) {
+      case 'date_asc':
+        return list.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      case 'score_desc':
+        return list.sort((a, b) => b.totalScore - a.totalScore)
+      case 'score_asc':
+        return list.sort((a, b) => a.totalScore - b.totalScore)
+      case 'date_desc':
+      default:
+        return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    }
+  }, [sessions, sortOrder])
 
   const toggleNote = (id: number) => {
     setExpandedNoteIds((prev) => {
@@ -253,11 +269,19 @@ export default function SubjectDetailView({
               <div style={sessionListCard}>
                 <div style={sessionListHeader}>
                   <h3 style={sectionLabel}>受験履歴</h3>
+                  <select
+                      style={sortSelect}
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+                  >
+                    <option value="date_desc">日付が新しい順</option>
+                    <option value="date_asc">日付が古い順</option>
+                    <option value="score_desc">得点が高い順</option>
+                    <option value="score_asc">得点が低い順</option>
+                  </select>
                 </div>
                 {sessions.length === 0 && <p style={stateText}>記録がありません</p>}
-                {[...sessions]
-                    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-                    .map((s) => (
+                {sortedSessions.map((s) => (
                         <div
                             key={s.id}
                             style={{ ...sessionRow, position: 'relative' }}
@@ -517,7 +541,16 @@ const sessionListCard: React.CSSProperties = {
   flexDirection: 'column',
   gap: '8px',
 }
-const sessionListHeader: React.CSSProperties = { marginBottom: '4px' }
+const sessionListHeader: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }
+const sortSelect: React.CSSProperties = {
+  padding: '5px 10px',
+  borderRadius: '8px',
+  border: '1px solid #eee',
+  fontSize: '11px',
+  fontWeight: 600,
+  backgroundColor: '#fff',
+  color: '#37352f',
+}
 const sessionRow: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',

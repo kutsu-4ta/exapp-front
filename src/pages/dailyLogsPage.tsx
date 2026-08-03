@@ -115,6 +115,8 @@ function buildLogsChartText(
 export default function DailyLogsPage() {
   const navigate = useNavigate()
   const subjectColors = useSettingsStore((s) => s.subjectColors)
+  const subjects = useSettingsStore((s) => s.subjects)
+  const loadSubjects = useSettingsStore((s) => s.loadSubjects)
   const [searchParams, setSearchParams] = useSearchParams()
   const viewMode = (searchParams.get('view') as ViewMode) ?? 'list'
   const setViewMode = (v: ViewMode) =>
@@ -126,6 +128,21 @@ export default function DailyLogsPage() {
   const [listLoadingMore, setListLoadingMore] = useState(false)
   const [listHasMore, setListHasMore] = useState(true)
   const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // --- List filter state ---
+  const [filterSubject, setFilterSubject] = useState('すべて')
+  const [filterStatus, setFilterStatus] = useState<'すべて' | 'completed' | 'incomplete'>('すべて')
+
+  useEffect(() => { loadSubjects() }, [loadSubjects])
+
+  const filteredListLogs = useMemo(() => {
+    return listLogs.filter((log) => {
+      if (filterSubject !== 'すべて' && !(filterSubject in (log.subjectMinutes ?? {}))) return false
+      if (filterStatus === 'completed' && !log.isCompleted) return false
+      if (filterStatus === 'incomplete' && log.isCompleted) return false
+      return true
+    })
+  }, [listLogs, filterSubject, filterStatus])
 
   // --- Chart state ---
   const [baseMonth, setBaseMonth] = useState(() => {
@@ -289,12 +306,12 @@ export default function DailyLogsPage() {
 
   const handleCopyScreen = useCallback(() => {
     if (viewMode === 'list') {
-      setCopyText(buildLogsListText(listLogs))
+      setCopyText(buildLogsListText(filteredListLogs))
     } else {
       setCopyText(buildLogsChartText(baseMonth, monthTotals, selectedDate, detailLog))
     }
     setIsCopyModalOpen(true)
-  }, [viewMode, listLogs, baseMonth, monthTotals, selectedDate, detailLog])
+  }, [viewMode, filteredListLogs, baseMonth, monthTotals, selectedDate, detailLog])
 
   const handleFinalCopy = async () => {
     try {
@@ -417,13 +434,34 @@ export default function DailyLogsPage() {
 
         {viewMode === 'list' ? (
           <div style={listContainer}>
+            <div style={listFilterRow}>
+              <select
+                style={miniSelect}
+                value={filterSubject}
+                onChange={(e) => setFilterSubject(e.target.value)}
+              >
+                <option value="すべて">すべての科目</option>
+                {subjects.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <select
+                style={miniSelect}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
+              >
+                <option value="すべて">すべての状態</option>
+                <option value="completed">完了のみ</option>
+                <option value="incomplete">未完了のみ</option>
+              </select>
+            </div>
             <div style={listHeader}>
               <div style={{ flex: 1 }}>DATE</div>
               <div style={{ flexShrink: 0, width: '72px', textAlign: 'right' }}>TIME</div>
             </div>
 
-            {listLogs.length > 0 ? (
-              listLogs.map((log) => {
+            {filteredListLogs.length > 0 ? (
+              filteredListLogs.map((log) => {
                 return (
                   <Link key={log.date} to={`/workspace/${log.date}`} style={logItem}>
                     <div style={itemRow1}>
@@ -828,6 +866,21 @@ const listContainer: React.CSSProperties = {
   flexDirection: 'column',
   border: '1px solid rgba(55, 53, 47, 0.06)',
   borderRadius: '8px',
+}
+const listFilterRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: '8px',
+  padding: '8px 8px 0',
+}
+const miniSelect: React.CSSProperties = {
+  padding: '6px 12px',
+  borderRadius: '8px',
+  border: '1px solid #eee',
+  fontSize: '12px',
+  fontWeight: 600,
+  backgroundColor: '#fff',
+  color: '#37352f',
 }
 const listHeader: React.CSSProperties = {
   display: 'flex',

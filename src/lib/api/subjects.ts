@@ -1,10 +1,29 @@
 import {apiFetch, extractApiError} from '../client'
 import type {SubjectActivityDay, SubjectMonthlyGoal, SubjectSettings, SubjectSettingsItem,} from '../../types/workspace'
 
+export interface SubjectWithVisibility {
+  name: string
+  isHidden: boolean
+}
+
 export async function fetchSubjects(): Promise<string[]> {
   const res = await apiFetch('/api/subjects')
   if (!res.ok) await extractApiError(res, '科目の取得に失敗しました')
   return res.json()
+}
+
+export async function fetchAllSubjectsWithVisibility(): Promise<SubjectWithVisibility[]> {
+  const res = await apiFetch('/api/subjects/all')
+  if (!res.ok) await extractApiError(res, '科目の取得に失敗しました')
+  return res.json()
+}
+
+export async function setSubjectHidden(name: string, hidden: boolean): Promise<void> {
+  const res = await apiFetch(`/api/subjects/${encodeURIComponent(name)}/hidden`, {
+    method: 'PUT',
+    body: JSON.stringify({ hidden }),
+  })
+  if (!res.ok) await extractApiError(res, '科目の表示設定の変更に失敗しました')
 }
 
 export async function renameSubject(name: string, newName: string): Promise<void> {

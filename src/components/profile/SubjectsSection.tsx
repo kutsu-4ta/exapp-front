@@ -1,12 +1,12 @@
 import {useEffect, useRef, useState} from 'react'
-import {deleteSubject, renameSubject} from '../../lib/api/subjects'
+import {deleteSubject, fetchAllSubjectsWithVisibility, renameSubject, setSubjectHidden, type SubjectWithVisibility} from '../../lib/api/subjects'
 import {useSettingsStore} from '../../lib/store/settings'
 import {c, font} from '../../styles/notion'
 
 export function SubjectsSection() {
-  const subjects = useSettingsStore((s) => s.subjects)
   const setSubjects = useSettingsStore((s) => s.setSubjects)
 
+  const [subjects, setLocalSubjects] = useState<SubjectWithVisibility[]>([])
   const [editingSubject, setEditingSubject] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -17,6 +17,16 @@ export function SubjectsSection() {
   useEffect(() => {
     if (editingSubject !== null) editRef.current?.focus()
   }, [editingSubject])
+
+  useEffect(() => {
+    fetchAllSubjectsWithVisibility()
+      .then(setLocalSubjects)
+      .catch(() => setError('科目の取得に失敗しました'))
+  }, [])
+
+  const syncVisibleSubjects = (next: SubjectWithVisibility[]) => {
+    setSubjects(next.filter((s) => !s.isHidden).map((s) => s.name))
+  }
 
   const startEdit = (name: string) => { setEditingSubject(name); setEditingValue(name); setError(null) }
   const cancelEdit = () => { setEditingSubject(null); setEditingValue('') }
@@ -29,7 +39,9 @@ export function SubjectsSection() {
     setError(null)
     try {
       await renameSubject(editingSubject, newName)
-      setSubjects(subjects.map((s) => (s === editingSubject ? newName : s)))
+      const next = subjects.map((s) => (s.name === editingSubject ? { ...s, name: newName } : s))
+      setLocalSubjects(next)
+      syncVisibleSubjects(next)
       setEditingSubject(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '変更に失敗しました')
@@ -44,10 +56,27 @@ export function SubjectsSection() {
     setError(null)
     try {
       await deleteSubject(deleteTarget)
-      setSubjects(subjects.filter((s) => s !== deleteTarget))
+      const next = subjects.filter((s) => s.name !== deleteTarget)
+      setLocalSubjects(next)
+      syncVisibleSubjects(next)
       setDeleteTarget(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '削除に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleToggleHidden = async (name: string, hidden: boolean) => {
+    setLoading(true)
+    setError(null)
+    try {
+      await setSubjectHidden(name, hidden)
+      const next = subjects.map((s) => (s.name === name ? { ...s, isHidden: hidden } : s))
+      setLocalSubjects(next)
+      syncVisibleSubjects(next)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '表示設定の変更に失敗しました')
     } finally {
       setLoading(false)
     }
@@ -59,7 +88,7 @@ export function SubjectsSection() {
       <p style={note}>科目を削除すると、紐づく全ての問題データが削除されます。</p>
       {error && <p style={errorText}>{error}</p>}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {subjects.map((name) => (
+        {subjects.map(({ name, isHidden }) => (
           <div key={name}>
             {editingSubject === name ? (
               <div style={editRow}>
@@ -86,9 +115,13 @@ export function SubjectsSection() {
             ) : (
               <div style={itemRow}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                  <span style={itemName}>{name}</span>
+                  <span style={{ ...itemName, opacity: isHidden ? 0.4 : 1 }}>{name}</span>
+                  {isHidden && <span style={hiddenBadge}>非表示</span>}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => handleToggleHidden(name, !isHidden)} disabled={loading} style={iconBtn}>
+                    {isHidden ? '再表示' : '非表示'}
+                  </button>
                   <button onClick={() => startEdit(name)} style={iconBtn}>Edit</button>
                   <button onClick={() => setDeleteTarget(name)} style={{ ...iconBtn, color: c.red }}>Delete</button>
                 </div>
@@ -113,6 +146,7 @@ const note: React.CSSProperties = { fontSize: '11px', color: 'rgba(55,53,47,0.45
 const errorText: React.CSSProperties = { fontSize: '12px', color: c.red, marginBottom: '12px' }
 const itemRow: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }
 const itemName: React.CSSProperties = { fontSize: font.base, fontWeight: 600, color: '#37352f' }
+const hiddenBadge: React.CSSProperties = { fontSize: '10px', fontWeight: 600, color: 'rgba(55,53,47,0.5)', backgroundColor: 'rgba(55,53,47,0.06)', borderRadius: '4px', padding: '2px 6px' }
 const iconBtn: React.CSSProperties = { background: 'none', border: 'none', fontSize: '12px', fontWeight: 600, color: 'rgba(55,53,47,0.45)', cursor: 'pointer', padding: '2px 6px' }
 const editRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0' }
 const editInput: React.CSSProperties = { flex: 1, border: '1px solid rgba(55,53,47,0.2)', borderRadius: '4px', padding: '6px 8px', fontSize: font.base, color: '#37352f', outline: 'none', backgroundColor: 'rgba(55,53,47,0.02)' }
