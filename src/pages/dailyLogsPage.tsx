@@ -15,13 +15,13 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import {fetchDailyLog, fetchDailyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
+import {fetchDailyLog, fetchDailyLogs, fetchMonthlyLogs, fetchRecentDailyLogs} from '../lib/api/workspace'
 import type {DailyLog, DailyLogSummary} from '../types/workspace'
 import {formatDuration, formatSessions} from '../types/workspace'
 import {getCached, setCached} from '../lib/pageCache'
 import {useSettingsStore} from '../lib/store/settings'
 
-type ViewMode = 'list' | 'chart'
+type ViewMode = 'list' | 'chart' | 'range'
 
 const FALLBACK_COLORS = [
   '#2383e2', '#f2ab26', '#eb5757', '#9b59b6',
@@ -66,29 +66,51 @@ function IconTrend({ active }: { active: boolean }) {
   )
 }
 
+function IconRange({ active }: { active: boolean }) {
+  const c = active ? '#37352f' : 'rgba(55,53,47,0.45)'
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={c}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="8" y1="15" x2="10" y2="15" />
+      <line x1="14" y1="15" x2="16" y2="15" />
+    </svg>
+  )
+}
+
 function buildLogsListText(logs: DailyLogSummary[]): string {
   const lines = [`Daily Logs (${logs.length}件)`, '']
   logs.forEach((log) => {
     const status = log.isCompleted ? '✓' : '○'
     lines.push(`${status} ${log.date}  ${formatDuration(log.totalMinutes)}  ${formatSessions(log.sessionCount)}`)
+    if (log.reflection) lines.push(`  ${log.reflection}`)
   })
   return lines.join('\n')
 }
 
-function buildLogsChartText(
-  baseMonth: string,
-  monthTotals: { totalMinutes: number; subjectMap: Record<string, number> },
+function buildLogsPeriodText(
+  label: string,
+  totals: { totalMinutes: number; subjectMap: Record<string, number> },
   selectedDate: string | null,
   detailLog: DailyLog | null,
 ): string {
-  const lines = [`【Daily Logs ${baseMonth}】`, '']
-  lines.push(`TOTAL: ${formatDuration(monthTotals.totalMinutes)}`)
-  const subjEntries = Object.entries(monthTotals.subjectMap).sort((a, b) => b[1] - a[1])
+  const lines = [`【Daily Logs ${label}】`, '']
+  lines.push(`TOTAL: ${formatDuration(totals.totalMinutes)}`)
+  const subjEntries = Object.entries(totals.subjectMap).sort((a, b) => b[1] - a[1])
   if (subjEntries.length > 0) {
     lines.push('')
     lines.push('【科目別】')
     subjEntries.forEach(([subj, mins]) => {
-      const pct = monthTotals.totalMinutes > 0 ? Math.round((mins / monthTotals.totalMinutes) * 100) : 0
+      const pct = totals.totalMinutes > 0 ? Math.round((mins / totals.totalMinutes) * 100) : 0
       lines.push(`${subj}: ${formatDuration(mins)} (${pct}%)`)
     })
   }
@@ -115,7 +137,6 @@ function buildLogsChartText(
 export default function DailyLogsPage() {
   const navigate = useNavigate()
   const subjectColors = useSettingsStore((s) => s.subjectColors)
-  const subjects = useSettingsStore((s) => s.subjects)
   const loadSubjects = useSettingsStore((s) => s.loadSubjects)
   const [searchParams, setSearchParams] = useSearchParams()
   const viewMode = (searchParams.get('view') as ViewMode) ?? 'list'
@@ -129,20 +150,7 @@ export default function DailyLogsPage() {
   const [listHasMore, setListHasMore] = useState(true)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  // --- List filter state ---
-  const [filterSubject, setFilterSubject] = useState('すべて')
-  const [filterStatus, setFilterStatus] = useState<'すべて' | 'completed' | 'incomplete'>('すべて')
-
   useEffect(() => { loadSubjects() }, [loadSubjects])
-
-  const filteredListLogs = useMemo(() => {
-    return listLogs.filter((log) => {
-      if (filterSubject !== 'すべて' && !(filterSubject in (log.subjectMinutes ?? {}))) return false
-      if (filterStatus === 'completed' && !log.isCompleted) return false
-      if (filterStatus === 'incomplete' && log.isCompleted) return false
-      return true
-    })
-  }, [listLogs, filterSubject, filterStatus])
 
   // --- Chart state ---
   const [baseMonth, setBaseMonth] = useState(() => {
@@ -151,6 +159,16 @@ export default function DailyLogsPage() {
   })
   const [chartData, setChartData] = useState<DailyLogSummary[]>([])
   const [chartLoading, setChartLoading] = useState(false)
+
+  // --- Range state ---
+  const [rangeStart, setRangeStart] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 29)
+    return d.toISOString().slice(0, 10)
+  })
+  const [rangeEnd, setRangeEnd] = useState(() => new Date().toISOString().slice(0, 10))
+  const [rangeLogs, setRangeLogs] = useState<DailyLogSummary[]>([])
+  const [rangeLoading, setRangeLoading] = useState(false)
 
   // --- Day detail state ---
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -304,14 +322,86 @@ export default function DailyLogsPage() {
     return () => { cancelled = true }
   }, [chartData])
 
+  // --- Range Logic ---
+  useEffect(() => {
+    if (viewMode !== 'range') return
+    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) return
+    setRangeLoading(true)
+
+    const months = new Set<string>()
+    const cursor = new Date(rangeStart + 'T00:00:00')
+    const endD = new Date(rangeEnd + 'T00:00:00')
+    while (cursor <= endD) {
+      months.add(`${cursor.getFullYear()}-${cursor.getMonth() + 1}`)
+      cursor.setMonth(cursor.getMonth() + 1)
+      cursor.setDate(1)
+    }
+
+    Promise.all(
+      Array.from(months).map((ym) => {
+        const [y, m] = ym.split('-').map(Number)
+        return fetchMonthlyLogs(y, m)
+      })
+    )
+      .then((chunks) => {
+        const merged = chunks
+          .flat()
+          .filter((log) => log.date >= rangeStart && log.date <= rangeEnd)
+        setRangeLogs(merged.sort((a, b) => a.date.localeCompare(b.date)))
+      })
+      .catch(console.error)
+      .finally(() => setRangeLoading(false))
+  }, [viewMode, rangeStart, rangeEnd])
+
+  const rangeTotals = useMemo(() => {
+    const totalMinutes = rangeLogs.reduce((acc, log) => acc + log.totalMinutes, 0)
+    const subjectMap: Record<string, number> = {}
+    for (const log of rangeLogs) {
+      for (const [subj, mins] of Object.entries(log.subjectMinutes ?? {})) {
+        subjectMap[subj] = (subjectMap[subj] ?? 0) + mins
+      }
+    }
+    return { totalMinutes, subjectMap }
+  }, [rangeLogs])
+
+  const rangeDayLabels = useMemo(() => {
+    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) return []
+    const labels: string[] = []
+    const cursor = new Date(rangeStart + 'T00:00:00')
+    const endD = new Date(rangeEnd + 'T00:00:00')
+    while (cursor <= endD) {
+      labels.push(cursor.toISOString().slice(0, 10))
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    return labels
+  }, [rangeStart, rangeEnd])
+
+  const rangeChartData = useMemo(() => {
+    const byDate = new Map(rangeLogs.map((log) => [log.date, log]))
+    return rangeDayLabels.map((fullDate) => {
+      const log = byDate.get(fullDate)
+      return {
+        date: fullDate.slice(5).replace('-', '/'),
+        fullDate,
+        sessions: log?.sessionCount ?? 0,
+        totalMinutes: log?.totalMinutes ?? 0,
+        morning: log?.slotMinutes?.morning ?? 0,
+        lunch: log?.slotMinutes?.lunch ?? 0,
+        night: log?.slotMinutes?.night ?? 0,
+      }
+    })
+  }, [rangeDayLabels, rangeLogs])
+
   const handleCopyScreen = useCallback(() => {
     if (viewMode === 'list') {
-      setCopyText(buildLogsListText(filteredListLogs))
+      setCopyText(buildLogsListText(listLogs))
+    } else if (viewMode === 'chart') {
+      setCopyText(buildLogsPeriodText(baseMonth, monthTotals, selectedDate, detailLog))
     } else {
-      setCopyText(buildLogsChartText(baseMonth, monthTotals, selectedDate, detailLog))
+      setCopyText(buildLogsPeriodText(`${rangeStart} 〜 ${rangeEnd}`, rangeTotals, selectedDate, detailLog))
     }
     setIsCopyModalOpen(true)
-  }, [viewMode, filteredListLogs, baseMonth, monthTotals, selectedDate, detailLog])
+  }, [viewMode, listLogs, baseMonth, monthTotals, rangeStart, rangeEnd, rangeTotals, selectedDate, detailLog])
 
   const handleFinalCopy = async () => {
     try {
@@ -364,6 +454,18 @@ export default function DailyLogsPage() {
     setDetailLog(null)
   }
 
+  const handleRangeStartChange = (v: string) => {
+    setRangeStart(v)
+    setSelectedDate(null)
+    setDetailLog(null)
+  }
+
+  const handleRangeEndChange = (v: string) => {
+    setRangeEnd(v)
+    setSelectedDate(null)
+    setDetailLog(null)
+  }
+
   const handleConfirm = () => {
     if (!modalDate) return
     setIsModalOpen(false)
@@ -386,6 +488,12 @@ export default function DailyLogsPage() {
           style={{ ...tabItem, ...(viewMode === 'chart' ? activeTab : {}) }}
         >
           <IconTrend active={viewMode === 'chart'} /> ANALYTICS
+        </button>
+        <button
+          onClick={() => setViewMode('range')}
+          style={{ ...tabItem, ...(viewMode === 'range' ? activeTab : {}) }}
+        >
+          <IconRange active={viewMode === 'range'} /> PERIOD
         </button>
       </div>
 
@@ -410,7 +518,7 @@ export default function DailyLogsPage() {
                   ▶
                 </button>
               </div>
-            ) : (
+            ) : viewMode === 'list' ? (
               <button onClick={() => setIsModalOpen(true)} style={openModalBtn}>
                 <svg
                   width="20"
@@ -428,40 +536,19 @@ export default function DailyLogsPage() {
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </button>
-            )}
+            ) : null}
           </div>
         </header>
 
         {viewMode === 'list' ? (
           <div style={listContainer}>
-            <div style={listFilterRow}>
-              <select
-                style={miniSelect}
-                value={filterSubject}
-                onChange={(e) => setFilterSubject(e.target.value)}
-              >
-                <option value="すべて">すべての科目</option>
-                {subjects.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <select
-                style={miniSelect}
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-              >
-                <option value="すべて">すべての状態</option>
-                <option value="completed">完了のみ</option>
-                <option value="incomplete">未完了のみ</option>
-              </select>
-            </div>
             <div style={listHeader}>
               <div style={{ flex: 1 }}>DATE</div>
               <div style={{ flexShrink: 0, width: '72px', textAlign: 'right' }}>TIME</div>
             </div>
 
-            {filteredListLogs.length > 0 ? (
-              filteredListLogs.map((log) => {
+            {listLogs.length > 0 ? (
+              listLogs.map((log) => {
                 return (
                   <Link key={log.date} to={`/workspace/${log.date}`} style={logItem}>
                     <div style={itemRow1}>
@@ -499,7 +586,7 @@ export default function DailyLogsPage() {
               )}
             </div>
           </div>
-        ) : (
+        ) : viewMode === 'chart' ? (
           <div style={chartContainer}>
             {chartLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '0px 0' }}>
@@ -599,6 +686,147 @@ export default function DailyLogsPage() {
                 <div style={chartCard}>
                   <p style={heatmapTitle}>By Time Slot</p>
                   <Heatmap data={filteredChartData} selectedDate={selectedDate} onSelect={handleSelectDate} />
+                </div>
+
+                {/* Day detail panel */}
+                {selectedDate && (
+                  <div style={detailPanel}>
+                    <div style={detailHeader}>
+                      <span style={detailDateLabel}>{formatDetailDate(selectedDate)}</span>
+                      <button style={detailCloseBtn} onClick={() => { setSelectedDate(null); setDetailLog(null) }}>×</button>
+                    </div>
+                    {detailLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+                        <LoadingSpinner size="sm" />
+                      </div>
+                    ) : detailLog ? (
+                      <DayDetail log={detailLog} />
+                    ) : (
+                      <p style={detailEmpty}>No record for this day</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={chartContainer}>
+            <div style={rangePickerRow}>
+              <input
+                type="date"
+                value={rangeStart}
+                max={rangeEnd}
+                onChange={(e) => handleRangeStartChange(e.target.value)}
+                style={rangeDateInput}
+              />
+              <span style={rangeDash}>〜</span>
+              <input
+                type="date"
+                value={rangeEnd}
+                min={rangeStart}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => handleRangeEndChange(e.target.value)}
+                style={rangeDateInput}
+              />
+            </div>
+
+            {rangeLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '0px 0' }}>
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <>
+                {/* Period overview: pie chart + total time */}
+                <div style={chartCard}>
+                  <p style={heatmapTitle}>PERIOD OVERVIEW</p>
+                  {rangeTotals.totalMinutes === 0 ? (
+                    <p style={{ fontSize: '13px', color: 'rgba(55,53,47,0.4)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No data in this period</p>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ width: 120, height: 120, flexShrink: 0 }}>
+                        <ResponsiveContainer>
+                          <PieChart>
+                            <Pie
+                              data={Object.entries(rangeTotals.subjectMap).map(([name, value]) => ({ name, value }))}
+                              cx="50%"
+                              cy="50%"
+                              outerRadius="48%"
+                              innerRadius="28%"
+                              dataKey="value"
+                              stroke="none"
+                              animationDuration={600}
+                            >
+                              {Object.keys(rangeTotals.subjectMap).map((name, i) => (
+                                <Cell key={name} fill={subjectColors[name] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}m`, '']} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ marginBottom: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(55,53,47,0.4)', letterSpacing: '0.06em', display: 'block', marginBottom: '2px' }}>TOTAL</span>
+                          <span style={{ fontSize: '24px', fontWeight: 700, color: '#37352f', fontFamily: 'monospace' }}>
+                            {formatDuration(rangeTotals.totalMinutes)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          {Object.entries(rangeTotals.subjectMap)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([name, mins], i) => {
+                              const pct = Math.round((mins / rangeTotals.totalMinutes) * 100)
+                              return (
+                                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                                  <span style={{ ...legendDot(subjectColors[name] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]), flexShrink: 0, margin: 0 }} />
+                                  <span style={{ flex: 1, color: '#37352f', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                                  <span style={{ color: 'rgba(55,53,47,0.5)', fontFamily: 'monospace', flexShrink: 0 }}>{pct}%</span>
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Trend: sessions bar + time line */}
+                <div style={chartCard}>
+                  <div style={{ width: '100%', height: 200 }}>
+                    <ResponsiveContainer>
+                      <ComposedChart data={rangeChartData} onClick={(p: any) => { if (p?.activePayload?.[0]?.payload?.fullDate) handleSelectDate(p.activePayload[0].payload.fullDate) }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                        <XAxis dataKey="date" fontSize={9} tickLine={false} axisLine={false} dy={8} interval={Math.max(0, Math.ceil(rangeChartData.length / 8) - 1)} tick={{ fill: 'rgba(55,53,47,0.45)' }} />
+                        <YAxis yAxisId="sess" fontSize={10} tickLine={false} axisLine={false} dx={-4} allowDecimals={false} />
+                        <YAxis yAxisId="min" orientation="right" fontSize={10} tickLine={false} axisLine={false} dx={4} />
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          cursor={{ fill: 'rgba(55,53,47,0.04)' }}
+                          formatter={(value, name) =>
+                            name === 'sessions'
+                              ? [formatSessions(value as number), 'Sessions']
+                              : [formatDuration(value as number), 'Time']
+                          }
+                        />
+                        <Bar yAxisId="sess" dataKey="sessions" fill="#19a576" radius={[2, 2, 0, 0]} animationDuration={600} />
+                        <Line yAxisId="min" type="monotone" dataKey="totalMinutes" stroke="#2383e2" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} animationDuration={800} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={chartLegend}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <span style={legendDot('#19a576')} />Sessions
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <span style={legendDot('#2383e2')} />Time
+                    </span>
+                  </div>
+                </div>
+
+                {/* Heatmap: time slot × day */}
+                <div style={chartCard}>
+                  <p style={heatmapTitle}>By Time Slot</p>
+                  <Heatmap data={rangeChartData} selectedDate={selectedDate} onSelect={handleSelectDate} />
                 </div>
 
                 {/* Day detail panel */}
@@ -867,20 +1095,25 @@ const listContainer: React.CSSProperties = {
   border: '1px solid rgba(55, 53, 47, 0.06)',
   borderRadius: '8px',
 }
-const listFilterRow: React.CSSProperties = {
+const rangePickerRow: React.CSSProperties = {
   display: 'flex',
-  justifyContent: 'flex-end',
-  gap: '8px',
-  padding: '8px 8px 0',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '10px',
+  padding: '4px 0 4px',
 }
-const miniSelect: React.CSSProperties = {
-  padding: '6px 12px',
+const rangeDateInput: React.CSSProperties = {
+  padding: '8px 10px',
   borderRadius: '8px',
-  border: '1px solid #eee',
-  fontSize: '12px',
+  border: '1px solid rgba(55,53,47,0.16)',
+  fontSize: '13px',
   fontWeight: 600,
   backgroundColor: '#fff',
   color: '#37352f',
+}
+const rangeDash: React.CSSProperties = {
+  fontSize: '13px',
+  color: 'rgba(55,53,47,0.4)',
 }
 const listHeader: React.CSSProperties = {
   display: 'flex',

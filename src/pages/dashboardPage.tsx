@@ -97,7 +97,9 @@ export default function DashboardPage() {
 
   const subjectTouched = useMemo(() => {
     const raw = stats?.lastTouchedBySubject ?? subjects.map((s) => ({ subject: s, lastdate: null }))
+    const visible = new Set(subjects)
     return raw
+      .filter((item) => visible.has(item.subject))
       .map((item) => ({ subject: item.subject, lastDate: item.lastdate }))
       .sort((a, b) => {
         if (!a.lastDate && !b.lastDate) return 0
