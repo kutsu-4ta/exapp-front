@@ -392,6 +392,27 @@ export default function DailyLogsPage() {
     })
   }, [rangeDayLabels, rangeLogs])
 
+  const rangeIsLong = rangeDayLabels.length > 60
+
+  const rangeHeatmapData = useMemo(() => {
+    if (!rangeIsLong) return rangeChartData
+    const weeks: typeof rangeChartData = []
+    for (let i = 0; i < rangeChartData.length; i += 7) {
+      const chunk = rangeChartData.slice(i, i + 7)
+      if (chunk.length === 0) continue
+      weeks.push({
+        date: chunk[0].date,
+        fullDate: chunk[0].fullDate,
+        sessions: chunk.reduce((s, d) => s + d.sessions, 0),
+        totalMinutes: chunk.reduce((s, d) => s + d.totalMinutes, 0),
+        morning: chunk.reduce((s, d) => s + d.morning, 0),
+        lunch: chunk.reduce((s, d) => s + d.lunch, 0),
+        night: chunk.reduce((s, d) => s + d.night, 0),
+      })
+    }
+    return weeks
+  }, [rangeChartData, rangeIsLong])
+
   const handleCopyScreen = useCallback(() => {
     if (viewMode === 'list') {
       setCopyText(buildLogsListText(listLogs))
@@ -465,6 +486,59 @@ export default function DailyLogsPage() {
     setSelectedDate(null)
     setDetailLog(null)
   }
+
+  const applyRangePreset = (start: string, end: string) => {
+    setRangeStart(start)
+    setRangeEnd(end)
+    setSelectedDate(null)
+    setDetailLog(null)
+  }
+
+  const toDateStr = (d: Date) => d.toISOString().slice(0, 10)
+
+  const RANGE_PRESETS: { label: string; range: () => [string, string] }[] = [
+    {
+      label: '7日',
+      range: () => {
+        const end = new Date()
+        const start = new Date(); start.setDate(start.getDate() - 6)
+        return [toDateStr(start), toDateStr(end)]
+      },
+    },
+    {
+      label: '30日',
+      range: () => {
+        const end = new Date()
+        const start = new Date(); start.setDate(start.getDate() - 29)
+        return [toDateStr(start), toDateStr(end)]
+      },
+    },
+    {
+      label: '今月',
+      range: () => {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        return [toDateStr(start), toDateStr(now)]
+      },
+    },
+    {
+      label: '先月',
+      range: () => {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const end = new Date(now.getFullYear(), now.getMonth(), 0)
+        return [toDateStr(start), toDateStr(end)]
+      },
+    },
+    {
+      label: '3ヶ月',
+      range: () => {
+        const end = new Date()
+        const start = new Date(); start.setDate(start.getDate() - 89)
+        return [toDateStr(start), toDateStr(end)]
+      },
+    },
+  ]
 
   const handleConfirm = () => {
     if (!modalDate) return
@@ -600,7 +674,7 @@ export default function DailyLogsPage() {
                   {monthTotals.totalMinutes === 0 ? (
                     <p style={{ fontSize: '13px', color: 'rgba(55,53,47,0.4)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No data this month</p>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
                       <div style={{ width: 120, height: 120, flexShrink: 0 }}>
                         <ResponsiveContainer>
                           <PieChart>
@@ -622,7 +696,7 @@ export default function DailyLogsPage() {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ flex: '1 1 160px', minWidth: '160px' }}>
                         <div style={{ marginBottom: '10px' }}>
                           <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(55,53,47,0.4)', letterSpacing: '0.06em', display: 'block', marginBottom: '2px' }}>TOTAL</span>
                           <span style={{ fontSize: '24px', fontWeight: 700, color: '#37352f', fontFamily: 'monospace' }}>
@@ -711,23 +785,52 @@ export default function DailyLogsPage() {
           </div>
         ) : (
           <div style={chartContainer}>
+            <div style={rangePresetRow}>
+              {RANGE_PRESETS.map(({ label, range }) => {
+                const [pStart, pEnd] = range()
+                const active = pStart === rangeStart && pEnd === rangeEnd
+                return (
+                  <button
+                    key={label}
+                    onClick={() => applyRangePreset(pStart, pEnd)}
+                    style={{ ...rangePresetChip, ...(active ? rangePresetChipActive : {}) }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+
             <div style={rangePickerRow}>
-              <input
-                type="date"
-                value={rangeStart}
-                max={rangeEnd}
-                onChange={(e) => handleRangeStartChange(e.target.value)}
-                style={rangeDateInput}
-              />
+              <label style={rangeDateField}>
+                <span style={rangeDateLabel}>開始</span>
+                <input
+                  type="date"
+                  value={rangeStart}
+                  max={rangeEnd}
+                  onChange={(e) => handleRangeStartChange(e.target.value)}
+                  style={rangeDateInput}
+                />
+              </label>
               <span style={rangeDash}>〜</span>
-              <input
-                type="date"
-                value={rangeEnd}
-                min={rangeStart}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => handleRangeEndChange(e.target.value)}
-                style={rangeDateInput}
-              />
+              <label style={rangeDateField}>
+                <span style={rangeDateLabel}>終了</span>
+                <input
+                  type="date"
+                  value={rangeEnd}
+                  min={rangeStart}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => handleRangeEndChange(e.target.value)}
+                  style={rangeDateInput}
+                />
+              </label>
+            </div>
+
+            <div style={rangeMetaRow}>
+              <span>{rangeDayLabels.length}日間</span>
+              {rangeDayLabels.length > 60 && (
+                <span style={rangeWarning}>長期間のため表示に時間がかかる場合があります</span>
+              )}
             </div>
 
             {rangeLoading ? (
@@ -742,7 +845,7 @@ export default function DailyLogsPage() {
                   {rangeTotals.totalMinutes === 0 ? (
                     <p style={{ fontSize: '13px', color: 'rgba(55,53,47,0.4)', textAlign: 'center', padding: '16px 0', margin: 0 }}>No data in this period</p>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
                       <div style={{ width: 120, height: 120, flexShrink: 0 }}>
                         <ResponsiveContainer>
                           <PieChart>
@@ -764,7 +867,7 @@ export default function DailyLogsPage() {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ flex: '1 1 160px', minWidth: '160px' }}>
                         <div style={{ marginBottom: '10px' }}>
                           <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(55,53,47,0.4)', letterSpacing: '0.06em', display: 'block', marginBottom: '2px' }}>TOTAL</span>
                           <span style={{ fontSize: '24px', fontWeight: 700, color: '#37352f', fontFamily: 'monospace' }}>
@@ -823,10 +926,10 @@ export default function DailyLogsPage() {
                   </div>
                 </div>
 
-                {/* Heatmap: time slot × day */}
+                {/* Heatmap: time slot × day (long ranges are aggregated by week) */}
                 <div style={chartCard}>
-                  <p style={heatmapTitle}>By Time Slot</p>
-                  <Heatmap data={rangeChartData} selectedDate={selectedDate} onSelect={handleSelectDate} />
+                  <p style={heatmapTitle}>By Time Slot{rangeIsLong ? ' (週単位)' : ''}</p>
+                  <Heatmap data={rangeHeatmapData} selectedDate={selectedDate} onSelect={handleSelectDate} />
                 </div>
 
                 {/* Day detail panel */}
@@ -1095,14 +1198,53 @@ const listContainer: React.CSSProperties = {
   border: '1px solid rgba(55, 53, 47, 0.06)',
   borderRadius: '8px',
 }
+const rangePresetRow: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'center',
+  gap: '6px',
+  padding: '4px 0 10px',
+}
+const rangePresetChip: React.CSSProperties = {
+  padding: '5px 12px',
+  borderRadius: '999px',
+  border: '1px solid rgba(55,53,47,0.16)',
+  backgroundColor: '#fff',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: 'rgba(55,53,47,0.6)',
+  cursor: 'pointer',
+}
+const rangePresetChipActive: React.CSSProperties = {
+  backgroundColor: '#2383e2',
+  borderColor: '#2383e2',
+  color: '#fff',
+}
 const rangePickerRow: React.CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'flex-end',
   justifyContent: 'center',
   gap: '10px',
+  flexWrap: 'wrap',
   padding: '4px 0 4px',
 }
+const rangeDateField: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '3px',
+  flex: '1 1 140px',
+  minWidth: '132px',
+  maxWidth: '200px',
+}
+const rangeDateLabel: React.CSSProperties = {
+  fontSize: '10px',
+  fontWeight: 700,
+  color: 'rgba(55,53,47,0.4)',
+  letterSpacing: '0.04em',
+}
 const rangeDateInput: React.CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
   padding: '8px 10px',
   borderRadius: '8px',
   border: '1px solid rgba(55,53,47,0.16)',
@@ -1114,6 +1256,21 @@ const rangeDateInput: React.CSSProperties = {
 const rangeDash: React.CSSProperties = {
   fontSize: '13px',
   color: 'rgba(55,53,47,0.4)',
+  paddingBottom: '9px',
+}
+const rangeMetaRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '10px',
+  fontSize: '11px',
+  color: 'rgba(55,53,47,0.4)',
+  padding: '8px 0 12px',
+  textAlign: 'center',
+}
+const rangeWarning: React.CSSProperties = {
+  color: '#f2ab26',
+  fontWeight: 600,
 }
 const listHeader: React.CSSProperties = {
   display: 'flex',
