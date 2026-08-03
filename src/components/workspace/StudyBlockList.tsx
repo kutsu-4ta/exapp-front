@@ -1,6 +1,6 @@
 // MEMO: 将来的にユーザーが定義できるようにする
 import {useRef, useState} from 'react'
-import type {StudySession, StudySessionInput, SubCategory, TimeSlot} from '../../types/workspace'
+import type {StudySession, StudySessionInput, TimeSlot} from '../../types/workspace'
 import {StudyBlockRow} from './StudyBlockRow'
 import {useWorkspaceDraftStore} from '../../lib/store/workspaceDraft'
 
@@ -41,7 +41,6 @@ type Props = {
   initialMinutes?: number
   initialSubject?: string
   initialMaterial?: string
-  subCategories?: SubCategory[]
   onAdd: (input: StudySessionInput) => Promise<StudySession>
   onUpdate: (id: number, input: Omit<StudySessionInput, 'dailyLogDate'>) => Promise<void>
   onDelete: (id: number) => Promise<void>
@@ -62,7 +61,6 @@ export function StudyBlockList({
   initialMinutes,
   initialSubject,
   initialMaterial,
-  subCategories = [],
   onAdd,
   onUpdate,
   onDelete,
@@ -184,7 +182,6 @@ export function StudyBlockList({
                     key={s.id}
                     rowKey={String(s.id)}
                     session={s}
-                    subCategories={subCategories}
                     onSave={async (_, input) => {
                       await onUpdate(s.id, {timeSlot: s.timeSlot, ...input})
                       return s.id
@@ -202,7 +199,6 @@ export function StudyBlockList({
                       initialMinutes={row.defaultMinutes}
                       initialSubject={row.defaultSubject}
                       initialMaterial={row.defaultMaterial}
-                      subCategories={subCategories}
                       onSave={async (currentId, input) => {
                         if (currentId === null) {
                           const newSession = await onAdd({

@@ -1,6 +1,5 @@
 import {useEffect, useRef, useState} from 'react'
 import {backBtn, c} from "@/styles/notion.ts";
-import type {SubCategory} from "@/types/workspace.ts";
 import {useSettingsStore} from "@/lib/store/settings.ts";
 import {subjectPalette} from "@/styles/subjectUI.ts";
 export function SubjectHeader({
@@ -8,8 +7,6 @@ export function SubjectHeader({
                                   renameSubject,
                                   subjects,
                                   setSubjects,
-                                  subCategories,
-                                  setSubCategories,
                                   navigate,
                                   onOpenSettings,
                               }: any) {
@@ -40,9 +37,6 @@ export function SubjectHeader({
         try {
             await renameSubject(subjectName, newName)
             setSubjects(subjects.map((s:string) => (s === subjectName ? newName : s)))
-            setSubCategories(
-                subCategories.map((sc:SubCategory) => (sc.subject === subjectName ? { ...sc, subject: newName } : sc))
-            )
             setIsEditingTitle(false)
             navigate(`/subjects/${encodeURIComponent(newName)}`, { replace: true })
         } catch (e) {

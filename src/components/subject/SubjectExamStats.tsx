@@ -2,9 +2,8 @@ import {useEffect, useState} from 'react'
 import {fetchExamSessions, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamSessionSummary, ExamSubjectStats} from '../../types/exam'
 import {Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis} from 'recharts'
-import {subjectUi} from '../../styles/subjectUI'
+import {RANK_COLORS, subjectUi} from '../../styles/subjectUI'
 import {Skeleton} from '../common/Skeleton'
-import {RANK_COLORS} from "@/components/subject/SubCategoryList.tsx";
 
 function ScoreTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; pure: number; total: number } }> }) {
   if (!active || !payload?.length) return null

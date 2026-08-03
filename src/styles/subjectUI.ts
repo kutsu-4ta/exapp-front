@@ -1,4 +1,13 @@
 import type {CSSProperties} from "react"
+import type {Rank} from "../types/exam"
+
+export const RANK_COLORS: Record<Rank, string> = {
+    A: '#2383e2',
+    B: '#19a576',
+    C: '#f2ab26',
+    D: '#eb5757',
+    E: 'rgba(55,53,47,0.4)',
+}
 
 // Intentionally avoids semantic colors:
 //   #19a576 (done/correct/today), #eb5757 (error/wrong), #f2ab26 (open/warning)

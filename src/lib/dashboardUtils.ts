@@ -88,7 +88,6 @@ export function buildDashboardStatusText(
     if (s.finalTarget) lines.push(`  Final Target: ${s.finalTarget}`)
     if (s.monthlyGoal) lines.push(`  Monthly Goal: ${s.monthlyGoal}`)
     lines.push(`  Study Time: ${formatDuration(s.studyMinutes)}`)
-    lines.push(`  Problems: ${s.problemCount}`)
     const lastDate = stats.lastTouchedBySubject.find((e) => e.subject === s.subject)?.lastdate ?? null
     lines.push(lastDate ? `  Last Study: ${lastDate} (${daysSince(lastDate)}日前)` : `  Last Study: Not studied`)
     if (s.recentExamScore) {

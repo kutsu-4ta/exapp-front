@@ -1,11 +1,8 @@
 import {useEffect, useState} from 'react'
-import {useLocation, useNavigate, useParams} from 'react-router-dom'
+import {useNavigate, useParams} from 'react-router-dom'
 import type {QuestionDraft} from '../types/exam'
-import type {Flashcard, Problem, ProblemInput} from '../types/workspace'
 import {PracticeAnswerView} from '@/components/practice/PracticeAnswerView.tsx'
-import {TodayCardModal} from '@/components/practice/TodayCardModal.tsx'
 import {savePracticeSession} from '@/lib/api/practice.ts'
-import {fetchProblem, updateProblem} from '@/lib/api/problem.ts'
 import {c, font} from '@/styles/notion.ts'
 import {type AnsweredRecord, clearDraft, loadDraft, saveDraft} from '@/lib/practiceDraft.ts'
 
@@ -47,25 +44,16 @@ export default function PracticeSessionPage() {
   const { subject: enc } = useParams<{ subject: string }>()
   const subject = decodeURIComponent(enc ?? '')
   const navigate = useNavigate()
-  const location = useLocation()
-
-  // Today mode: started from subject page "今日の5問"
-  const todayMode: boolean = location.state?.mode === 'today'
-  const todayCards: Flashcard[] = location.state?.todayCards ?? []
 
   const [phase, setPhase] = useState<Phase>('active')
-  const [currentIndex, setCurrentIndex] = useState(() =>
-    todayMode ? 1 : (loadDraft(subject)?.currentIndex ?? 1)
-  )
+  const [currentIndex, setCurrentIndex] = useState(() => loadDraft(subject)?.currentIndex ?? 1)
   const [currentQuestion, setCurrentQuestion] = useState<QuestionDraft>(() =>
-    makeBlankQuestion(todayMode ? 1 : (loadDraft(subject)?.currentIndex ?? 1))
+    makeBlankQuestion(loadDraft(subject)?.currentIndex ?? 1)
   )
   const [subQuestions, setSubQuestions] = useState<QuestionDraft[]>([])
 
   const [questionStartMs, setQuestionStartMs] = useState(Date.now())
-  const [log, setLog] = useState<AnsweredRecord[]>(() =>
-    todayMode ? [] : (loadDraft(subject)?.log ?? [])
-  )
+  const [log, setLog] = useState<AnsweredRecord[]>(() => loadDraft(subject)?.log ?? [])
   const [totalElapsedMs, setTotalElapsedMs] = useState(0)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -73,22 +61,15 @@ export default function PracticeSessionPage() {
     { answer: string; isDoubtful: boolean; memos: Record<string, string> }[] | undefined
   >(undefined)
   const [resumedFrom] = useState(() => {
-    if (todayMode) return null
     const d = loadDraft(subject)
     return d && d.log.length > 0 ? d.currentIndex : null
   })
 
-  // Today mode: review modal state
-  const [reviewProblem, setReviewProblem] = useState<Problem | null>(null)
-  const [pendingNextIndex, setPendingNextIndex] = useState<number | null>(null)
-  const [pendingLog, setPendingLog] = useState<AnsweredRecord[] | null>(null)
-  const [pendingStartMs, setPendingStartMs] = useState<number | null>(null)
-
-  // ドラフト保存（today モードでは使わない）
+  // ドラフト保存
   useEffect(() => {
-    if (phase !== 'active' || todayMode) return
+    if (phase !== 'active') return
     saveDraft(subject, { currentIndex, log })
-  }, [currentIndex, log, phase, subject, todayMode])
+  }, [currentIndex, log, phase, subject])
 
   // ── 設問追加 / 削除 ──
   const handleAddSubQuestion = () => {
@@ -103,19 +84,7 @@ export default function PracticeSessionPage() {
   }
 
   // ── 前進（次問へ / 完了） ──
-  const performAdvance = (nextIdx: number, theLog: AnsweredRecord[], startMs: number) => {
-    setReviewProblem(null)
-    setPendingNextIndex(null)
-    setPendingLog(null)
-    setPendingStartMs(null)
-
-    if (todayMode && nextIdx > todayCards.length) {
-      const logTotal = theLog.reduce((s, r) => s + r.elapsedMs, 0)
-      setTotalElapsedMs(logTotal)
-      setPhase('complete')
-      return
-    }
-
+  const performAdvance = (nextIdx: number, startMs: number) => {
     setCurrentIndex(nextIdx)
     setCurrentQuestion(makeBlankQuestion(nextIdx))
     setSubQuestions([])
@@ -139,27 +108,7 @@ export default function PracticeSessionPage() {
     const nextIdx = currentIndex + 1
 
     setLog(newLog)
-
-    if (todayMode && currentIndex <= todayCards.length) {
-      // Show review modal before advancing
-      const card = todayCards[currentIndex - 1]
-      setPendingNextIndex(nextIdx)
-      setPendingLog(newLog)
-      setPendingStartMs(now)
-      fetchProblem(card.id)
-        .then((p) => setReviewProblem(p))
-        .catch(() => performAdvance(nextIdx, newLog, now))
-    } else {
-      performAdvance(nextIdx, newLog, now)
-    }
-  }
-
-  // ── Today モード: モーダル確認 ──
-  const handleModalConfirm = async (input: ProblemInput) => {
-    if (reviewProblem) {
-      await updateProblem(reviewProblem.id, input)
-    }
-    performAdvance(pendingNextIndex!, pendingLog!, pendingStartMs ?? Date.now())
+    performAdvance(nextIdx, now)
   }
 
   // ── 前の問題へ戻る ──
@@ -272,7 +221,7 @@ export default function PracticeSessionPage() {
     <div style={page}>
       <div style={sessionHeader}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {!todayMode && log.length > 0 && !reviewProblem && (
+          {log.length > 0 && (
             <button style={backBtn} onClick={handleGoBack} title="前の問題へ">
               <svg
                 width="14"
@@ -306,54 +255,22 @@ export default function PracticeSessionPage() {
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-          {todayMode && <span style={todayBadge}>TODAY'S FVIE</span>}
           {resumedFrom !== null && <span style={resumeBadge}>Q{resumedFrom}から再開</span>}
         </div>
-        {todayMode ? (
-          <span style={todayProgress}>
-            {log.length}/{todayCards.length}
-          </span>
-        ) : (
-          <button style={finishBtn} onClick={handleFinish}>
-            終了する
-          </button>
-        )}
+        <button style={finishBtn} onClick={handleFinish}>
+          終了する
+        </button>
       </div>
 
-      {todayMode && todayCards[currentIndex - 1] && (
-        <div style={todayCardRef}>
-          {todayCards[currentIndex - 1].front.material}_
-          {todayCards[currentIndex - 1].front.questionRef}
-        </div>
-      )}
-
-      {!reviewProblem && (
-        <PracticeAnswerView
-          key={currentQuestion.localId}
-          question={currentQuestion}
-          subQuestions={subQuestions}
-          subject={subject}
-          initialAnswers={pendingInitAnswers}
-          onSubmit={handleSubmit}
-          onAddSubQuestion={handleAddSubQuestion}
-          onRemoveSubQuestion={handleRemoveSubQuestion}
-          editableProblemId={todayMode ? todayCards[currentIndex - 1]?.id : undefined}
-        />
-      )}
-
-      {pendingNextIndex !== null && !reviewProblem && (
-        <div style={reviewLoading}>読み込み中...</div>
-      )}
-
-      {reviewProblem && (
-        <TodayCardModal
-          problem={reviewProblem}
-          cardIndex={log.length}
-          totalCards={todayCards.length}
-          onConfirm={handleModalConfirm}
-          onClose={() => setReviewProblem(null)}
-        />
-      )}
+      <PracticeAnswerView
+        key={currentQuestion.localId}
+        question={currentQuestion}
+        subQuestions={subQuestions}
+        initialAnswers={pendingInitAnswers}
+        onSubmit={handleSubmit}
+        onAddSubQuestion={handleAddSubQuestion}
+        onRemoveSubQuestion={handleRemoveSubQuestion}
+      />
     </div>
   )
 }
@@ -362,13 +279,6 @@ const page: React.CSSProperties = {
   margin: '0 auto',
   padding: '20px 16px 60px',
   color: c.text,
-}
-
-const reviewLoading: React.CSSProperties = {
-  padding: '32px 0',
-  textAlign: 'center',
-  fontSize: '13px',
-  color: 'rgba(55,53,47,0.4)',
 }
 
 const sessionHeader: React.CSSProperties = {
@@ -412,32 +322,6 @@ const resumeBadge: React.CSSProperties = {
   border: '1px solid rgba(35,131,226,0.2)',
   borderRadius: '4px',
   padding: '2px 7px',
-}
-
-const todayBadge: React.CSSProperties = {
-  fontSize: font.xs,
-  fontWeight: 700,
-  color: '#27ae60',
-  background: 'rgba(39,174,96,0.1)',
-  border: '1px solid rgba(39,174,96,0.2)',
-  borderRadius: '4px',
-  padding: '2px 7px',
-}
-
-const todayProgress: React.CSSProperties = {
-  fontSize: font.base,
-  fontWeight: 700,
-  color: c.text,
-  letterSpacing: '-0.01em',
-}
-
-const todayCardRef: React.CSSProperties = {
-  fontSize: '13px',
-  fontWeight: 600,
-  color: 'rgba(55,53,47,0.5)',
-  padding: '6px 0 12px',
-  borderBottom: `1px solid rgba(55,53,47,0.06)`,
-  marginBottom: '16px',
 }
 
 const finishBtn: React.CSSProperties = {

@@ -6,7 +6,6 @@ import {ProfileInfoSection} from '../components/profile/ProfileInfoSection'
 import {GeminiSettingsSection} from '../components/profile/GeminiSettingsSection'
 import {MaterialsSection} from '../components/profile/MaterialsSection'
 import {SubjectsSection} from '../components/profile/SubjectsSection'
-import {TicketTemplateSection} from '../components/profile/TicketTemplateSection'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
@@ -54,9 +53,6 @@ export default function ProfilePage() {
         <SectionHeading>アプリ設定</SectionHeading>
         <MaterialsSection />
         <SubjectsSection />
-
-        <SectionHeading>チケットテンプレート</SectionHeading>
-        <TicketTemplateSection />
 
         <button style={logoutBtn} onClick={handleLogout}>ログアウト</button>
       </div>

@@ -1,12 +1,5 @@
 import {apiFetch, extractApiError} from '../client'
-import type {
-  Flashcard,
-  SubjectActivityDay,
-  SubjectCountItem,
-  SubjectMonthlyGoal,
-  SubjectSettings,
-  SubjectSettingsItem,
-} from '../../types/workspace'
+import type {SubjectActivityDay, SubjectMonthlyGoal, SubjectSettings, SubjectSettingsItem,} from '../../types/workspace'
 
 export async function fetchSubjects(): Promise<string[]> {
   const res = await apiFetch('/api/subjects')
@@ -94,18 +87,3 @@ export async function fetchAllSubjectSettings(): Promise<SubjectSettingsItem[]> 
   return res.json()
 }
 
-export async function fetchSubjectCounts(): Promise<SubjectCountItem[]> {
-  const res = await apiFetch('/api/subjects/counts')
-  if (!res.ok) await extractApiError(res, '科目カウントの取得に失敗しました')
-  return res.json()
-}
-
-export async function fetchFlashcards(subject?: string, count?: number): Promise<Flashcard[]> {
-  const params = new URLSearchParams()
-  if (subject) params.set('subject', subject)
-  if (count !== undefined) params.set('count', String(count))
-  const qs = params.toString()
-  const res = await apiFetch(`/api/flashcards${qs ? `?${qs}` : ''}`)
-  if (!res.ok) await extractApiError(res, 'フラッシュカードの取得に失敗しました')
-  return res.json()
-}

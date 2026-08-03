@@ -4,7 +4,6 @@ import {ANSWER_OPTIONS, RANKS} from '@/types/exam.ts'
 import {DoubtIcon} from '@/lib/icon/DoubtIcon.tsx'
 import {c} from '@/styles/notion.ts'
 import {
-    addProblemBtn,
     addSubBtn,
     alphabetToggleBtn,
     alphabetToggleBtnActive,
@@ -47,12 +46,6 @@ import {
     wrap,
 } from './PracticeAnswerView.styles'
 import {AnswerInputPanel} from '@/components/exam/AnswerInputPanel.tsx'
-import {AddProblemModal} from '../note/AddProblemModal.tsx'
-import {ProblemQuickModal} from '../note/ProblemQuickModal.tsx'
-import {addProblem, fetchProblem} from '@/lib/api/problem.ts'
-import type {Problem, ProblemInput} from '@/types/workspace.ts'
-import {useSettingsStore} from '@/lib/store/settings.ts'
-import {invalidateCache} from '@/lib/pageCache.ts'
 
 type ViewPhase = 'input' | 'confirm'
 
@@ -78,7 +71,6 @@ type InitialAnswer = {
 type Props = {
   question: QuestionDraft
   subQuestions: QuestionDraft[]
-  subject: string
   initialAnswers?: InitialAnswer[]
   onSubmit: (payload: {
     answers: {
@@ -90,7 +82,6 @@ type Props = {
   }) => void
   onAddSubQuestion: () => void
   onRemoveSubQuestion: (localId: string) => void
-  editableProblemId?: number
 }
 
 const ALPHA_MAP: Record<string, string> = {
@@ -120,15 +111,12 @@ function makeInitial(): AnswerState {
 export function PracticeAnswerView({
   question,
   subQuestions,
-  subject,
   initialAnswers,
   onSubmit,
   onAddSubQuestion,
   onRemoveSubQuestion,
-  editableProblemId,
 }: Props) {
   const targets = subQuestions.length > 0 ? subQuestions : [question]
-  const materialName = useSettingsStore((s) => s.lastUsedMaterial)
 
   const [phase, setPhase] = useState<ViewPhase>('input')
   const [answers, setAnswers] = useState<AnswerState[]>(() =>
@@ -146,10 +134,6 @@ export function PracticeAnswerView({
       }
     })
   )
-  const [showModal, setShowModal] = useState(false)
-  const [editProblem, setEditProblem] = useState<Problem | null>(null)
-  const [editProblemLoading, setEditProblemLoading] = useState(false)
-  const subCategories = useSettingsStore((s) => s.subCategories)
 
   useEffect(() => {
     setAnswers((prev) => {
@@ -205,42 +189,6 @@ export function PracticeAnswerView({
         memos: a.isDescriptive ? {} : a.memos,
       })),
     })
-  }
-
-  const buildMemoNote = (): string => {
-    const parts = answers
-      .map((a, i) => {
-        const prefix =
-          subQuestions.length > 0 ? `【${targets[i]?.displayId || `設問${i + 1}`}】\n` : ''
-        if (a.isDescriptive) {
-          return a.descriptiveText.trim() ? `${prefix}${a.descriptiveText.trim()}` : null
-        }
-        const lines: string[] = []
-        if (a.generalMemo.trim()) lines.push(a.generalMemo.trim())
-        const entries = Object.entries(a.memos).filter(([, v]) => v.trim())
-        if (entries.length > 0)
-          lines.push(entries.map(([opt, text]) => `${opt}: ${text}`).join('\n'))
-        if (lines.length === 0) return null
-        return `${prefix}${lines.join('\n')}`
-      })
-      .filter(Boolean)
-    return parts.join('\n\n')
-  }
-
-  const handleAddProblem = async (input: ProblemInput) => {
-    const created = await addProblem(input)
-    return created
-  }
-
-  const handleOpenEdit = async () => {
-    if (!editableProblemId) return
-    setEditProblemLoading(true)
-    try {
-      const p = await fetchProblem(editableProblemId)
-      setEditProblem(p)
-    } catch { /* ignore */ } finally {
-      setEditProblemLoading(false)
-    }
   }
 
   // ── 確認フェーズ ─────────────────────────────────────────────────────────
@@ -363,46 +311,10 @@ export function PracticeAnswerView({
         </div>
 
         <div style={confirmActions}>
-          {editableProblemId ? (
-            <button style={addProblemBtn} onClick={handleOpenEdit} disabled={editProblemLoading}>
-              {editProblemLoading ? '...' : 'Problem編集'}
-            </button>
-          ) : (
-            <button style={addProblemBtn} onClick={() => setShowModal(true)}>
-              Problemへ追加
-            </button>
-          )}
           <button style={nextBtn} onClick={handleNext}>
             次の問題へ →
           </button>
         </div>
-
-        {showModal && (
-          <AddProblemModal
-            onSubmit={handleAddProblem}
-            onClose={() => setShowModal(false)}
-            subCategories={subCategories}
-            initial={{
-              subject,
-              materialName,
-              solvedAt: new Date().toISOString().slice(0, 10),
-              note: buildMemoNote() || null,
-            }}
-          />
-        )}
-
-        {editProblem && (
-          <ProblemQuickModal
-            problem={editProblem}
-            onClose={() => setEditProblem(null)}
-            onDelete={() => setEditProblem(null)}
-            onUpdate={(updated) => {
-              setEditProblem(updated)
-              invalidateCache('note-problems')
-            }}
-            hideQuizzes
-          />
-        )}
       </div>
     )
   }

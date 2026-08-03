@@ -1,7 +1,7 @@
-import {Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts'
+import {CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts'
 import type {SubjectActivityDay} from '../../types/workspace'
 
-type ChartRow = { day: number; date: string; studyMinutes: number; problemCount: number }
+type ChartRow = { day: number; date: string; studyMinutes: number }
 
 type Props = {
   data: SubjectActivityDay[]
@@ -21,12 +21,10 @@ export function SubjectActivityChart({ data, year, month }: Props) {
       day,
       date,
       studyMinutes: entry?.studyMinutes ?? 0,
-      problemCount: entry?.problemCount ?? 0,
     }
   })
 
   const maxMinutes = Math.max(...rows.map((r) => r.studyMinutes), 1)
-  const maxProblems = Math.max(...rows.map((r) => r.problemCount), 1)
 
   return (
     <div style={{ width: '100%', height: 160 }}>
@@ -48,25 +46,7 @@ export function SubjectActivityChart({ data, year, month }: Props) {
             axisLine={false}
             tickFormatter={(v) => (v === 0 ? '' : `${v}m`)}
           />
-          <YAxis
-            yAxisId="problems"
-            orientation="right"
-            domain={[0, Math.ceil(maxProblems * 1.5)]}
-            tick={{ fontSize: 9, fill: 'rgba(55,53,47,0.3)', fontWeight: 600 }}
-            tickLine={false}
-            axisLine={false}
-            allowDecimals={false}
-            tickFormatter={(v) => (v === 0 ? '' : `${v}`)}
-            width={20}
-          />
           <Tooltip content={<ActivityTooltip />} />
-          <Bar
-            yAxisId="problems"
-            dataKey="problemCount"
-            fill="rgba(235,87,87,0.18)"
-            radius={[2, 2, 0, 0]}
-            isAnimationActive={false}
-          />
           <Line
             yAxisId="minutes"
             type="monotone"
@@ -93,7 +73,7 @@ function ActivityTooltip({
 }) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
-  if (d.studyMinutes === 0 && d.problemCount === 0) return null
+  if (d.studyMinutes === 0) return null
   return (
     <div
       style={{
@@ -109,9 +89,6 @@ function ActivityTooltip({
       </div>
       {d.studyMinutes > 0 && (
         <div style={{ color: '#2383e2', fontWeight: 700 }}>{d.studyMinutes}分</div>
-      )}
-      {d.problemCount > 0 && (
-        <div style={{ color: '#eb5757', fontWeight: 600 }}>{d.problemCount}問 追加</div>
       )}
     </div>
   )

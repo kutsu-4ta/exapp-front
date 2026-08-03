@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {SubjectDangerZone} from '@/components/subject/SubjectDangerZone'
 import {SUBJECT_COLOR_OPTIONS, subjectPalette} from '@/styles/subjectUI'
-import type {SubCategory, SubjectAlertSettings, SubjectSettings} from '@/types/workspace'
+import type {SubjectAlertSettings, SubjectSettings} from '@/types/workspace'
 import {useSettingsStore} from '@/lib/store/settings'
 import {BottomSheet, sheetBottomCloseBtnStyle, sheetHeaderStyle} from '@/components/common/BottomSheet'
 
@@ -16,8 +16,6 @@ type Props = {
   handleAlertSave: () => void
   alertSaving: boolean
   alertSaved: boolean
-  subCategories: SubCategory[]
-  setSubCategories: (v: SubCategory[]) => void
   deleteSubject: (name: string) => Promise<void>
   subjects: string[]
   setSubjects: (v: string[]) => void
@@ -28,7 +26,7 @@ type Props = {
 export function SubjectSettingsModal({
   subjectName, settings, setSettings, saveSubjectSettings, settingsLoaded,
   subjectAlertSettings, setLocalSubjectAlertSettings, handleAlertSave, alertSaving, alertSaved,
-  subCategories, setSubCategories, deleteSubject, subjects, setSubjects, navigate, onClose,
+  deleteSubject, subjects, setSubjects, navigate, onClose,
 }: Props) {
   const autoPalette = subjectPalette(subjectName)
   const setSubjectColor = useSettingsStore((s) => s.setSubjectColor)
@@ -135,7 +133,7 @@ export function SubjectSettingsModal({
 
         {/* DANGER ZONE — Close より下に配置、スクロールが必要 */}
         <div style={{ paddingTop: '40px', paddingBottom: '12px' }}>
-          <SubjectDangerZone subjectName={subjectName} deleteSubject={deleteSubject} subjects={subjects} setSubjects={setSubjects} subCategories={subCategories} setSubCategories={setSubCategories} navigate={navigate} />
+          <SubjectDangerZone subjectName={subjectName} deleteSubject={deleteSubject} subjects={subjects} setSubjects={setSubjects} navigate={navigate} />
         </div>
       </div>
     </BottomSheet>

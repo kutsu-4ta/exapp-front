@@ -1,4 +1,4 @@
-import type {StudySession, StudySessionInput, SubCategory} from '../../types/workspace'
+import type {StudySession, StudySessionInput} from '../../types/workspace'
 import {useSettingsStore} from '../../lib/store/settings'
 import {useWorkspaceDraftStore} from '../../lib/store/workspaceDraft'
 import {useEffect, useId, useRef, useState} from 'react'
@@ -33,7 +33,6 @@ type Props = {
     initialMinutes?: number
     initialSubject?: string
     initialMaterial?: string
-    subCategories?: SubCategory[]
     onSave: (currentId: number | null, input: SaveInput) => Promise<number>
     onDelete: (currentId: number | null) => Promise<void>
     readonly?: boolean
@@ -45,7 +44,6 @@ export function StudyBlockRow({
     initialMinutes,
     initialSubject,
     initialMaterial,
-    subCategories = [],
     onSave,
     onDelete,
     readonly,
@@ -233,7 +231,6 @@ export function StudyBlockRow({
             {/* 小分類 */}
             <div style={flexRowSecondary}>
                 <input
-                    list={`${uid}-subcat`}
                     value={subCategoryName}
                     onChange={(e) => {
                         setSubCategoryName(e.target.value)
@@ -242,13 +239,6 @@ export function StudyBlockRow({
                     placeholder="小分類"
                     style={notionSubInp}
                 />
-                <datalist id={`${uid}-subcat`}>
-                    {subCategories
-                        .filter((sc) => sc.subject === subject)
-                        .map((sc) => (
-                            <option key={sc.id} value={sc.name} />
-                        ))}
-                </datalist>
             </div>
 
             {/* 教材 */}

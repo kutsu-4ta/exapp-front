@@ -1,16 +1,12 @@
 import {useEffect, useRef, useState} from 'react'
-import {deleteSubject, fetchSubjectCounts, renameSubject} from '../../lib/api/subjects'
+import {deleteSubject, renameSubject} from '../../lib/api/subjects'
 import {useSettingsStore} from '../../lib/store/settings'
 import {c, font} from '../../styles/notion'
-import type {SubjectCountItem} from '../../types/workspace'
 
 export function SubjectsSection() {
   const subjects = useSettingsStore((s) => s.subjects)
   const setSubjects = useSettingsStore((s) => s.setSubjects)
-  const subCategories = useSettingsStore((s) => s.subCategories)
-  const setSubCategories = useSettingsStore((s) => s.setSubCategories)
 
-  const [counts, setCounts] = useState<SubjectCountItem[]>([])
   const [editingSubject, setEditingSubject] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -19,17 +15,8 @@ export function SubjectsSection() {
   const editRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchSubjectCounts().then(setCounts).catch(() => {})
-  }, [])
-
-  useEffect(() => {
     if (editingSubject !== null) editRef.current?.focus()
   }, [editingSubject])
-
-  const countBySubject = (name: string) => {
-    const c = counts.find((x) => x.subject === name)
-    return c ? c.problemCount + c.ticketCount : 0
-  }
 
   const startEdit = (name: string) => { setEditingSubject(name); setEditingValue(name); setError(null) }
   const cancelEdit = () => { setEditingSubject(null); setEditingValue('') }
@@ -43,8 +30,6 @@ export function SubjectsSection() {
     try {
       await renameSubject(editingSubject, newName)
       setSubjects(subjects.map((s) => (s === editingSubject ? newName : s)))
-      setSubCategories(subCategories.map((sc) => sc.subject === editingSubject ? { ...sc, subject: newName } : sc))
-      setCounts((prev) => prev.map((c) => c.subject === editingSubject ? { ...c, subject: newName } : c))
       setEditingSubject(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '変更に失敗しました')
@@ -60,8 +45,6 @@ export function SubjectsSection() {
     try {
       await deleteSubject(deleteTarget)
       setSubjects(subjects.filter((s) => s !== deleteTarget))
-      setSubCategories(subCategories.filter((sc) => sc.subject !== deleteTarget))
-      setCounts((prev) => prev.filter((c) => c.subject !== deleteTarget))
       setDeleteTarget(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '削除に失敗しました')
@@ -104,7 +87,6 @@ export function SubjectsSection() {
               <div style={itemRow}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
                   <span style={itemName}>{name}</span>
-                  <span style={countBadge}>({countBySubject(name)})</span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => startEdit(name)} style={iconBtn}>Edit</button>
@@ -131,7 +113,6 @@ const note: React.CSSProperties = { fontSize: '11px', color: 'rgba(55,53,47,0.45
 const errorText: React.CSSProperties = { fontSize: '12px', color: c.red, marginBottom: '12px' }
 const itemRow: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }
 const itemName: React.CSSProperties = { fontSize: font.base, fontWeight: 600, color: '#37352f' }
-const countBadge: React.CSSProperties = { fontSize: '12px', color: 'rgba(55,53,47,0.4)', fontWeight: 400 }
 const iconBtn: React.CSSProperties = { background: 'none', border: 'none', fontSize: '12px', fontWeight: 600, color: 'rgba(55,53,47,0.45)', cursor: 'pointer', padding: '2px 6px' }
 const editRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0' }
 const editInput: React.CSSProperties = { flex: 1, border: '1px solid rgba(55,53,47,0.2)', borderRadius: '4px', padding: '6px 8px', fontSize: font.base, color: '#37352f', outline: 'none', backgroundColor: 'rgba(55,53,47,0.02)' }

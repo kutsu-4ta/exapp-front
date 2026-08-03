@@ -2,7 +2,6 @@ import {useEffect, useState} from 'react'
 import {deleteExamSession, fetchExamSession, fetchSubjectStats} from '../../lib/api/exam'
 import type {ExamQuestion, ExamSession, ExamSessionSummary, ExamSubjectStats, Rank} from '../../types/exam'
 import {RANKS} from '../../types/exam'
-import {ExamToTicketsModal} from './ExamToTicketsModal'
 import {DoubtIcon} from "@/lib/icon/DoubtIcon.tsx";
 import {sheetBottomCloseBtnStyle} from '@/components/common/BottomSheet'
 import {LoadingSpinner} from "@/components/common/LoadingSpinner.tsx";
@@ -147,8 +146,6 @@ export default function SubjectDetailView({
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [sessionLoading, setSessionLoading] = useState(false)
-  const [ticketsModalOpen, setTicketsModalOpen] = useState(false)
-  const [ticketCreatedMsg, setTicketCreatedMsg] = useState<string | null>(null)
   const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set())
 
   const toggleNote = (id: number) => {
@@ -326,17 +323,6 @@ export default function SubjectDetailView({
                             {selectedSession.createdAt.slice(0, 10).replace(/-/g, '/')}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          {selectedSession.questions.length > 0 && (
-                              <button
-                                  style={ticketizeBtn}
-                                  onClick={() => setTicketsModalOpen(true)}
-                                  title="チケット一括生成"
-                              >
-                                + チケット化
-                              </button>
-                          )}
-                        </div>
                       </div>
 
                       <div style={modalScoreRow}>
@@ -447,21 +433,6 @@ export default function SubjectDetailView({
             </div>
         )}
 
-        {ticketsModalOpen && selectedSession && (
-            <ExamToTicketsModal
-                session={selectedSession}
-                onClose={() => setTicketsModalOpen(false)}
-                onCreated={(count) => {
-                  setTicketsModalOpen(false)
-                  setTicketCreatedMsg(`${count}件のチケットをバックログに追加しました`)
-                  setTimeout(() => setTicketCreatedMsg(null), 3000)
-                }}
-            />
-        )}
-
-        {ticketCreatedMsg && (
-            <div style={toastMsg}>{ticketCreatedMsg}</div>
-        )}
       </div>
   )
 }
@@ -690,32 +661,6 @@ const modalQNoteExpanded: React.CSSProperties = {
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
   lineHeight: 1.5,
-}
-const ticketizeBtn: React.CSSProperties = {
-  padding: '4px 10px',
-  border: '1px solid rgba(35,131,226,0.35)',
-  borderRadius: '6px',
-  background: 'rgba(35,131,226,0.08)',
-  color: '#2383e2',
-  fontSize: '11px',
-  fontWeight: 700,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-}
-const toastMsg: React.CSSProperties = {
-  position: 'fixed',
-  bottom: 'calc(80px + env(safe-area-inset-bottom))',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  background: '#37352f',
-  color: '#fff',
-  padding: '10px 18px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: 700,
-  zIndex: 500,
-  whiteSpace: 'nowrap',
-  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
 }
 const modalQResult = (isCorrect: boolean | null): React.CSSProperties => ({
   fontSize: '13px',

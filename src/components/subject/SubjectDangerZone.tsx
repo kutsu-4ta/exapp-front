@@ -5,8 +5,6 @@ export function SubjectDangerZone({
                                       deleteSubject,
                                       subjects,
                                       setSubjects,
-                                      subCategories,
-                                      setSubCategories,
                                       navigate,
                                   }: any) {
     const handleDelete = async () => {
@@ -18,9 +16,6 @@ export function SubjectDangerZone({
         if (confirmed) {
             await deleteSubject(subjectName);
             setSubjects(subjects.filter((s: string) => s !== subjectName));
-            setSubCategories(
-                subCategories.filter((sc: any) => sc.subject !== subjectName)
-            );
             navigate("/");
         }
     };

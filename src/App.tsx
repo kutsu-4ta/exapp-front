@@ -15,17 +15,12 @@ const DashboardPage = lazy(() => import('./pages/dashboardPage'))
 const DailyLogsPage = lazy(() => import('./pages/dailyLogsPage'))
 const DailyWorkspacePage = lazy(() => import('./pages/./dailyWorkspacePage'))
 const ExamPage = lazy(() => import('./pages/examPage'))
-const NoteListPage = lazy(() => import('./pages/noteListPage'))
 const PracticeSessionPage = lazy(() => import('./pages/practiceSessionPage'))
-const MorningBugfixPage = lazy(() => import('./pages/morningBugfixPage'))
-const FlashBugfixPage = lazy(() => import('./pages/flashBugfixPage'))
 const ProfilePage = lazy(() => import('./pages/profilePage'))
 const SubjectPage = lazy(() => import('./pages/subjectPage'))
 const LoginPage = lazy(() => import('./pages/loginPage'))
 const PrivacyPage = lazy(() => import('./pages/privacyPage'))
 const TermsPage = lazy(() => import('./pages/termsPage'))
-const SprintPage = lazy(() => import('./pages/sprintPage'))
-const ProblemGraphPage = lazy(() => import('./pages/problemGraphPage'))
 
 function PageFallback() {
   return (
@@ -50,12 +45,10 @@ function AppLayout() {
   const isTablet = useIsTablet()
   const loadSubjects = useSettingsStore((s) => s.loadSubjects)
   const loadMaterials = useSettingsStore((s) => s.loadMaterials)
-  const loadSubCategories = useSettingsStore((s) => s.loadSubCategories)
 
   useEffect(() => {
     loadSubjects()
     loadMaterials()
-    loadSubCategories()
   }, [])
 
   if (isTablet) {
@@ -111,17 +104,11 @@ function App() {
               <Route path="/workspace/daily-logs" element={<DailyLogsPage />} />
               <Route path="/workspace/:date" element={<DailyWorkspacePage />} />
               <Route path="/exam" element={<ExamPage />} />
-              <Route path="/notelist" element={<NoteListPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/subjects/:name" element={<SubjectPage />} />
               <Route path="/practice/:subject" element={<PracticeSessionPage />} />
-              <Route path="/morning-bugfix" element={<MorningBugfixPage />} />
-              <Route path="/subjects/:name/flash-bugfix" element={<FlashBugfixPage />} />
-              <Route path="/sprint" element={<SprintPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
-            {/* フルスクリーン — AppLayout なし */}
-            <Route path="/problems/:id/graph" element={<ProblemGraphPage />} />
           </Route>
         </Routes>
       </Suspense>

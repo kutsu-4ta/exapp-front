@@ -1,30 +1,25 @@
 import {create} from 'zustand'
 import {fetchAllSubjectSettings, fetchSubjects} from '../api/subjects'
 import {fetchMaterials} from '../api/materials'
-import {fetchSubCategories} from '../api/subcategory'
 import {fetchSubjectAlertSettings} from '../api/subjectAlertSettings'
-import type {SubCategory, SubjectAlertSettings} from '../../types/workspace'
+import type {SubjectAlertSettings} from '../../types/workspace'
 
 interface SettingsState {
   subjects: string[]
   materials: string[]
-  subCategories: SubCategory[]
   subjectAlertSettings: Record<string, SubjectAlertSettings>
   subjectColors: Record<string, string>
   subjectsLoaded: boolean
   materialsLoaded: boolean
-  subCategoriesLoaded: boolean
   lastUsedMaterial: string
   setSubjects: (subjects: string[]) => void
   setMaterials: (materials: string[]) => void
-  setSubCategories: (subCategories: SubCategory[]) => void
   setSubjectAlertSettings: (subject: string, settings: SubjectAlertSettings) => void
   setSubjectColor: (subject: string, color: string | null) => void
   setLastUsedMaterial: (material: string) => void
   loadSubjects: () => Promise<void>
   loadSubjectColors: (subjects: string[]) => Promise<void>
   loadMaterials: () => Promise<void>
-  loadSubCategories: () => Promise<void>
   loadSubjectAlertSettings: (subject: string) => Promise<void>
   loadAllSubjectAlertSettings: (subjects: string[]) => Promise<void>
 }
@@ -32,16 +27,13 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
   subjects: [],
   materials: [],
-  subCategories: [],
   subjectAlertSettings: {},
   subjectColors: {},
   subjectsLoaded: false,
   materialsLoaded: false,
-  subCategoriesLoaded: false,
   lastUsedMaterial: localStorage.getItem('lastUsedMaterial') ?? '',
   setSubjects: (subjects) => set({ subjects }),
   setMaterials: (materials) => set({ materials }),
-  setSubCategories: (subCategories) => set({ subCategories }),
   setSubjectAlertSettings: (subject, settings) =>
     set((s) => ({ subjectAlertSettings: { ...s.subjectAlertSettings, [subject]: settings } })),
   setSubjectColor: (subject, color) =>
@@ -82,15 +74,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     try {
       const materials = await fetchMaterials()
       set({ materials, materialsLoaded: true })
-    } catch {
-      // silent fail
-    }
-  },
-  loadSubCategories: async () => {
-    if (get().subCategoriesLoaded) return
-    try {
-      const subCategories = await fetchSubCategories()
-      set({ subCategories, subCategoriesLoaded: true })
     } catch {
       // silent fail
     }

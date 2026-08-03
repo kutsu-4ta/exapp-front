@@ -36,22 +36,6 @@ export const DEFAULT_SUBJECT_ALERT_SETTINGS: SubjectAlertSettings = {
   minutesThreshold: 30,
 }
 
-export type SubCategoryRank = 'A' | 'B' | 'C' | 'D' | 'E'
-
-export type SubCategory = {
-  id: number
-  subject: string
-  name: string
-  rank: SubCategoryRank | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type SubCategoryInput = {
-  subject: string
-  name: string
-  rank?: SubCategoryRank | null
-}
 
 export type MonthlySettings = {
   year: number
@@ -163,80 +147,6 @@ export function formatDayOfWeek(dateStr: string): string {
   return DAYS[new Date(dateStr + 'T00:00:00').getDay()]
 }
 
-// ── Problem / Weak-point types ───────────────────────────────────────────────
-
-export type Flashcard = {
-  id: number
-  subject: string
-  front: {
-    questionRef: string
-    subCategory: string | null
-    material: string | null
-    solvedAt: string
-  }
-  back: {
-    note: string | null
-    proficiency: string
-    failureTypes: string[]
-    isGoodQuestion: boolean
-  }
-}
-
-export const PROFICIENCY_VALUES = ['○', '△', '×'] as const
-export type Proficiency = (typeof PROFICIENCY_VALUES)[number]
-
-export const FAILURE_TYPE_VALUES = ['定義', '解法', 'ケアレス'] as const
-export type FailureType = (typeof FAILURE_TYPE_VALUES)[number]
-
-export type Problem = {
-  id: number
-  subject: string
-  material: string
-  materialId: null
-  materialName: string | null
-  subCategory: string | null
-  questionRef: string
-  note: string | null
-  proficiency: Proficiency
-  failureTypes: FailureType[]
-  isGoodQuestion: boolean
-  isFormula: boolean
-  solvedAt: string // YYYY-MM-DD
-  lastTouchedAt: string | null // ISO datetime, updated on review
-  createdAt: string
-  updatedAt: string
-}
-
-export type ProblemQuiz = {
-  id: number
-  problemId: number
-  quizType: 'multiple_choice' | 'word_card'
-  question: string
-  options: string[]
-  correctIndex: number | null
-  explanation: string
-  createdAt: string
-}
-
-export type ProblemQuizInput = {
-  quizType: 'multiple_choice' | 'word_card'
-  question: string
-  options?: string[]
-  correctIndex?: number | null
-  explanation: string
-}
-
-export type AnalysisResponse = {
-  subject_name: string
-  sub_category_name: string
-  question_ref: string | null
-  note: string | null
-  proficiency: string
-  failure_types: string[]
-  is_good_question: boolean
-  solved_at: string
-}
-
 export type ChartDataPoint = {
   day: number
   date: string
@@ -245,26 +155,11 @@ export type ChartDataPoint = {
   range: [number, number]
 }
 
-export type ProblemInput = {
-  subject: string
-  materialId: number | null
-  materialName: string | null
-  subCategory: string | null
-  questionRef: string
-  note: string | null
-  proficiency: string
-  failureTypes: string[]
-  isGoodQuestion: boolean
-  isFormula: boolean
-  solvedAt: string
-}
-
 // ── Subject activity ─────────────────────────────────────────────────────────
 
 export type SubjectActivityDay = {
   date: string
   studyMinutes: number
-  problemCount: number
 }
 
 // ── Dashboard response ───────────────────────────────────────────────────────
@@ -283,8 +178,6 @@ export type SubjectSummaryItem = {
   finalTarget: string | null
   monthlyGoal: string | null
   studyMinutes: number
-  problemCount: number
-  failureStats: { type: string; count: number; ratio: number }[]
   recentExamScore: {
     examYear: number
     score: number
@@ -305,14 +198,6 @@ export type SubjectSettingsItem = {
   subject: string
   finalTarget: string | null
   themeColor: string | null
-}
-
-// ── Subject counts (aggregate) ────────────────────────────────────────────────
-
-export type SubjectCountItem = {
-  subject: string
-  problemCount: number
-  ticketCount: number
 }
 
 // ── Dashboard stats ──────────────────────────────────────────────────────────

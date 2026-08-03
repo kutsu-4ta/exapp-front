@@ -1,20 +1,19 @@
 import {
-    addStudySession,
-    completeDailyLog,
-    createDailyLog,
-    deleteDailyLog,
-    deleteStudySession,
-    fetchDailyLog,
-    uncompleteDailyLog,
-    updateReflection,
-    updateStudySession,
+  addStudySession,
+  completeDailyLog,
+  createDailyLog,
+  deleteDailyLog,
+  deleteStudySession,
+  fetchDailyLog,
+  uncompleteDailyLog,
+  updateReflection,
+  updateStudySession,
 } from '../lib/api/workspace'
 import {DayHeader} from '../components/workspace/DayHeader'
 import {DayReflection} from '../components/workspace/DayReflection'
 import {StudyBlockList} from '../components/workspace/StudyBlockList'
 import {useNavigate, useParams, useSearchParams} from 'react-router-dom'
 import type {DailyLog} from '../types/workspace'
-import {useSettingsStore} from '../lib/store/settings'
 import {Suspense, useCallback, useEffect, useRef, useState} from 'react'
 import {StopWatchWidget} from '@/components/dashboard/StopWatchWidget.tsx'
 import {LoadingSpinner} from '@/components/common/LoadingSpinner.tsx'
@@ -243,7 +242,6 @@ function WorkspaceDateContent() {
   const fromStopwatch = !!initialMinutes
   const stopwatchResetDone = useRef(false)
 
-  const subCategories = useSettingsStore((s) => s.subCategories)
   const [log, setLog] = useState<DailyLog | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -451,7 +449,6 @@ function WorkspaceDateContent() {
               initialMinutes={initialMinutes}
               initialSubject={initialSubject}
               initialMaterial={initialMaterial}
-              subCategories={subCategories}
               onAdd={handleAddSession}
               onUpdate={handleUpdateSession}
               onDelete={handleDeleteSession}
